@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "588938241196",
+    "project_id": "acollecorp-c0d70",
+    "storage_bucket": "acollecorp-c0d70.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:588938241196:android:9f100e8c56d5841a662b09",
+        "android_client_info": {
+          "package_name": "com.example.acolle1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDORH91M1hn9bIATLxlL_h4kYnQ_TwXoog"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
