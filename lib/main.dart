@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+
 import 'firebase_options.dart';
 import 'telas/splash_page.dart';
 
@@ -18,9 +20,27 @@ class AcolleApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: SplashPage(),
+
+      locale: const Locale('pt', 'BR'),
+
+      supportedLocales: const [
+        Locale('pt', 'BR'),
+      ],
+
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+
+      theme: ThemeData(
+        colorSchemeSeed: const Color(0xFF773FD1),
+        useMaterial3: true,
+      ),
+
+      home: const SplashPage(),
     );
   }
 }
