@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'login_page.dart';
 
 const Color roxoAcolle = Color(0xFF773FD1);
 const Color fundoAcolle = Color(0xFFFAF7FC);
@@ -23,8 +25,48 @@ class HomePage extends StatelessWidget {
             fontWeight: FontWeight.bold,
           ),
         ),
-      ),
+        actions: [
+          IconButton(
+            icon: const Icon(
+              Icons.logout,
+              color: roxoAcolle,
+            ),
+            onPressed: () async {
+      bool? sair = await showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Sair'),
+          content: const Text('Deseja realmente sair da conta?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Sair'),
+            ),
+          ],
+        ),
+      );
 
+  if (sair == true) {
+    await FirebaseAuth.instance.signOut();
+
+    if (!context.mounted) return;
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const LoginPage(),
+      ),
+      (route) => false,
+    );
+  }
+},
+          ),
+        ],
+      ),   
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
 
