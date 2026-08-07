@@ -1,0 +1,57 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incomingUid() {
+      return request.auth.uid;
+    }
+
+    match /usuarios/{uid} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow create: if isSignedIn() && request.auth.uid == uid;
+      allow update, delete: if isSignedIn() && request.auth.uid == uid;
+    }
+
+    match /verificacoes/{docId} {
+      allow read: if isSignedIn() && resource.data.usuarioId == incomingUid();
+      allow create: if isSignedIn()
+                    && request.resource.data.usuarioId == incomingUid();
+      allow update, delete: if isSignedIn()
+                            && resource.data.usuarioId == incomingUid();
+    }
+
+    match /contatos_emergencia/{docId} {
+      allow read: if isSignedIn() && resource.data.usuarioId == incomingUid();
+      allow create: if isSignedIn()
+                    && request.resource.data.usuarioId == incomingUid();
+      allow update, delete: if isSignedIn()
+                            && resource.data.usuarioId == incomingUid();
+    }
+
+    match /remedios/{docId} {
+      allow read: if isSignedIn() && resource.data.usuarioId == incomingUid();
+      allow create: if isSignedIn()
+                    && request.resource.data.usuarioId == incomingUid();
+      allow update, delete: if isSignedIn()
+                            && resource.data.usuarioId == incomingUid();
+    }
+
+    match /chamadas/{docId} {
+      allow read: if isSignedIn() && resource.data.usuarioId == incomingUid();
+      allow create: if isSignedIn()
+                    && request.resource.data.usuarioId == incomingUid();
+      allow update, delete: if isSignedIn()
+                            && resource.data.usuarioId == incomingUid();
+    }
+
+    match /numeros_suspeitos/{docId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+  }
+}

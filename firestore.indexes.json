@@ -1,0 +1,46 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "verificacoes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "usuarioId", "order": "ASCENDING" },
+        { "fieldPath": "data", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "verificacoes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "usuarioId", "order": "ASCENDING" },
+        { "fieldPath": "tipo", "order": "ASCENDING" },
+        { "fieldPath": "data", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "contatos_emergencia",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "usuarioId", "order": "ASCENDING" },
+        { "fieldPath": "criadoEm", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "remedios",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "usuarioId", "order": "ASCENDING" },
+        { "fieldPath": "ativo", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "chamadas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "usuarioId", "order": "ASCENDING" },
+        { "fieldPath": "data", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
