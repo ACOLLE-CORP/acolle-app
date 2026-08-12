@@ -7,18 +7,26 @@ import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Bundle
+import android.os.SystemClock
 import android.view.Gravity
-import android.view.View
 import android.view.WindowManager
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.Space
 import android.widget.TextView
+import android.widget.Toast
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URI
+import kotlin.concurrent.thread
 
 class IncomingCallAlertActivity : Activity() {
     companion object {
         const val EXTRA_NUMBER = "number"
         const val EXTRA_SUSPECT = "suspect"
+        const val EXTRA_ANALYZE = "analyze"
+        private const val WORKER_URL =
+            "https://acolle-spam-check.acolle-corp.workers.dev/verificar"
         private const val PURPLE = 0xFF302268.toInt()
         private const val ACCENT = 0xFF6C4CE6.toInt()
         private const val ORANGE = 0xFFFF981F.toInt()
@@ -36,18 +44,56 @@ class IncomingCallAlertActivity : Activity() {
                 WindowManager.LayoutParams.FLAG_ALLOW_LOCK_WHILE_SCREEN_ON,
         )
         window.attributes = window.attributes.apply { dimAmount = 0.32f }
-        render(intent)
+        handleIntent(intent)
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        render(intent)
+        handleIntent(intent)
     }
 
-    private fun render(source: Intent) {
+    private fun handleIntent(source: Intent) {
         val number = source.getStringExtra(EXTRA_NUMBER).orEmpty().ifBlank { "Número oculto" }
-        val suspect = source.getBooleanExtra(EXTRA_SUSPECT, false)
+        if (source.getBooleanExtra(EXTRA_ANALYZE, false)) {
+            render(number, null)
+            analyzeNumber(number)
+        } else {
+            render(number, source.getBooleanExtra(EXTRA_SUSPECT, false))
+        }
+    }
+
+    private fun analyzeNumber(number: String) {
+        thread(name = "acolle-debug-spam-check") {
+            val analysisStartedAt = SystemClock.elapsedRealtime()
+            try {
+                val connection = URI(WORKER_URL).toURL()
+                    .openConnection() as HttpURLConnection
+                connection.requestMethod = "POST"
+                connection.connectTimeout = 4_000
+                connection.readTimeout = 6_000
+                connection.setRequestProperty("Accept", "application/json")
+                connection.setRequestProperty("Content-Type", "application/json; charset=utf-8")
+                connection.doOutput = true
+                connection.outputStream.bufferedWriter(Charsets.UTF_8).use {
+                    it.write(JSONObject().put("numero", number).toString())
+                }
+                if (connection.responseCode !in 200..299) {
+                    throw IllegalStateException("Worker respondeu ${connection.responseCode}")
+                }
+                val payload = connection.inputStream.bufferedReader().use { it.readText() }
+                val suspect = JSONObject(payload).optBoolean("suspeito", false)
+                val remainingDisplayTime =
+                    2_000L - (SystemClock.elapsedRealtime() - analysisStartedAt)
+                if (remainingDisplayTime > 0) Thread.sleep(remainingDisplayTime)
+                runOnUiThread { if (!isFinishing) render(number, suspect) }
+            } catch (_: Exception) {
+                runOnUiThread { if (!isFinishing) renderError(number) }
+            }
+        }
+    }
+
+    private fun render(number: String, suspect: Boolean?) {
         val density = resources.displayMetrics.density
         fun dp(value: Int) = (value * density).toInt()
 
@@ -77,9 +123,19 @@ class IncomingCallAlertActivity : Activity() {
             letterSpacing = 0.14f
         })
         card.addView(space(18))
-        card.addView(label(if (suspect) "!" else "✓", 42f, Color.WHITE, true).apply {
+        val statusIcon = when (suspect) {
+            true -> "!"
+            false -> "✓"
+            null -> "…"
+        }
+        val statusColor = when (suspect) {
+            true -> ORANGE
+            false -> ACCENT
+            null -> 0xFF1976D2.toInt()
+        }
+        card.addView(label(statusIcon, 42f, Color.WHITE, true).apply {
             gravity = Gravity.CENTER
-            background = rounded(if (suspect) ORANGE else ACCENT, 44f)
+            background = rounded(statusColor, 44f)
             elevation = dp(8).toFloat()
         }, LinearLayout.LayoutParams(dp(88), dp(88)))
         card.addView(space(18))
@@ -88,11 +144,15 @@ class IncomingCallAlertActivity : Activity() {
         card.addView(label(number, 17f, 0xFF77738A.toInt(), false))
         card.addView(space(18))
 
-        val warningColor = if (suspect) ORANGE else GREEN
-        val warningText = if (suspect) {
-            "⚠  Número suspeito detectado"
-        } else {
-            "✓  Nenhuma denúncia encontrada"
+        val warningColor = when (suspect) {
+            true -> ORANGE
+            false -> GREEN
+            null -> 0xFF1976D2.toInt()
+        }
+        val warningText = when (suspect) {
+            true -> "⚠  Número suspeito detectado"
+            false -> "✓  Nenhuma denúncia encontrada"
+            null -> "⌛  Analisando o número..."
         }
         card.addView(label(warningText, 17f, PURPLE, true).apply {
             gravity = Gravity.CENTER_VERTICAL
@@ -101,8 +161,11 @@ class IncomingCallAlertActivity : Activity() {
         }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(58)))
         card.addView(space(10))
         card.addView(label(
-            if (suspect) "Não informe senhas, códigos ou dados bancários."
-            else "A ausência de denúncias não garante que a ligação seja segura.",
+            when (suspect) {
+                true -> "Não informe senhas, códigos ou dados bancários."
+                false -> "A ausência de denúncias não garante que a ligação seja segura."
+                null -> "Consultando a base de denúncias. Aguarde um instante."
+            },
             14f,
             0xFF696477.toInt(),
             false,
@@ -123,6 +186,15 @@ class IncomingCallAlertActivity : Activity() {
         })
         card.addView(actions)
         setContentView(root)
+    }
+
+    private fun renderError(number: String) {
+        render(number, null)
+        Toast.makeText(
+            this,
+            "Não foi possível verificar. Tente novamente em alguns segundos.",
+            Toast.LENGTH_LONG,
+        ).show()
     }
 
     private fun label(text: String, size: Float, color: Int, bold: Boolean) =
