@@ -118,9 +118,7 @@ class NotificacaoService {
     required int quantidade,
   }) async {
     for (var i = 0; i < quantidade; i++) {
-      final dataHora = primeiroHorario.add(
-        Duration(days: i * intervaloDias),
-      );
+      final dataHora = primeiroHorario.add(Duration(days: i * intervaloDias));
 
       await _criarAlarme(
         id: _gerarId(docId, i),
@@ -129,7 +127,8 @@ class NotificacaoService {
       );
     }
   }
-    static Future<void> _agendarMultiplasVezesAoDia({
+
+  static Future<void> _agendarMultiplasVezesAoDia({
     required String docId,
     required String nome,
     required DateTime primeiroHorario,
@@ -143,10 +142,7 @@ class NotificacaoService {
     for (var dia = 0; dia < dias; dia++) {
       for (var vez = 0; vez < vezesAoDia; vez++) {
         final dataHora = primeiroHorario.add(
-          Duration(
-            days: dia,
-            hours: vez * intervaloHoras,
-          ),
+          Duration(days: dia, hours: vez * intervaloHoras),
         );
 
         if (dataHora.isBefore(agora)) continue;
@@ -174,10 +170,11 @@ class NotificacaoService {
       loopAudio: true,
       vibrate: true,
       androidFullScreenIntent: true,
-      volumeSettings: VolumeSettings.fade(
-        volume: 1.0,
-        fadeDuration: const Duration(seconds: 3),
-        volumeEnforced: true,
+      // Usa o volume atual do aparelho sem alterá-lo nem exibir a barra
+      // lateral de volume. O volume forçado fazia o indicador subir sozinho.
+      volumeSettings: const VolumeSettings.fixed(
+        volumeEnforced: false,
+        showSystemUI: false,
       ),
       notificationSettings: NotificationSettings(
         title: 'Hora do remédio 💊',
@@ -230,43 +227,29 @@ class NotificacaoService {
     final token = await _messaging.getToken();
 
     if (token != null) {
-      await FirebaseFirestore.instance
-          .collection('usuarios')
-          .doc(user.uid)
-          .set(
-        {
-          'fcmToken': token,
-        },
+      await FirebaseFirestore.instance.collection('usuarios').doc(user.uid).set(
+        {'fcmToken': token},
         SetOptions(merge: true),
       );
     }
 
     _messaging.onTokenRefresh.listen((novoToken) {
-      FirebaseFirestore.instance
-          .collection('usuarios')
-          .doc(user.uid)
-          .set(
-        {
-          'fcmToken': novoToken,
-        },
-        SetOptions(merge: true),
-      );
+      FirebaseFirestore.instance.collection('usuarios').doc(user.uid).set({
+        'fcmToken': novoToken,
+      }, SetOptions(merge: true));
     });
 
     return token;
   }
-    static Future<void> inscreverTopicoSeguranca() async {
+
+  static Future<void> inscreverTopicoSeguranca() async {
     await _messaging.subscribeToTopic('avisos_seguranca');
   }
 }
 
 @pragma('vm:entry-point')
-Future<void> notificacaoBackgroundMessageHandler(
-  RemoteMessage message,
-) async {
+Future<void> notificacaoBackgroundMessageHandler(RemoteMessage message) async {
   if (kDebugMode) {
-    debugPrint(
-      'Background message recebida: ${message.messageId}',
-    );
+    debugPrint('Background message recebida: ${message.messageId}');
   }
 }

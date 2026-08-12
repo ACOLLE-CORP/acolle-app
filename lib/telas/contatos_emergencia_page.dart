@@ -59,7 +59,8 @@ class _ContatosEmergenciaPageState extends State<ContatosEmergenciaPage> {
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
                   final msg = snapshot.error.toString();
-                  final waiting = msg.contains('failed-precondition') ||
+                  final waiting =
+                      msg.contains('failed-precondition') ||
                       msg.contains('building') ||
                       msg.contains('currently building');
                   if (waiting) {
@@ -75,8 +76,11 @@ class _ContatosEmergenciaPageState extends State<ContatosEmergenciaPage> {
                             padding: EdgeInsets.all(24),
                             child: Column(
                               children: [
-                                Icon(Icons.hourglass_top,
-                                    size: 72, color: Colors.orange),
+                                Icon(
+                                  Icons.hourglass_top,
+                                  size: 72,
+                                  color: Colors.orange,
+                                ),
                                 SizedBox(height: 16),
                                 Text(
                                   'Preparando índice do Firestore...\nAguarde alguns segundos.',
@@ -84,9 +88,13 @@ class _ContatosEmergenciaPageState extends State<ContatosEmergenciaPage> {
                                   style: TextStyle(fontSize: 17),
                                 ),
                                 SizedBox(height: 16),
-                                Text('Puxe para baixo para tentar de novo',
-                                    style: TextStyle(
-                                        color: Colors.grey, fontSize: 14)),
+                                Text(
+                                  'Puxe para baixo para tentar de novo',
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 14,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -101,8 +109,10 @@ class _ContatosEmergenciaPageState extends State<ContatosEmergenciaPage> {
                         padding: const EdgeInsets.all(20),
                         child: SelectableText(
                           'ERRO ao carregar contatos:\n${snapshot.error}',
-                          style:
-                              const TextStyle(color: Colors.red, fontSize: 13),
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
                     ],
@@ -116,8 +126,10 @@ class _ContatosEmergenciaPageState extends State<ContatosEmergenciaPage> {
                       Center(
                         child: Padding(
                           padding: EdgeInsets.all(20),
-                          child: Text('Carregando contatos...',
-                              style: TextStyle(fontSize: 18)),
+                          child: Text(
+                            'Carregando contatos...',
+                            style: TextStyle(fontSize: 18),
+                          ),
                         ),
                       ),
                     ],
@@ -159,11 +171,14 @@ class _ContatosEmergenciaPageState extends State<ContatosEmergenciaPage> {
         onPressed: () => Navigator.push(
           context,
           MaterialPageRoute(
-              builder: (context) => const AdicionarContatoEmergenciaPage()),
+            builder: (context) => const AdicionarContatoEmergenciaPage(),
+          ),
         ),
         icon: const Icon(Icons.person_add_alt_1),
-        label: const Text('Adicionar',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        label: const Text(
+          'Adicionar',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         backgroundColor: AcolleDesign.roxo,
       ),
     );
@@ -200,13 +215,18 @@ class _ItemContato extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(nome,
-                    style: const TextStyle(
-                        fontSize: 19, fontWeight: FontWeight.bold)),
+                Text(
+                  nome,
+                  style: const TextStyle(
+                    fontSize: 19,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(height: 4),
-                Text(telefone,
-                    style: const TextStyle(
-                        fontSize: 16, color: Colors.black54)),
+                Text(
+                  telefone,
+                  style: const TextStyle(fontSize: 16, color: Colors.black54),
+                ),
               ],
             ),
           ),
@@ -224,12 +244,20 @@ class _ItemContato extends StatelessWidget {
                 },
               ),
               IconButton(
-                tooltip: 'Enviar mensagem',
+                tooltip: 'Enviar pelo WhatsApp',
                 icon: const Icon(Icons.message, color: AcolleDesign.roxo),
                 onPressed: () async {
-                  final ok = await EmergenciaService.abrirSms(telefone,
-                      'Oi $nome, preciso de ajuda. Mensagem do app Acolle.');
-                  if (ok) AcolleDesign.snackbar(context, 'Mensagens abertas.');
+                  final ok = await EmergenciaService.abrirWhatsApp(
+                    telefone,
+                    'Oi $nome, preciso de ajuda. Mensagem do app Acolle.',
+                  );
+                  if (!context.mounted) return;
+                  AcolleDesign.snackbar(
+                    context,
+                    ok
+                        ? 'WhatsApp aberto.'
+                        : 'Não foi possível abrir o WhatsApp.',
+                  );
                 },
               ),
               IconButton(
@@ -305,9 +333,7 @@ class _AdicionarContatoEmergenciaPageState
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
-      await FirebaseFirestore.instance
-          .collection('contatos_emergencia')
-          .add({
+      await FirebaseFirestore.instance.collection('contatos_emergencia').add({
         'usuarioId': user.uid,
         'nome': nome,
         'telefone': telefone,
@@ -315,12 +341,14 @@ class _AdicionarContatoEmergenciaPageState
       });
       if (!mounted) return;
       Navigator.pop(context);
-      AcolleDesign.snackbar(context, 'Contato adicionado!',
-          cor: AcolleDesign.verde);
+      AcolleDesign.snackbar(
+        context,
+        'Contato adicionado!',
+        cor: AcolleDesign.verde,
+      );
     } catch (e) {
       if (mounted) {
-        AcolleDesign.snackbar(
-            context, 'Erro ao salvar: $e');
+        AcolleDesign.snackbar(context, 'Erro ao salvar: $e');
       }
     } finally {
       if (mounted) setState(() => _carregando = false);
@@ -334,7 +362,9 @@ class _AdicionarContatoEmergenciaPageState
         await launchUrl(uri);
       } else {
         AcolleDesign.snackbar(
-            context, 'Conceda permissão de contatos nas Configurações.');
+          context,
+          'Conceda permissão de contatos nas Configurações.',
+        );
       }
     } catch (_) {
       AcolleDesign.snackbar(context, 'Não foi possível abrir os contatos.');
@@ -352,8 +382,11 @@ class _AdicionarContatoEmergenciaPageState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(Icons.person_add_alt_1,
-                  size: 70, color: AcolleDesign.roxo),
+              const Icon(
+                Icons.person_add_alt_1,
+                size: 70,
+                color: AcolleDesign.roxo,
+              ),
               const SizedBox(height: 12),
               const Text(
                 'Adicionar contato de emergência',
@@ -378,8 +411,10 @@ class _AdicionarContatoEmergenciaPageState
                 icone: Icons.phone_outlined,
                 teclado: TextInputType.phone,
                 suffix: IconButton(
-                  icon: const Icon(Icons.contact_page_outlined,
-                      color: AcolleDesign.roxo),
+                  icon: const Icon(
+                    Icons.contact_page_outlined,
+                    color: AcolleDesign.roxo,
+                  ),
                   onPressed: _abrirContatos,
                 ),
               ),

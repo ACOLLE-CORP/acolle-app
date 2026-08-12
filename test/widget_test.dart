@@ -10,7 +10,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:acolle1/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+  testWidgets('Splash mostra a identidade do Acolle', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(const AcolleApp());
 
     expect(find.text('Acolle'), findsOneWidget);

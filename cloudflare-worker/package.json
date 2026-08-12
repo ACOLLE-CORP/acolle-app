@@ -1,0 +1,12 @@
+{
+  "name": "acolle-spam-check",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "wrangler": "^4.30.0"
+  }
+}

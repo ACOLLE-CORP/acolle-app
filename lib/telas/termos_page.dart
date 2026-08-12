@@ -3,6 +3,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import 'onboarding_contato_emergencia_page.dart';
 import 'permissao_page.dart';
+import 'configurar_protecao_chamadas_page.dart';
 import '../shared/acolle_design.dart';
 
 /// Tela de Termos e Condições + Privacidade no onboarding do Acolle.
@@ -55,31 +56,33 @@ Este termo pode ser atualizado. Sempre que mudar algo importante, mostraremos es
               'suspeitos, precisamos identificar o número de quem está ligando.',
           permissao: Permission.phone,
           rotuloPermitir: 'Permitir chamadas',
-          proxima: (context) => PermissaoPage(
-            icone: Icons.mic,
-            titulo: 'Permitir microfone',
-            explicacao:
-                'Você pode falar a mensagem que quer analisar. Precisamos do '
-                'microfone para transformar sua voz em texto.',
-            permissao: Permission.microphone,
-            rotuloPermitir: 'Permitir microfone',
+          proxima: (context) => ConfigurarProtecaoChamadasPage(
             proxima: (context) => PermissaoPage(
-              icone: Icons.notifications_active,
-              titulo: 'Ativar notificações',
+              icone: Icons.mic,
+              titulo: 'Permitir microfone',
               explicacao:
-                  'Vamos avisar você sobre chamadas suspeitas, lembretes de '
-                  'remédios e dicas de segurança. Para isso, ative as notificações.',
-              permissao: Permission.notification,
-              rotuloPermitir: 'Ativar notificações',
+                  'Você pode falar a mensagem que quer analisar. Precisamos do '
+                  'microfone para transformar sua voz em texto.',
+              permissao: Permission.microphone,
+              rotuloPermitir: 'Permitir microfone',
               proxima: (context) => PermissaoPage(
-                icone: Icons.contact_page_outlined,
-                titulo: 'Permitir acesso aos contatos',
+                icone: Icons.notifications_active,
+                titulo: 'Ativar notificações',
                 explicacao:
-                    'Com os seus contatos, podemos ajudar você a chamar alguém de '
-                    'confiança quando sentir dúvida.',
-                permissao: Permission.contacts,
-                rotuloPermitir: 'Permitir contatos',
-                proxima: (context) => const OnboardingContatoEmergenciaPage(),
+                    'Vamos avisar você sobre chamadas suspeitas, lembretes de '
+                    'remédios e dicas de segurança. Para isso, ative as notificações.',
+                permissao: Permission.notification,
+                rotuloPermitir: 'Ativar notificações',
+                proxima: (context) => PermissaoPage(
+                  icone: Icons.contact_page_outlined,
+                  titulo: 'Permitir acesso aos contatos',
+                  explicacao:
+                      'Com os seus contatos, podemos ajudar você a chamar alguém de '
+                      'confiança quando sentir dúvida.',
+                  permissao: Permission.contacts,
+                  rotuloPermitir: 'Permitir contatos',
+                  proxima: (context) => const OnboardingContatoEmergenciaPage(),
+                ),
               ),
             ),
           ),
@@ -102,8 +105,11 @@ Este termo pode ser atualizado. Sempre que mudar algo importante, mostraremos es
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.privacy_tip_outlined,
-                        size: 60, color: AcolleDesign.roxo),
+                    const Icon(
+                      Icons.privacy_tip_outlined,
+                      size: 60,
+                      color: AcolleDesign.roxo,
+                    ),
                     const SizedBox(height: 12),
                     const Text(
                       'Leia com calma antes de continuar',

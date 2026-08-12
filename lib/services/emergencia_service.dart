@@ -20,6 +20,43 @@ class EmergenciaService {
     return _launch(uri, 'Não foi possível abrir as mensagens.');
   }
 
+  /// Abre uma conversa no WhatsApp com uma mensagem de emergência pronta.
+  /// Telefones locais com DDD recebem automaticamente o código do Brasil.
+  static Future<bool> abrirWhatsApp(String numero, String corpo) async {
+    final telefone = normalizarNumeroWhatsApp(numero);
+    if (telefone.isEmpty) return false;
+
+    final query = Uri(
+      queryParameters: {'phone': telefone, 'text': corpo},
+    ).query;
+
+    // Primeiro tenta abrir diretamente o aplicativo instalado.
+    final appUri = Uri.parse('whatsapp://send?$query');
+    try {
+      if (await launchUrl(appUri, mode: LaunchMode.externalApplication)) {
+        return true;
+      }
+    } catch (e) {
+      debugPrint('WhatsApp nativo indisponível: $e');
+    }
+
+    // O link oficial também abre o app; se ele não estiver instalado, abre
+    // o WhatsApp Web no navegador em vez de deixar o botão sem resposta.
+    final webUri = Uri.https('wa.me', '/$telefone', {'text': corpo});
+    return _launch(webUri, 'Não foi possível abrir o WhatsApp.');
+  }
+
+  @visibleForTesting
+  static String normalizarNumeroWhatsApp(String numero) {
+    var digitos = numero.replaceAll(RegExp(r'\D'), '');
+    if (digitos.startsWith('00')) digitos = digitos.substring(2);
+    if ((digitos.length == 10 || digitos.length == 11) &&
+        !digitos.startsWith('55')) {
+      digitos = '55$digitos';
+    }
+    return digitos;
+  }
+
   /// Envia SMS sem abrir o app (requer permissão SEND_SMS em AndroidManifest).
   /// Em UIThread/lados onde o launcher nativo não resolve, deixamos como
   /// fallback do `abrirSms`.

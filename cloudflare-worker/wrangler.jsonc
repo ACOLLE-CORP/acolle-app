@@ -1,0 +1,23 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "acolle-spam-check",
+  "main": "src/index.js",
+  "compatibility_date": "2026-08-11",
+  "workers_dev": true,
+  "preview_urls": false,
+  "ratelimits": [
+    {
+      "name": "CLIENT_RATE_LIMITER",
+      "namespace_id": "1001",
+      "simple": { "limit": 5, "period": 60 }
+    },
+    {
+      "name": "UPSTREAM_RATE_LIMITER",
+      "namespace_id": "1002",
+      "simple": { "limit": 1, "period": 10 }
+    }
+  ],
+  "secrets": {
+    "required": ["OPENSPAM_API_KEY"]
+  }
+}

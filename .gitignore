@@ -32,6 +32,11 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+.gradle-task/
+.wrangler/
+**/.wrangler/
+.dev.vars
+**/.dev.vars
 
 # Symbolication related
 app.*.symbols
