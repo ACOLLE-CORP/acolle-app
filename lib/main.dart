@@ -6,6 +6,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'firebase_options.dart';
 import 'services/notificacao_service.dart';
+import 'services/acessibilidade_service.dart';
 import 'telas/splash_page.dart';
 import 'telas/tela_alarme_tocando.dart';
 
@@ -23,6 +24,7 @@ void main() async {
 
   FirebaseMessaging.onBackgroundMessage(notificacaoBackgroundMessageHandler);
   await NotificacaoService.inicializar();
+  await AcessibilidadeService.instance.carregar();
 
   runApp(const AcolleApp());
 }
@@ -54,28 +56,46 @@ class _AcolleAppState extends State<AcolleApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      navigatorKey: navigatorKey,
-      debugShowCheckedModeBanner: false,
+    // Reconstrói o MaterialApp sempre que o usuário mudar o tamanho do
+    // texto ou o alto contraste em qualquer tela do app.
+    return ListenableBuilder(
+      listenable: AcessibilidadeService.instance,
+      builder: (context, _) {
+        final acessibilidade = AcessibilidadeService.instance;
 
-      locale: const Locale('pt', 'BR'),
+        return MaterialApp(
+          navigatorKey: navigatorKey,
+          debugShowCheckedModeBanner: false,
 
-      supportedLocales: const [
-        Locale('pt', 'BR'),
-      ],
+          locale: const Locale('pt', 'BR'),
 
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
+          supportedLocales: const [
+            Locale('pt', 'BR'),
+          ],
 
-      theme: ThemeData(
-        colorSchemeSeed: const Color(0xFF773FD1),
-        useMaterial3: true,
-      ),
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
 
-      home: const SplashPage(),
+        
+
+          // Aplica a escala de texto escolhida pelo usuário a TODO o app,
+          // sem precisar alterar cada TextStyle das telas individualmente.
+          builder: (context, child) {
+            final mediaQuery = MediaQuery.of(context);
+            return MediaQuery(
+              data: mediaQuery.copyWith(
+                textScaler: TextScaler.linear(acessibilidade.escalaTexto),
+              ),
+              child: child!,
+            );
+          },
+
+          home: const SplashPage(),
+        );
+      },
     );
   }
 }

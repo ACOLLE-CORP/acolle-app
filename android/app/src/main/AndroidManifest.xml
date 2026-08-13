@@ -19,9 +19,9 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
 
     <application
-        android:label="acolle1"
+        android:label="Acolle"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/icon">
 
         <activity
             android:name=".MainActivity"
@@ -74,6 +74,17 @@
                 <action android:name="android.telecom.CallScreeningService" />
             </intent-filter>
         </service>
+
+        <service
+            android:name=".NotificationListener"
+            android:label="Acolle Notification Listener"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+        
 
         <!-- Receivers do flutter_local_notifications: mantêm o alarme agendado
              funcionando e o reagendam depois que o aparelho reinicia. -->

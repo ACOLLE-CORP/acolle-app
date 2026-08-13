@@ -105,7 +105,7 @@ class AcolleCallScreeningService : CallScreeningService() {
         manager.notify(
             normalizedNotificationId(number),
             NotificationCompat.Builder(this, CHANNEL_ID)
-                .setSmallIcon(R.mipmap.ic_launcher)
+                .setSmallIcon(R.mipmap.icon)
                 .setContentTitle("Não foi possível verificar a chamada")
                 .setContentText(warning)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(warning))
@@ -179,7 +179,7 @@ class AcolleCallScreeningService : CallScreeningService() {
         manager.notify(
             notificationId,
             NotificationCompat.Builder(this, CHANNEL_ID)
-                .setSmallIcon(R.mipmap.ic_launcher)
+                .setSmallIcon(R.mipmap.icon)
                 .setContentTitle(title)
                 .setContentText(message)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(message))

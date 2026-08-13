@@ -129,7 +129,7 @@ class IncomingCallAlertActivity : Activity() {
             null -> "…"
         }
         val statusColor = when (suspect) {
-            true -> ORANGE
+            true -> PURPLE
             false -> ACCENT
             null -> 0xFF1976D2.toInt()
         }
@@ -139,13 +139,13 @@ class IncomingCallAlertActivity : Activity() {
             elevation = dp(8).toFloat()
         }, LinearLayout.LayoutParams(dp(88), dp(88)))
         card.addView(space(18))
-        card.addView(label("Número desconhecido", 25f, PURPLE, true))
+        card.addView(label("Número desconhecido", 25f, ORANGE, true))
         card.addView(space(6))
         card.addView(label(number, 17f, 0xFF77738A.toInt(), false))
         card.addView(space(18))
 
         val warningColor = when (suspect) {
-            true -> ORANGE
+            true -> PURPLE
             false -> GREEN
             null -> 0xFF1976D2.toInt()
         }

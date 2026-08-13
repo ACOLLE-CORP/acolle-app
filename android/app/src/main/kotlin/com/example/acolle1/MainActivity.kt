@@ -1,13 +1,16 @@
 package com.example.acolle1
 
 import android.app.role.RoleManager
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.net.Uri
 import android.os.Build
 import android.provider.Settings
-import android.content.Intent
-import android.net.Uri
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
@@ -16,10 +19,36 @@ class MainActivity : FlutterActivity() {
         private const val PREFS = "acolle_caller_id"
         private const val NUMBERS_KEY = "suspect_numbers"
         private const val ROLE_REQUEST_CODE = 7412
+
+        // Novo: canais do Notification Listener
+        private const val CHANNEL_NOTIF_METODOS = "com.example.acolle1/notification_settings"
+        private const val CHANNEL_NOTIF_EVENTOS = "com.example.acolle1/notification_events"
+    }
+
+    // Novo: sink do EventChannel para mandar notificações capturadas ao Dart
+    private var eventSink: EventChannel.EventSink? = null
+
+    // Novo: receiver que escuta o broadcast enviado pelo NotificationListener.kt
+    private val notificationReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val pacote = intent.getStringExtra("pacote") ?: ""
+            val titulo = intent.getStringExtra("titulo") ?: ""
+            val texto = intent.getStringExtra("texto") ?: ""
+
+            eventSink?.success(
+                mapOf(
+                    "pacote" to pacote,
+                    "titulo" to titulo,
+                    "texto" to texto
+                )
+            )
+        }
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+
+        // Canal já existente: call screening / overlay / suspect numbers
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
             .setMethodCallHandler { call, result ->
                 when (call.method) {
@@ -40,6 +69,43 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+
+        // Novo: canal de métodos do Notification Listener (permissão)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL_NOTIF_METODOS)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "isPermissaoConcedida" -> {
+                        val habilitados = Settings.Secure.getString(
+                            contentResolver, "enabled_notification_listeners"
+                        )
+                        val concedida = habilitados?.contains(packageName) == true
+                        result.success(concedida)
+                    }
+                    "abrirConfiguracoes" -> {
+                        startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                        result.success(null)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+
+        // Novo: canal de eventos (stream) do Notification Listener
+        EventChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL_NOTIF_EVENTOS)
+            .setStreamHandler(object : EventChannel.StreamHandler {
+                override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+                    eventSink = events
+                    registerReceiver(
+                        notificationReceiver,
+                        IntentFilter("com.example.acolle1.NOVA_NOTIFICACAO"),
+                        Context.RECEIVER_EXPORTED
+                    )
+                }
+
+                override fun onCancel(arguments: Any?) {
+                    eventSink = null
+                    unregisterReceiver(notificationReceiver)
+                }
+            })
     }
 
     private fun isScreeningRoleEnabled(): Boolean {

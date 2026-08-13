@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../shared/acolle_design.dart';
 import '../services/acolle_api.dart';
+import '../services/notification_listener_service.dart';
 
 /// Tela de Verificar Link: campo de URL, análise via API IA + Firestore.
 class VerificarLinkPage extends StatefulWidget {
@@ -18,6 +20,64 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> {
   bool _carregando = false;
   Map<String, dynamic>? _resultado;
   String? _erro;
+
+  // Novo: estado e assinatura do Notification Listener
+  bool _permissaoNotificacaoConcedida = false;
+  StreamSubscription<Map<String, dynamic>>? _subscricaoNotificacoes;
+
+  // Reconhece um link dentro de um texto maior (ex: "Olha essa promoção
+  // https://golpe.com aproveita!"), já que a notificação pode trazer a
+  // mensagem inteira, não só a URL.
+  static final RegExp _regexLink = RegExp(
+    r'(https?:\/\/[^\s]+)',
+    caseSensitive: false,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _verificarPermissaoNotificacao();
+  }
+
+  // Novo: verifica a permissão e, se já concedida, começa a escutar
+  Future<void> _verificarPermissaoNotificacao() async {
+    final concedida = await NotificationListenerService.permissaoConcedida();
+
+    if (!mounted) return;
+    setState(() => _permissaoNotificacaoConcedida = concedida);
+
+    if (concedida) {
+      _iniciarEscutaDeNotificacoes();
+    }
+  }
+
+  // Novo: leva o usuário às configurações do sistema para ativar
+  Future<void> _ativarNotificationListener() async {
+    await NotificationListenerService.abrirConfiguracoes();
+    await _verificarPermissaoNotificacao();
+  }
+
+  // Novo: escuta notificações e, se houver um link no texto, analisa
+  void _iniciarEscutaDeNotificacoes() {
+    _subscricaoNotificacoes?.cancel();
+    _subscricaoNotificacoes = NotificationListenerService.notificacoes.listen(
+      (notificacao) {
+        final texto = notificacao['texto'] as String? ?? '';
+        if (texto.trim().isEmpty || _carregando) return;
+
+        final match = _regexLink.firstMatch(texto);
+        if (match == null) return; // notificação sem link, ignora aqui
+
+        final link = match.group(0)!;
+
+        setState(() {
+          _linkController.text = link;
+        });
+
+        _analisarLink();
+      },
+    );
+  }
 
   Future<void> _analisarLink() async {
     final link = _linkController.text.trim();
@@ -86,6 +146,7 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> {
   @override
   void dispose() {
     _linkController.dispose();
+    _subscricaoNotificacoes?.cancel(); // Novo
     super.dispose();
   }
 
@@ -99,6 +160,9 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Novo: card convidando a ativar a verificação automática
+            if (!_permissaoNotificacaoConcedida) _buildCardAtivarAutomatico(),
+
             const Text(
               'Verifique se um link é seguro antes de clicar',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
@@ -154,6 +218,50 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> {
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  // Novo: card explicando e oferecendo ativar a verificação automática
+  Widget _buildCardAtivarAutomatico() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AcolleDesign.roxo.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.notifications_active_outlined, color: AcolleDesign.roxo),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Verificação automática',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Ative para o Acolle analisar sozinho os links que chegam '
+            'no WhatsApp e SMS, sem precisar colar aqui.',
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: _ativarNotificationListener,
+              style: OutlinedButton.styleFrom(foregroundColor: AcolleDesign.roxo),
+              child: const Text('Ativar verificação automática'),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -260,5 +368,4 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> {
       ],
     );
   }
-
-  }
+}

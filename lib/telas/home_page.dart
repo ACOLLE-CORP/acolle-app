@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../services/caller_id_service.dart';
+import '../services/acessibilidade_service.dart';
 import '../services/emergencia_service.dart';
 import 'analisar_mensagem_page.dart';
 import 'contatos_emergencia_page.dart';
@@ -14,6 +15,7 @@ import 'lembretes_remedios_page.dart';
 import 'login_page.dart';
 import 'perfil_page.dart';
 import 'verificar_link_page.dart';
+
 
 const Color roxoAcolle = Color(0xFF773FD1);
 const Color fundoAcolle = Color(0xFFFAF7FC);
@@ -44,7 +46,6 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final TextEditingController _buscaController = TextEditingController();
   String _busca = '';
-  double _escalaTexto = 1;
   bool _altoContraste = false;
 
   @override
@@ -144,16 +145,17 @@ class _HomePageState extends State<HomePage> {
                     const Icon(Icons.text_decrease, size: 30),
                     Expanded(
                       child: Slider(
-                        value: _escalaTexto,
-                        min: 0.9,
-                        max: 1.4,
-                        divisions: 5,
-                        label: '${(_escalaTexto * 100).round()}%',
-                        onChanged: (valor) {
-                          setState(() => _escalaTexto = valor);
-                          setModalState(() {});
-                        },
-                      ),
+                      value: AcessibilidadeService.instance.escalaTexto,
+                      min: 0.9,
+                      max: 1.4,
+                      divisions: 5,
+                      label:
+                          '${(AcessibilidadeService.instance.escalaTexto * 100).round()}%',
+                      onChanged: (valor) {
+                        AcessibilidadeService.instance.alterarEscalaTexto(valor);
+                        setModalState(() {});
+                      },
+                    ),
                     ),
                     const Icon(Icons.text_increase, size: 30),
                   ],
@@ -364,11 +366,7 @@ class _HomePageState extends State<HomePage> {
             borda: Color(0xFFD4CBDD),
           );
 
-    return MediaQuery(
-      data: MediaQuery.of(
-        context,
-      ).copyWith(textScaler: TextScaler.linear(_escalaTexto)),
-      child: Scaffold(
+    return Scaffold(
         backgroundColor: cores.fundo,
         appBar: AppBar(
           backgroundColor: cores.fundo,
@@ -421,10 +419,9 @@ class _HomePageState extends State<HomePage> {
                 _buildStatusSeguranca(cores),
               ],
             ),
-          ),
-        ),
+          ),  
       ),
-    );
+    ); 
   }
 
   Widget _buildBarraBusca(_CoresHome cores) {
