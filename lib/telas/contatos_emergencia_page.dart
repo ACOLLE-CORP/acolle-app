@@ -180,6 +180,7 @@ class _ContatosEmergenciaPageState extends State<ContatosEmergenciaPage> {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         backgroundColor: AcolleDesign.roxo,
+        foregroundColor: Colors.white,
       ),
     );
   }

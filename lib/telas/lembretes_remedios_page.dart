@@ -280,7 +280,7 @@ class _ItemLembreteState extends State<_ItemLembrete> {
           Switch.adaptive(
             value: _ativo,
             activeTrackColor: AcolleDesign.verde,
-            activeThumbColor: AcolleDesign.verde,
+            activeThumbColor: const Color.fromARGB(255, 218, 224, 218),
             onChanged: _alternar,
           ),
           IconButton(

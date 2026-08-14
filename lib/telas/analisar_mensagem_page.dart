@@ -26,7 +26,6 @@ class _AnalisarMensagemPageState extends State<AnalisarMensagemPage> {
   Map<String, dynamic>? _resultado;
   String? _erro;
 
-  // Novo: estado e assinatura do Notification Listener
   bool _permissaoNotificacaoConcedida = false;
   StreamSubscription<Map<String, dynamic>>? _subscricaoNotificacoes;
 
@@ -51,7 +50,6 @@ class _AnalisarMensagemPageState extends State<AnalisarMensagemPage> {
     setState(() {});
   }
 
-  // Novo: verifica a permissão e, se já concedida, começa a escutar
   Future<void> _verificarPermissaoNotificacao() async {
     final concedida = await NotificationListenerService.permissaoConcedida();
 
@@ -63,31 +61,65 @@ class _AnalisarMensagemPageState extends State<AnalisarMensagemPage> {
     }
   }
 
-  // Novo: leva o usuário às configurações do sistema para ativar
   Future<void> _ativarNotificationListener() async {
     await NotificationListenerService.abrirConfiguracoes();
-    // Ao voltar da tela de sistema, checa de novo se foi ativado
     await _verificarPermissaoNotificacao();
   }
 
-  // Novo: escuta notificações do WhatsApp/SMS e analisa automaticamente
+  // Atualizado: o Kotlin já faz a análise sozinho (mesmo com o app
+  // fechado) e dispara o alerta nativo quando o risco é relevante.
+  // Aqui, a tela só EXIBE o resultado que já veio pronto no evento —
+  // não chama a API de novo, evitando duplicar a análise e o
+  // registro no Firestore.
   void _iniciarEscutaDeNotificacoes() {
     _subscricaoNotificacoes?.cancel();
     _subscricaoNotificacoes = NotificationListenerService.notificacoes.listen(
       (notificacao) {
         final texto = notificacao['texto'] as String? ?? '';
-        if (texto.trim().isEmpty || _carregando) return;
+        final classificacao = notificacao['classificacao'] as String?;
+
+        // Se por algum motivo o resultado não veio pronto (ex: versão
+        // antiga do app nativo), ignora — evita mostrar tela quebrada.
+        if (texto.trim().isEmpty || classificacao == null) return;
+
+        final resultado = <String, dynamic>{
+          'classificacao': classificacao,
+          'risco': notificacao['risco'] ?? 0,
+          'recomendacao': notificacao['recomendacao'] ?? '',
+          'motivos': const <String>[], // o Kotlin não envia motivos detalhados
+        };
 
         setState(() {
           _controller.text = texto;
-          _controller.selection = TextSelection.fromPosition(
-            TextPosition(offset: _controller.text.length),
-          );
+          _resultado = resultado;
+          _erro = null;
         });
 
-        _analisar();
+        _salvarResultadoDaNotificacao(texto, resultado);
       },
     );
+  }
+
+  // Novo: salva o resultado já calculado pelo Kotlin, sem rechamar a API.
+  Future<void> _salvarResultadoDaNotificacao(
+    String texto,
+    Map<String, dynamic> resultado,
+  ) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      await FirebaseFirestore.instance.collection('verificacoes').add({
+        'usuarioId': user.uid,
+        'tipo': 'mensagem',
+        'conteudo': texto,
+        'risco': resultado['classificacao'] ?? 'desconhecido',
+        'percentual': resultado['risco'] ?? 0,
+        'data': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      debugPrint('Erro ao salvar verificação vinda da notificação: $e');
+    }
   }
 
   Future<void> _alternarGravacao() async {
@@ -121,6 +153,8 @@ class _AnalisarMensagemPageState extends State<AnalisarMensagemPage> {
     );
   }
 
+  // Fluxo manual (usuário cola ou dita o texto): continua chamando a
+  // API normalmente, como antes.
   Future<void> _analisar() async {
     if (_controller.text.trim().isEmpty) return;
 
@@ -136,7 +170,6 @@ class _AnalisarMensagemPageState extends State<AnalisarMensagemPage> {
         _resultado = resposta;
       });
 
-      // Salvar no Firestore
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         await FirebaseFirestore.instance.collection('verificacoes').add({
@@ -149,14 +182,11 @@ class _AnalisarMensagemPageState extends State<AnalisarMensagemPage> {
         });
       }
     } on AcolleApiException catch (e) {
-      // Erro vindo da API (status HTTP, timeout, formato inesperado, etc).
-      // Isso te mostra o motivo real em vez de uma mensagem genérica.
       debugPrint('Erro Acolle API: $e');
       setState(() {
         _erro = 'Não foi possível analisar agora. Detalhe: $e';
       });
     } catch (e) {
-      // Qualquer outro erro (ex: falha ao salvar no Firestore).
       debugPrint('Erro inesperado ao analisar: $e');
       setState(() {
         _erro = 'Ocorreu um erro inesperado. Tente novamente.';
@@ -185,7 +215,7 @@ class _AnalisarMensagemPageState extends State<AnalisarMensagemPage> {
   void dispose() {
     _speech.stop();
     _controller.dispose();
-    _subscricaoNotificacoes?.cancel(); // Novo
+    _subscricaoNotificacoes?.cancel();
     super.dispose();
   }
 
@@ -207,7 +237,6 @@ class _AnalisarMensagemPageState extends State<AnalisarMensagemPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Novo: card convidando a ativar a verificação automática
             if (!_permissaoNotificacaoConcedida) _buildCardAtivarAutomatico(),
 
             const Text(
@@ -230,8 +259,6 @@ class _AnalisarMensagemPageState extends State<AnalisarMensagemPage> {
               ),
             ),
             const SizedBox(height: 12),
-
-            // Botão do microfone
             Center(
               child: GestureDetector(
                 onTap: _alternarGravacao,
@@ -257,7 +284,6 @@ class _AnalisarMensagemPageState extends State<AnalisarMensagemPage> {
                 style: const TextStyle(color: Colors.grey),
               ),
             ),
-
             const SizedBox(height: 20),
             SizedBox(
               height: 55,
@@ -291,7 +317,6 @@ class _AnalisarMensagemPageState extends State<AnalisarMensagemPage> {
     );
   }
 
-  // Novo: card explicando e oferecendo ativar a verificação automática
   Widget _buildCardAtivarAutomatico() {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
@@ -319,7 +344,7 @@ class _AnalisarMensagemPageState extends State<AnalisarMensagemPage> {
           const SizedBox(height: 8),
           const Text(
             'Ative para o Acolle analisar sozinho as mensagens que chegam '
-            'no WhatsApp e SMS, sem precisar colar aqui.',
+            'no WhatsApp e SMS, mesmo com o app fechado.',
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -381,7 +406,7 @@ class _AnalisarMensagemPageState extends State<AnalisarMensagemPage> {
                   child: Text('• $m'),
                 )),
           ],
-          if (recomendacao != null) ...[
+          if (recomendacao != null && recomendacao.isNotEmpty) ...[
             const SizedBox(height: 14),
             const Text('Recomendação:', style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 4),

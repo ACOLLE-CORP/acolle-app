@@ -277,6 +277,7 @@ class _PerfilPageState extends State<PerfilPage> {
       child: ElevatedButton.icon(
         style: ElevatedButton.styleFrom(
           backgroundColor: roxoAcolle,
+          foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
         onPressed: () => setState(() => _editando = true),

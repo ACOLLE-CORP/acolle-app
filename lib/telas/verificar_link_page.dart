@@ -21,13 +21,10 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> {
   Map<String, dynamic>? _resultado;
   String? _erro;
 
-  // Novo: estado e assinatura do Notification Listener
   bool _permissaoNotificacaoConcedida = false;
   StreamSubscription<Map<String, dynamic>>? _subscricaoNotificacoes;
 
-  // Reconhece um link dentro de um texto maior (ex: "Olha essa promoção
-  // https://golpe.com aproveita!"), já que a notificação pode trazer a
-  // mensagem inteira, não só a URL.
+  // Usado só para extrair o link do texto da notificação, para exibição.
   static final RegExp _regexLink = RegExp(
     r'(https?:\/\/[^\s]+)',
     caseSensitive: false,
@@ -39,7 +36,6 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> {
     _verificarPermissaoNotificacao();
   }
 
-  // Novo: verifica a permissão e, se já concedida, começa a escutar
   Future<void> _verificarPermissaoNotificacao() async {
     final concedida = await NotificationListenerService.permissaoConcedida();
 
@@ -51,34 +47,67 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> {
     }
   }
 
-  // Novo: leva o usuário às configurações do sistema para ativar
   Future<void> _ativarNotificationListener() async {
     await NotificationListenerService.abrirConfiguracoes();
     await _verificarPermissaoNotificacao();
   }
 
-  // Novo: escuta notificações e, se houver um link no texto, analisa
+  // Atualizado: o Kotlin já analisa e envia o resultado pronto — a tela
+  // só exibe, sem rechamar a API. Só processa se houver um link no
+  // texto (senão é uma mensagem comum, tratada em analisar_mensagem_page).
   void _iniciarEscutaDeNotificacoes() {
     _subscricaoNotificacoes?.cancel();
     _subscricaoNotificacoes = NotificationListenerService.notificacoes.listen(
       (notificacao) {
         final texto = notificacao['texto'] as String? ?? '';
-        if (texto.trim().isEmpty || _carregando) return;
+        final classificacao = notificacao['classificacao'] as String?;
+        if (texto.trim().isEmpty || classificacao == null) return;
 
         final match = _regexLink.firstMatch(texto);
-        if (match == null) return; // notificação sem link, ignora aqui
+        if (match == null) return; // sem link, não é para esta tela
 
         final link = match.group(0)!;
 
+        final resultado = <String, dynamic>{
+          'classificacao': classificacao,
+          'risco': notificacao['risco'] ?? 0,
+          'recomendacao': notificacao['recomendacao'] ?? '',
+          'motivos': const <String>[],
+        };
+
         setState(() {
           _linkController.text = link;
+          _resultado = resultado;
+          _erro = null;
         });
 
-        _analisarLink();
+        _salvarResultadoDaNotificacao(link, resultado);
       },
     );
   }
 
+  Future<void> _salvarResultadoDaNotificacao(
+    String link,
+    Map<String, dynamic> resultado,
+  ) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      await FirebaseFirestore.instance.collection('verificacoes').add({
+        'usuarioId': user.uid,
+        'tipo': 'link',
+        'conteudo': link,
+        'risco': resultado['classificacao'] ?? 'desconhecido',
+        'percentual': resultado['risco'] ?? 0,
+        'data': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      debugPrint('Erro ao salvar verificação vinda da notificação: $e');
+    }
+  }
+
+  // Fluxo manual: continua chamando a API normalmente.
   Future<void> _analisarLink() async {
     final link = _linkController.text.trim();
 
@@ -102,7 +131,6 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> {
       final resposta = await AcolleApi.analisarLink(link);
       setState(() => _resultado = resposta);
 
-      // Salvar no Firestore
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         await FirebaseFirestore.instance.collection('verificacoes').add({
@@ -146,7 +174,7 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> {
   @override
   void dispose() {
     _linkController.dispose();
-    _subscricaoNotificacoes?.cancel(); // Novo
+    _subscricaoNotificacoes?.cancel();
     super.dispose();
   }
 
@@ -160,7 +188,6 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Novo: card convidando a ativar a verificação automática
             if (!_permissaoNotificacaoConcedida) _buildCardAtivarAutomatico(),
 
             const Text(
@@ -222,7 +249,6 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> {
     );
   }
 
-  // Novo: card explicando e oferecendo ativar a verificação automática
   Widget _buildCardAtivarAutomatico() {
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
@@ -250,7 +276,7 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> {
           const SizedBox(height: 8),
           const Text(
             'Ative para o Acolle analisar sozinho os links que chegam '
-            'no WhatsApp e SMS, sem precisar colar aqui.',
+            'no WhatsApp e SMS, mesmo com o app fechado.',
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -346,7 +372,7 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> {
             ),
           ),
         ],
-        if (recomendacao != null) ...[
+        if (recomendacao != null && recomendacao.isNotEmpty) ...[
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(16),

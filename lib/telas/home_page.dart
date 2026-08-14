@@ -46,12 +46,19 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final TextEditingController _buscaController = TextEditingController();
   String _busca = '';
-  bool _altoContraste = false;
+  bool _sosEmAndamento = false;
 
   @override
   void initState() {
     super.initState();
+    AcessibilidadeService.instance.addListener(_onAcessibilidadeChanged);
+    AcessibilidadeService.instance.carregar();
     _iniciarCallerId();
+  }
+
+  void _onAcessibilidadeChanged() {
+    if (!mounted) return;
+    setState(() {});
   }
 
   Future<void> _iniciarCallerId() async {
@@ -121,8 +128,26 @@ class _HomePageState extends State<HomePage> {
       context: context,
       showDragHandle: true,
       builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) => Padding(
-          padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+        builder: (context, setModalState) {
+          final altoContraste = AcessibilidadeService.instance.altoContraste;
+
+          return Theme(
+            data: Theme.of(context).copyWith(
+              brightness:
+                  altoContraste ? Brightness.dark : Brightness.light,
+              scaffoldBackgroundColor:
+                  altoContraste ? Colors.black : Colors.white,
+              colorScheme: altoContraste
+                  ? const ColorScheme.dark(
+                      primary: Colors.white,
+                      onPrimary: Colors.black,
+                      surface: Colors.black,
+                      onSurface: Colors.white,
+                    )
+                  : ColorScheme.fromSeed(seedColor: roxoAcolle),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
           // FIX 4: SingleChildScrollView evita overflow do modal em telas
           // pequenas quando _escalaTexto aumenta o tamanho do conteúdo.
           child: SingleChildScrollView(
@@ -170,9 +195,9 @@ class _HomePageState extends State<HomePage> {
                     'Aumenta a diferença entre cores.',
                     style: TextStyle(fontSize: 16),
                   ),
-                  value: _altoContraste,
+                  value: AcessibilidadeService.instance.altoContraste,
                   onChanged: (valor) {
-                    setState(() => _altoContraste = valor);
+                    AcessibilidadeService.instance.alterarAltoContraste(valor);
                     setModalState(() {});
                   },
                 ),
@@ -185,162 +210,132 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
         ),
+          );
+        },
       ),
     );
   }
 
-  void _confirmarEmergencia() {
+/// Aciona o SOS com uma única interação.
+  ///
+  /// O contato principal é o primeiro contato da lista de emergência
+  /// é obtido do Firestore. Se não houver contatos, o usuário é avisado
+  /// A lista completa continua disponível em "Contatos de emergência".
+  Future<void> _executarSOS() async {
+    if (_sosEmAndamento) return;
+
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
-    showModalBottomSheet<void>(
-      context: context,
-      isDismissible: true,
-      showDragHandle: true,
-      builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-          // FIX 3: SingleChildScrollView garante que, em telas baixas
-          // (landscape/dispositivos pequenos), o conteúdo do modal role
-          // em vez de estourar a altura disponível.
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(
-                  'Pedir ajuda agora',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: roxoAcolle,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Toque em "Ligar" para chamar um contato de emergência. '
-                  'Você também pode enviar uma mensagem automática.',
-                  style: TextStyle(fontSize: 16, color: Colors.black87),
-                ),
-                const SizedBox(height: 12),
-                // FIX 3: altura relativa à tela em vez de valor fixo (300),
-                // evitando overflow em telas menores.
-                ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxHeight: MediaQuery.of(context).size.height * 0.4,
-                  ),
-                  child: StreamBuilder(
-                    stream: FirebaseFirestore.instance
-                        .collection('contatos_emergencia')
-                        .where('usuarioId', isEqualTo: user.uid)
-                        .orderBy('criadoEm', descending: true)
-                        .snapshots(),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-                      final docs = snapshot.data?.docs ?? [];
-                      if (docs.isEmpty) {
-                        return Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.contact_emergency_outlined,
-                              size: 48,
-                              color: Colors.grey,
-                            ),
-                            const SizedBox(height: 8),
-                            const Text(
-                              'Você ainda não tem contatos de emergência.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(fontSize: 16),
-                            ),
-                            const SizedBox(height: 12),
-                            FilledButton.icon(
-                              icon: const Icon(Icons.add),
-                              label: const Text('Adicionar agora'),
-                              onPressed: () {
-                                Navigator.pop(sheetContext);
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const ContatosEmergenciaPage(),
-                                  ),
-                                );
-                              },
-                            ),
-                          ],
-                        );
-                      }
-                      return ListView.separated(
-                        shrinkWrap: true,
-                        itemCount: docs.length,
-                        separatorBuilder: (_, _) => const Divider(height: 1),
-                        itemBuilder: (context, index) {
-                          final d = docs[index].data();
-                          final nome = d['nome'] as String? ?? '';
-                          final telefone = d['telefone'] as String? ?? '';
-                          return ListTile(
-                            leading: const Icon(
-                              Icons.person,
-                              color: roxoAcolle,
-                            ),
-                            title: Text(
-                              nome,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            subtitle: Text(telefone),
-                            trailing: Wrap(
-                              children: [
-                                IconButton(
-                                  tooltip: 'Ligar',
-                                  icon: const Icon(
-                                    Icons.phone,
-                                    color: Colors.green,
-                                  ),
-                                  onPressed: () =>
-                                      EmergenciaService.ligarPara(telefone),
-                                ),
-                                IconButton(
-                                  tooltip: 'Enviar pelo WhatsApp',
-                                  icon: const Icon(
-                                    Icons.message,
-                                    color: roxoAcolle,
-                                  ),
-                                  onPressed: () => EmergenciaService.abrirWhatsApp(
-                                    telefone,
-                                    'Oi $nome, preciso de ajuda. Mensagem do app Acolle.',
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.red.shade700,
-                  ),
-                  icon: const Icon(Icons.local_police),
-                  label: const Text('Ligar para 190 (Polícia)'),
-                  onPressed: () => EmergenciaService.ligarPara('190'),
-                ),
-              ],
+
+    setState(() => _sosEmAndamento = true);
+
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('contatos_emergencia')
+          .where('usuarioId', isEqualTo: user.uid)
+          .orderBy('criadoEm', descending: true)
+          .limit(1)
+          .get();
+
+      if (!mounted) return;
+
+      if (snapshot.docs.isEmpty) {
+        setState(() => _sosEmAndamento = false);
+        _mostrarSemContatoEmergencia();
+        return;
+      }
+
+      final dados = snapshot.docs.first.data();
+      final nome = dados['nome'] as String? ?? 'contato de emergência';
+      final telefone = dados['telefone'] as String? ?? '';
+
+      if (telefone.trim().isEmpty) {
+        setState(() => _sosEmAndamento = false);
+        _mostrarErroSOS('O contato principal não possui um telefone cadastrado.');
+        return;
+      }
+
+      // Fecha qualquer teclado/elemento de entrada antes de iniciar a ação.
+      FocusScope.of(context).unfocus();
+
+      // Ação principal do SOS: ligação imediata, sem tela intermediária.
+      EmergenciaService.ligarPara(telefone);
+
+      if (!mounted) return;
+      setState(() => _sosEmAndamento = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Ligando para $nome...'),
+          duration: const Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+          action: SnackBarAction(
+            label: 'CONTATOS',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ContatosEmergenciaPage(),
+              ),
             ),
           ),
         ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _sosEmAndamento = false);
+      _mostrarErroSOS('Não foi possível iniciar a ligação de emergência.');
+    }
+  }
+
+  void _mostrarSemContatoEmergencia() {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        icon: const Icon(
+          Icons.contact_emergency_outlined,
+          color: roxoAcolle,
+          size: 48,
+        ),
+        title: const Text('Contato de emergência'),
+        content: const Text(
+          'Para usar o SOS com um toque, cadastre pelo menos um contato de emergência.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Agora não'),
+          ),
+          FilledButton.icon(
+            icon: const Icon(Icons.add),
+            label: const Text('Cadastrar'),
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ContatosEmergenciaPage(),
+                ),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
 
+  void _mostrarErroSOS(String mensagem) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(mensagem),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+  
+
   @override
   void dispose() {
+    AcessibilidadeService.instance.removeListener(_onAcessibilidadeChanged);
     CallerIdService.pararMonitoramento();
     _buscaController.dispose();
     super.dispose();
@@ -352,28 +347,40 @@ class _HomePageState extends State<HomePage> {
     final saudacao = nome?.isNotEmpty == true
         ? 'Olá, ${nome!.split(' ').first}!'
         : 'Olá!';
-    final cores = _altoContraste
+    final altoContraste = AcessibilidadeService.instance.altoContraste;
+
+    final cores = altoContraste
         ? const _CoresHome(
-            fundo: Colors.white,
-            texto: Colors.black,
-            card: Color(0xFFF0F0F0),
-            borda: Colors.black,
+            fundo: Colors.black,
+            texto: Colors.white,
+            card: Colors.black,
+            borda: Colors.white,
+            campo: Colors.black,
+            icone: Colors.white,
+            textoSecundario: Colors.white,
+            destaque: Colors.white,
+            destaqueTexto: Colors.black,
           )
         : const _CoresHome(
             fundo: fundoAcolle,
             texto: Color(0xFF25212B),
             card: cinzaCardAcolle,
             borda: Color(0xFFD4CBDD),
+            campo: Colors.white,
+            icone: roxoAcolle,
+            textoSecundario: Colors.black87,
+            destaque: roxoAcolle,
+            destaqueTexto: Colors.white,
           );
 
     return Scaffold(
         backgroundColor: cores.fundo,
         appBar: AppBar(
           backgroundColor: cores.fundo,
-          title: const Text(
+          title: Text(
             'Acolle',
             style: TextStyle(
-              color: roxoAcolle,
+              color: cores.destaque,
               fontWeight: FontWeight.bold,
               fontSize: 28,
             ),
@@ -382,12 +389,12 @@ class _HomePageState extends State<HomePage> {
           actions: [
             IconButton(
               tooltip: 'Acessibilidade',
-              icon: const Icon(Icons.accessibility_new, color: roxoAcolle),
+              icon: Icon(Icons.accessibility_new, color: cores.icone),
               onPressed: _abrirAcessibilidade,
             ),
             IconButton(
               tooltip: 'Meu Perfil',
-              icon: const Icon(Icons.person_outline, color: roxoAcolle),
+              icon: Icon(Icons.person_outline, color: cores.icone),
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const PerfilPage()),
@@ -395,7 +402,7 @@ class _HomePageState extends State<HomePage> {
             ),
             IconButton(
               tooltip: 'Sair da conta',
-              icon: const Icon(Icons.logout, color: roxoAcolle),
+              icon: Icon(Icons.logout, color: cores.icone),
               onPressed: _confirmarSaida,
             ),
           ],
@@ -408,11 +415,11 @@ class _HomePageState extends State<HomePage> {
               children: [
                 _buildBarraBusca(cores),
                 const SizedBox(height: 20),
-                _buildMascoteSaudacao(saudacao),
+                _buildMascoteSaudacao(saudacao, cores),
                 const SizedBox(height: 24),
                 _buildBotaoEmergencia(),
                 const SizedBox(height: 24),
-                _buildTituloSecao('Como podemos ajudar?'),
+                _buildTituloSecao('Como podemos ajudar?', cores),
                 const SizedBox(height: 12),
                 _buildGradeAtalhos(cores),
                 const SizedBox(height: 22),
@@ -435,14 +442,15 @@ class _HomePageState extends State<HomePage> {
         style: TextStyle(fontSize: 19, color: cores.texto),
         decoration: InputDecoration(
           filled: true,
-          fillColor: Colors.white,
+          fillColor: cores.campo,
           hintText: 'Buscar uma ajuda',
-          prefixIcon: const Icon(Icons.search, size: 28),
+          hintStyle: TextStyle(color: cores.textoSecundario, fontSize: 18),
+          prefixIcon: Icon(Icons.search, size: 28, color: cores.icone),
           suffixIcon: _busca.isEmpty
               ? null
               : IconButton(
                   tooltip: 'Limpar busca',
-                  icon: const Icon(Icons.close),
+                  icon: Icon(Icons.close, color: cores.icone),
                   onPressed: () {
                     _buscaController.clear();
                     setState(() => _busca = '');
@@ -462,7 +470,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildMascoteSaudacao(String saudacao) {
+  Widget _buildMascoteSaudacao(String saudacao, _CoresHome cores) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
@@ -478,8 +486,8 @@ class _HomePageState extends State<HomePage> {
           child: Container(
             padding: const EdgeInsets.all(18),
             margin: const EdgeInsets.only(bottom: 8),
-            decoration: const BoxDecoration(
-              color: roxoAcolle,
+            decoration: BoxDecoration(
+              color: cores.destaque,
               borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(20),
                 topRight: Radius.circular(20),
@@ -489,8 +497,8 @@ class _HomePageState extends State<HomePage> {
             ),
             child: Text(
               '$saudacao\nEstou aqui para proteger você.',
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: cores.destaqueTexto,
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 height: 1.25,
@@ -505,7 +513,7 @@ class _HomePageState extends State<HomePage> {
   Widget _buildBotaoEmergencia() {
     return Semantics(
       button: true,
-      label: 'SOS Emergência. Toque para pedir ajuda.',
+      label: 'SOS Emergência. Toque uma vez para ligar para o contato principal.',
       // FIX 1: SizedBox(height: 82) fixo trocado por ConstrainedBox(minHeight)
       // + FittedBox no conteúdo, para o botão crescer com o texto/ícone em
       // vez de forçar corte quando _escalaTexto aumenta ou a tela é estreita.
@@ -520,17 +528,30 @@ class _HomePageState extends State<HomePage> {
               borderRadius: BorderRadius.circular(20),
             ),
           ),
-          onPressed: _confirmarEmergencia,
+          onPressed: _sosEmAndamento ? null : _executarSOS,
           child: FittedBox(
             fit: BoxFit.scaleDown,
             child: Row(
               mainAxisSize: MainAxisSize.min,
-              children: const [
-                Icon(Icons.emergency, size: 34),
-                SizedBox(width: 10),
+              children: [
+                if (_sosEmAndamento)
+                  const SizedBox(
+                    width: 30,
+                    height: 30,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                else
+                  const Icon(Icons.emergency, size: 34),
+                const SizedBox(width: 10),
                 Text(
-                  'SOS Emergência',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  _sosEmAndamento ? 'Acionando SOS...' : 'SOS Emergência',
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
@@ -540,9 +561,13 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildTituloSecao(String texto) => Text(
+  Widget _buildTituloSecao(String texto, _CoresHome cores) => Text(
     texto,
-    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+    style: TextStyle(
+      fontSize: 22,
+      fontWeight: FontWeight.bold,
+      color: cores.texto,
+    ),
   );
 
   Widget _buildGradeAtalhos(_CoresHome cores) {
@@ -678,7 +703,7 @@ class _HomePageState extends State<HomePage> {
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(atalho.icone, color: roxoAcolle, size: 42),
+                Icon(atalho.icone, color: cores.icone, size: 42),
                 const SizedBox(height: 12),
                 Flexible(
                   child: Text(
@@ -708,13 +733,13 @@ class _HomePageState extends State<HomePage> {
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: cores.card,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: cores.borda, width: 1.2),
         ),
         child: Row(
           children: [
-            const Icon(Icons.verified_user, color: roxoAcolle, size: 42),
+            Icon(Icons.verified_user, color: cores.icone, size: 42),
             const SizedBox(width: 14),
             Expanded(
               child: Text(
@@ -739,11 +764,21 @@ class _CoresHome {
   final Color texto;
   final Color card;
   final Color borda;
+  final Color campo;
+  final Color icone;
+  final Color textoSecundario;
+  final Color destaque;
+  final Color destaqueTexto;
 
   const _CoresHome({
     required this.fundo,
     required this.texto,
     required this.card,
     required this.borda,
+    required this.campo,
+    required this.icone,
+    required this.textoSecundario,
+    required this.destaque,
+    required this.destaqueTexto,
   });
 }
