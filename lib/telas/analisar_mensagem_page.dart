@@ -324,7 +324,7 @@ class _AnalisarMensagemPageState extends State<AnalisarMensagemPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: roxoAcolle.withOpacity(0.3)),
+        border: Border.all(color: roxoAcolle.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

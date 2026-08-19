@@ -140,9 +140,9 @@ class _HomePageState extends State<HomePage> {
               colorScheme: altoContraste
                   ? const ColorScheme.dark(
                       primary: Colors.white,
-                      onPrimary: Colors.black,
+                      onPrimary: Colors.orange,
                       surface: Colors.black,
-                      onSurface: Colors.white,
+                      onSurface: Colors.black,
                     )
                   : ColorScheme.fromSeed(seedColor: roxoAcolle),
             ),
@@ -356,9 +356,9 @@ class _HomePageState extends State<HomePage> {
             card: Colors.black,
             borda: Colors.white,
             campo: Colors.black,
-            icone: Colors.white,
+            icone: Colors.orange,
             textoSecundario: Colors.white,
-            destaque: Colors.white,
+            destaque: Colors.orange,
             destaqueTexto: Colors.black,
           )
         : const _CoresHome(
