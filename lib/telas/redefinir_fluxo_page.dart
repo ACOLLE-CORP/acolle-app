@@ -112,7 +112,7 @@ class _CodigoRedefinicaoPageState extends State<CodigoRedefinicaoPage> {
                 'que você recebeu — abra o e-mail, toque em "redefinir senha" '
                 'e copie o código da página que abrir.',
                 textAlign: TextAlign.center,
-                style: AcolleDesign.estiloCorpo,
+                style: AcolleDesign.corFundo,
               ),
               const SizedBox(height: 28),
               AcolleDesign.campoTexto(

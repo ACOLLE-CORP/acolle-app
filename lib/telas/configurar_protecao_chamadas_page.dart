@@ -107,7 +107,12 @@ class _ConfigurarProtecaoChamadasPageState
               const Text(
                 'Ative os dois passos abaixo. Você só precisa fazer isso uma vez neste celular.',
                 textAlign: TextAlign.center,
-                style: AcolleDesign.estiloCorpo,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: AcolleDesign.corTexto(
+                    altoContraste,
+                  ),
+                ),
               ),
               const SizedBox(height: 28),
               if (_verificando)

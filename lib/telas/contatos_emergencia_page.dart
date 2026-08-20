@@ -1,98 +1,221 @@
 // ignore_for_file: use_build_context_synchronously
+
 import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../shared/acolle_design.dart';
+import '../services/acessibilidade_service.dart';
 import '../services/emergencia_service.dart';
 
-/// Tela de Contatos de Emergência: lista os contatos cadastrados no Firestore
-/// e permite ligar / enviar SMS rapidamente.
+/// Tela de Contatos de Emergência.
+///
+/// Lista os contatos cadastrados no Firestore e permite:
+/// - ligar para o contato;
+/// - abrir o WhatsApp;
+/// - remover o contato;
+/// - adicionar novos contatos.
+///
+/// O tamanho da fonte e o alto contraste são controlados
+/// pelo AcessibilidadeService e persistidos através dele.
 class ContatosEmergenciaPage extends StatefulWidget {
   const ContatosEmergenciaPage({super.key});
 
   @override
-  State<ContatosEmergenciaPage> createState() => _ContatosEmergenciaPageState();
+  State<ContatosEmergenciaPage> createState() =>
+      _ContatosEmergenciaPageState();
 }
 
-class _ContatosEmergenciaPageState extends State<ContatosEmergenciaPage> {
-  late final String _uid = FirebaseAuth.instance.currentUser!.uid;
+class _ContatosEmergenciaPageState
+    extends State<ContatosEmergenciaPage> {
+  late final String _uid =
+      FirebaseAuth.instance.currentUser!.uid;
+
   StreamController<int>? _tick;
+
   int _tickValue = 0;
+
+  final AcessibilidadeService _acessibilidade =
+      AcessibilidadeService.instance;
 
   @override
   void initState() {
     super.initState();
+
     _tick = StreamController<int>.broadcast();
+
+    _acessibilidade.addListener(
+      _atualizarAcessibilidade,
+    );
+  }
+
+  void _atualizarAcessibilidade() {
+    if (!mounted) return;
+
+    setState(() {});
   }
 
   @override
   void dispose() {
+    _acessibilidade.removeListener(
+      _atualizarAcessibilidade,
+    );
+
     _tick?.close();
+
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final altoContraste =
+        _acessibilidade.altoContraste;
+
+    final fundo =
+        AcolleDesign.corFundo(altoContraste);
+
     return Scaffold(
-      backgroundColor: AcolleDesign.fundo,
-      appBar: AcolleDesign.appBarPadrao('Contatos de Emergência'),
+      backgroundColor: fundo,
+
+      appBar: AcolleDesign.appBarPadrao(
+        'Contatos de Emergência',
+      ),
+
       body: StreamBuilder<int>(
         stream: _tick?.stream,
         initialData: 0,
+
         builder: (context, tickSnap) {
-          final tick = tickSnap.data ?? 0;
-          if (tick != _tickValue) _tickValue = tick;
+          final tick =
+              tickSnap.data ?? 0;
+
+          if (tick != _tickValue) {
+            _tickValue = tick;
+          }
+
           return RefreshIndicator(
             onRefresh: () async {
-              _tick?.add(_tickValue + 1);
-              await Future.delayed(const Duration(seconds: 2));
+              _tick?.add(
+                _tickValue + 1,
+              );
+
+              await Future.delayed(
+                const Duration(seconds: 2),
+              );
             },
+
             child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('contatos_emergencia')
-                  .where('usuarioId', isEqualTo: _uid)
-                  .orderBy('criadoEm', descending: true)
+              stream: FirebaseFirestore
+                  .instance
+                  .collection(
+                    'contatos_emergencia',
+                  )
+                  .where(
+                    'usuarioId',
+                    isEqualTo: _uid,
+                  )
+                  .orderBy(
+                    'criadoEm',
+                    descending: true,
+                  )
                   .snapshots(),
-              builder: (context, snapshot) {
+
+              builder: (
+                context,
+                snapshot,
+              ) {
+                // ==================================================
+                // ERRO
+                // ==================================================
+
                 if (snapshot.hasError) {
-                  final msg = snapshot.error.toString();
+                  final msg =
+                      snapshot.error.toString();
+
                   final waiting =
-                      msg.contains('failed-precondition') ||
-                      msg.contains('building') ||
-                      msg.contains('currently building');
+                      msg.contains(
+                            'failed-precondition',
+                          ) ||
+                          msg.contains(
+                            'building',
+                          ) ||
+                          msg.contains(
+                            'currently building',
+                          );
+
                   if (waiting) {
-                    Future.delayed(const Duration(seconds: 4), () {
-                      if (!mounted) return;
-                      _tick?.add(_tickValue + 1);
-                    });
+                    Future.delayed(
+                      const Duration(seconds: 4),
+                      () {
+                        if (!mounted) return;
+
+                        _tick?.add(
+                          _tickValue + 1,
+                        );
+                      },
+                    );
+
                     return ListView(
-                      children: const [
-                        SizedBox(height: 80),
+                      children: [
+                        const SizedBox(
+                          height: 80,
+                        ),
+
                         Center(
                           child: Padding(
-                            padding: EdgeInsets.all(24),
+                            padding:
+                                const EdgeInsets.all(
+                              24,
+                            ),
+
                             child: Column(
                               children: [
                                 Icon(
                                   Icons.hourglass_top,
                                   size: 72,
-                                  color: Colors.orange,
+                                  color:
+                                      AcolleDesign.laranja,
                                 ),
-                                SizedBox(height: 16),
+
+                                const SizedBox(
+                                  height: 16,
+                                ),
+
                                 Text(
                                   'Preparando índice do Firestore...\nAguarde alguns segundos.',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(fontSize: 17),
+
+                                  textAlign:
+                                      TextAlign.center,
+
+                                  style:
+                                      AcolleDesign.texto(
+                                    tamanho: 17,
+                                    peso:
+                                        FontWeight.w500,
+                                  ),
                                 ),
-                                SizedBox(height: 16),
+
+                                const SizedBox(
+                                  height: 16,
+                                ),
+
                                 Text(
                                   'Puxe para baixo para tentar de novo',
-                                  style: TextStyle(
-                                    color: Colors.grey,
-                                    fontSize: 14,
+
+                                  textAlign:
+                                      TextAlign.center,
+
+                                  style:
+                                      AcolleDesign.texto(
+                                    tamanho: 14,
+                                    cor:
+                                        AcolleDesign
+                                            .corTextoSecundario(
+                                      altoContraste,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -102,63 +225,183 @@ class _ContatosEmergenciaPageState extends State<ContatosEmergenciaPage> {
                       ],
                     );
                   }
+
                   return ListView(
                     children: [
-                      const SizedBox(height: 80),
+                      const SizedBox(
+                        height: 80,
+                      ),
+
                       Padding(
-                        padding: const EdgeInsets.all(20),
+                        padding:
+                            const EdgeInsets.all(20),
+
                         child: SelectableText(
                           'ERRO ao carregar contatos:\n${snapshot.error}',
-                          style: const TextStyle(
-                            color: Colors.red,
-                            fontSize: 13,
+
+                          style:
+                              AcolleDesign.texto(
+                            tamanho: 13,
+                            cor:
+                                AcolleDesign.vermelho,
                           ),
                         ),
                       ),
                     ],
                   );
                 }
-                if (snapshot.connectionState == ConnectionState.waiting &&
+
+                // ==================================================
+                // CARREGANDO
+                // ==================================================
+
+                if (snapshot.connectionState ==
+                        ConnectionState.waiting &&
                     !snapshot.hasData) {
                   return ListView(
-                    children: const [
-                      SizedBox(height: 80),
+                    children: [
+                      const SizedBox(
+                        height: 80,
+                      ),
+
                       Center(
                         child: Padding(
-                          padding: EdgeInsets.all(20),
+                          padding:
+                              const EdgeInsets.all(
+                            20,
+                          ),
+
                           child: Text(
                             'Carregando contatos...',
-                            style: TextStyle(fontSize: 18),
+
+                            style:
+                                AcolleDesign.texto(
+                              tamanho: 18,
+                            ),
                           ),
                         ),
                       ),
                     ],
                   );
                 }
-                final docs = snapshot.data?.docs ?? [];
+
+                // ==================================================
+                // DOCUMENTOS
+                // ==================================================
+
+                final docs =
+                    snapshot.data?.docs ?? [];
+
+                // ==================================================
+                // LISTA VAZIA
+                // ==================================================
+
                 if (docs.isEmpty) {
                   return ListView(
                     children: [
-                      const SizedBox(height: 100),
+                      const SizedBox(
+                        height: 100,
+                      ),
+
                       Center(
-                        child: AcolleDesign.estadoVazio(
-                          icone: Icons.contact_emergency_outlined,
-                          texto:
-                              'Você ainda não cadastrou nenhum contato de emergência.\nToque no botão + para adicionar.',
+                        child: Padding(
+                          padding:
+                              const EdgeInsets.all(
+                            24,
+                          ),
+
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons
+                                    .contact_emergency_outlined,
+                                size: 72,
+                                color:
+                                    AcolleDesign.corIcone(
+                                  altoContraste,
+                                ),
+                              ),
+
+                              const SizedBox(
+                                height: 16,
+                              ),
+
+                              Text(
+                                'Você ainda não cadastrou nenhum contato de emergência.',
+
+                                textAlign:
+                                    TextAlign.center,
+
+                                style:
+                                    AcolleDesign.texto(
+                                  tamanho: 18,
+                                  peso:
+                                      FontWeight.bold,
+                                ),
+                              ),
+
+                              const SizedBox(
+                                height: 8,
+                              ),
+
+                              Text(
+                                'Toque no botão + para adicionar.',
+
+                                textAlign:
+                                    TextAlign.center,
+
+                                style:
+                                    AcolleDesign.texto(
+                                  tamanho: 16,
+                                  cor:
+                                      AcolleDesign
+                                          .corTextoSecundario(
+                                    altoContraste,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
                   );
                 }
+
+                // ==================================================
+                // LISTA DE CONTATOS
+                // ==================================================
+
                 return ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
-                  itemCount: docs.length,
-                  itemBuilder: (context, index) {
-                    final dados = docs[index].data() as Map<String, dynamic>;
+                  padding:
+                      const EdgeInsets.fromLTRB(
+                    16,
+                    12,
+                    16,
+                    96,
+                  ),
+
+                  itemCount:
+                      docs.length,
+
+                  itemBuilder:
+                      (context, index) {
+                    final dados =
+                        docs[index].data()
+                            as Map<String, dynamic>;
+
                     return _ItemContato(
                       id: docs[index].id,
-                      nome: dados['nome'] as String? ?? '',
-                      telefone: dados['telefone'] as String? ?? '',
+
+                      nome:
+                          dados['nome']
+                                  as String? ??
+                              '',
+
+                      telefone:
+                          dados['telefone']
+                                  as String? ??
+                              '',
                     );
                   },
                 );
@@ -167,24 +410,50 @@ class _ContatosEmergenciaPageState extends State<ContatosEmergenciaPage> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const AdicionarContatoEmergenciaPage(),
+
+      // ==========================================================
+      // BOTÃO ADICIONAR
+      // ==========================================================
+
+      floatingActionButton:
+          FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) =>
+                  const AdicionarContatoEmergenciaPage(),
+            ),
+          );
+        },
+
+        icon: const Icon(
+          Icons.person_add_alt_1,
+        ),
+
+        label: Text(
+          'Adicionar',
+
+          style: AcolleDesign.texto(
+            tamanho: 16,
+            peso: FontWeight.bold,
+            cor: Colors.white,
           ),
         ),
-        icon: const Icon(Icons.person_add_alt_1),
-        label: const Text(
-          'Adicionar',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: AcolleDesign.roxo,
-        foregroundColor: Colors.white,
+
+        backgroundColor:
+            AcolleDesign.roxo,
+
+        foregroundColor:
+            Colors.white,
       ),
     );
   }
 }
+
+// ================================================================
+// ITEM DO CONTATO
+// ================================================================
 
 class _ItemContato extends StatelessWidget {
   const _ItemContato({
@@ -199,72 +468,214 @@ class _ItemContato extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final acessibilidade =
+        AcessibilidadeService.instance;
+
+    final altoContraste =
+        acessibilidade.altoContraste;
+
+    final corTexto =
+        AcolleDesign.corTexto(
+      altoContraste,
+    );
+
+    final corTextoSecundario =
+        AcolleDesign.corTextoSecundario(
+      altoContraste,
+    );
+
+    final corCard =
+        AcolleDesign.corCard(
+      altoContraste,
+    );
+
     return AcolleDesign.cartao(
+      margem: const EdgeInsets.only(
+        bottom: 12,
+      ),
+
       filho: Row(
+        crossAxisAlignment:
+            CrossAxisAlignment.center,
+
         children: [
+          // ========================================================
+          // ÍCONE
+          // ========================================================
+
           Container(
             width: 52,
             height: 52,
-            decoration: const BoxDecoration(
-              color: AcolleDesign.card,
+
+            decoration: BoxDecoration(
+              color: corCard,
               shape: BoxShape.circle,
+
+              border: Border.all(
+                color:
+                    AcolleDesign.corBorda(
+                  altoContraste,
+                ),
+              ),
             ),
-            child: const Icon(Icons.person, color: AcolleDesign.roxo),
+
+            child: Icon(
+              Icons.person,
+              color:
+                  AcolleDesign.roxo,
+              size: 28,
+            ),
           ),
-          const SizedBox(width: 14),
+
+          const SizedBox(
+            width: 14,
+          ),
+
+          // ========================================================
+          // NOME E TELEFONE
+          // ========================================================
+
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+
               children: [
                 Text(
                   nome,
-                  style: const TextStyle(
-                    fontSize: 19,
-                    fontWeight: FontWeight.bold,
+
+                  maxLines: 2,
+                  overflow:
+                      TextOverflow.ellipsis,
+
+                  style:
+                      AcolleDesign.texto(
+                    tamanho: 19,
+                    peso:
+                        FontWeight.bold,
+                    cor: corTexto,
                   ),
                 ),
-                const SizedBox(height: 4),
+
+                const SizedBox(
+                  height: 4,
+                ),
+
                 Text(
                   telefone,
-                  style: const TextStyle(fontSize: 16, color: Colors.black54),
+
+                  maxLines: 2,
+                  overflow:
+                      TextOverflow.ellipsis,
+
+                  style:
+                      AcolleDesign.texto(
+                    tamanho: 16,
+                    cor:
+                        corTextoSecundario,
+                  ),
                 ),
               ],
             ),
           ),
-          // FIX: os 3 IconButton soltos direto na Row podiam espremer o
-          // Expanded do nome/telefone em telas estreitas. Wrap permite que
-          // eles quebrem linha em vez de forçar overflow/aperto.
+
+          // ========================================================
+          // AÇÕES
+          // ========================================================
+
           Wrap(
             children: [
+              // ====================================================
+              // LIGAR
+              // ====================================================
+
               IconButton(
                 tooltip: 'Ligar',
-                icon: const Icon(Icons.phone, color: AcolleDesign.verde),
+
+                icon: Icon(
+                  Icons.phone,
+                  color:
+                      AcolleDesign.verde,
+                ),
+
                 onPressed: () async {
-                  final ok = await EmergenciaService.ligarPara(telefone);
-                  if (ok) AcolleDesign.snackbar(context, 'Discador aberto.');
+                  final ok =
+                      await EmergenciaService
+                          .ligarPara(
+                    telefone,
+                  );
+
+                  if (!context.mounted) {
+                    return;
+                  }
+
+                  if (ok) {
+                    AcolleDesign.snackbar(
+                      context,
+                      'Discador aberto.',
+                      cor:
+                          AcolleDesign.verde,
+                    );
+                  }
                 },
               ),
+
+              // ====================================================
+              // WHATSAPP
+              // ====================================================
+
               IconButton(
-                tooltip: 'Enviar pelo WhatsApp',
-                icon: const Icon(Icons.message, color: AcolleDesign.roxo),
+                tooltip:
+                    'Enviar pelo WhatsApp',
+
+                icon: Icon(
+                  Icons.message,
+                  color:
+                      AcolleDesign.roxo,
+                ),
+
                 onPressed: () async {
-                  final ok = await EmergenciaService.abrirWhatsApp(
+                  final ok =
+                      await EmergenciaService
+                          .abrirWhatsApp(
                     telefone,
                     'Oi $nome, preciso de ajuda. Mensagem do app Acolle.',
                   );
-                  if (!context.mounted) return;
+
+                  if (!context.mounted) {
+                    return;
+                  }
+
                   AcolleDesign.snackbar(
                     context,
                     ok
                         ? 'WhatsApp aberto.'
                         : 'Não foi possível abrir o WhatsApp.',
+                    cor: ok
+                        ? AcolleDesign.verde
+                        : AcolleDesign.vermelho,
                   );
                 },
               ),
+
+              // ====================================================
+              // REMOVER
+              // ====================================================
+
               IconButton(
-                tooltip: 'Remover',
-                icon: Icon(Icons.delete_outline, color: Colors.red.shade400),
-                onPressed: () => _confirmarRemover(context),
+                tooltip:
+                    'Remover contato',
+
+                icon: Icon(
+                  Icons.delete_outline,
+                  color:
+                      AcolleDesign.vermelho,
+                ),
+
+                onPressed: () =>
+                    _confirmarRemover(
+                  context,
+                ),
               ),
             ],
           ),
@@ -273,91 +684,285 @@ class _ItemContato extends StatelessWidget {
     );
   }
 
-  void _confirmarRemover(BuildContext context) {
+  // ==============================================================
+  // CONFIRMAR REMOÇÃO
+  // ==============================================================
+
+  void _confirmarRemover(
+    BuildContext context,
+  ) {
+    final acessibilidade =
+        AcessibilidadeService.instance;
+
+    final altoContraste =
+        acessibilidade.altoContraste;
+
     showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Remover contato'),
-        content: Text('Deseja remover "$nome" dos contatos de emergência?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor:
+              AcolleDesign.corCard(
+            altoContraste,
           ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red.shade700),
-            onPressed: () {
-              FirebaseFirestore.instance
-                  .collection('contatos_emergencia')
-                  .doc(id)
-                  .delete();
-              Navigator.pop(context);
-              AcolleDesign.snackbar(context, 'Contato removido.');
-            },
-            child: const Text('Remover'),
+
+          title: Text(
+            'Remover contato',
+
+            style:
+                AcolleDesign.texto(
+              tamanho: 21,
+              peso:
+                  FontWeight.bold,
+            ),
           ),
-        ],
-      ),
+
+          content: Text(
+            'Deseja remover "$nome" dos contatos de emergência?',
+
+            style:
+                AcolleDesign.texto(
+              tamanho: 17,
+            ),
+          ),
+
+          actions: [
+            TextButton(
+              onPressed: () =>
+                  Navigator.pop(
+                context,
+              ),
+
+              child: Text(
+                'Cancelar',
+
+                style:
+                    AcolleDesign.texto(
+                  tamanho: 16,
+                  peso:
+                      FontWeight.bold,
+                  cor:
+                      AcolleDesign.corIcone(
+                    altoContraste,
+                  ),
+                ),
+              ),
+            ),
+
+            FilledButton(
+              style:
+                  FilledButton.styleFrom(
+                backgroundColor:
+                    AcolleDesign.vermelho,
+              ),
+
+              onPressed: () async {
+                try {
+                  await FirebaseFirestore
+                      .instance
+                      .collection(
+                        'contatos_emergencia',
+                      )
+                      .doc(id)
+                      .delete();
+
+                  if (!context.mounted) {
+                    return;
+                  }
+
+                  Navigator.pop(
+                    context,
+                  );
+
+                  AcolleDesign.snackbar(
+                    context,
+                    'Contato removido.',
+                    cor:
+                        AcolleDesign.verde,
+                  );
+                } catch (e) {
+                  if (!context.mounted) {
+                    return;
+                  }
+
+                  Navigator.pop(
+                    context,
+                  );
+
+                  AcolleDesign.snackbar(
+                    context,
+                    'Erro ao remover contato.',
+                  );
+                }
+              },
+
+              child: Text(
+                'Remover',
+
+                style:
+                    AcolleDesign.texto(
+                  tamanho: 16,
+                  peso:
+                      FontWeight.bold,
+                  cor: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
 
-/// Tela para adicionar um contato de emergência (nome + telefone).
-class AdicionarContatoEmergenciaPage extends StatefulWidget {
-  const AdicionarContatoEmergenciaPage({super.key});
+// ================================================================
+// ADICIONAR CONTATO
+// ================================================================
+
+class AdicionarContatoEmergenciaPage
+    extends StatefulWidget {
+  const AdicionarContatoEmergenciaPage({
+    super.key,
+  });
 
   @override
-  State<AdicionarContatoEmergenciaPage> createState() =>
-      _AdicionarContatoEmergenciaPageState();
+  State<AdicionarContatoEmergenciaPage>
+      createState() =>
+          _AdicionarContatoEmergenciaPageState();
 }
 
 class _AdicionarContatoEmergenciaPageState
     extends State<AdicionarContatoEmergenciaPage> {
-  final _nomeController = TextEditingController();
-  final _telefoneController = TextEditingController();
+  final _nomeController =
+      TextEditingController();
+
+  final _telefoneController =
+      TextEditingController();
+
   bool _carregando = false;
 
+  final AcessibilidadeService
+      _acessibilidade =
+      AcessibilidadeService.instance;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _acessibilidade.addListener(
+      _atualizarAcessibilidade,
+    );
+  }
+
+  void _atualizarAcessibilidade() {
+    if (!mounted) return;
+
+    setState(() {});
+  }
+
+  // ==============================================================
+  // SALVAR
+  // ==============================================================
+
   Future<void> _salvar() async {
-    final nome = _nomeController.text.trim();
-    final telefone = _telefoneController.text.trim();
+    final nome =
+        _nomeController.text.trim();
+
+    final telefone =
+        _telefoneController.text.trim();
 
     if (nome.isEmpty) {
-      AcolleDesign.snackbar(context, 'Digite o nome do contato.');
-      return;
-    }
-    if (telefone.replaceAll(RegExp(r'[^\d]'), '').length < 10) {
-      AcolleDesign.snackbar(context, 'Digite um telefone válido.');
+      AcolleDesign.snackbar(
+        context,
+        'Digite o nome do contato.',
+      );
+
       return;
     }
 
-    setState(() => _carregando = true);
+    if (telefone
+            .replaceAll(
+              RegExp(r'[^\d]'),
+              '',
+            )
+            .length <
+        10) {
+      AcolleDesign.snackbar(
+        context,
+        'Digite um telefone válido.',
+      );
+
+      return;
+    }
+
+    setState(() {
+      _carregando = true;
+    });
+
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
-      await FirebaseFirestore.instance.collection('contatos_emergencia').add({
+      final user =
+          FirebaseAuth.instance
+              .currentUser;
+
+      if (user == null) {
+        AcolleDesign.snackbar(
+          context,
+          'Usuário não encontrado.',
+        );
+
+        return;
+      }
+
+      await FirebaseFirestore
+          .instance
+          .collection(
+            'contatos_emergencia',
+          )
+          .add({
         'usuarioId': user.uid,
         'nome': nome,
         'telefone': telefone,
-        'criadoEm': FieldValue.serverTimestamp(),
+        'criadoEm':
+            FieldValue.serverTimestamp(),
       });
+
       if (!mounted) return;
+
       Navigator.pop(context);
+
       AcolleDesign.snackbar(
         context,
         'Contato adicionado!',
-        cor: AcolleDesign.verde,
+        cor:
+            AcolleDesign.verde,
       );
     } catch (e) {
       if (mounted) {
-        AcolleDesign.snackbar(context, 'Erro ao salvar: $e');
+        AcolleDesign.snackbar(
+          context,
+          'Erro ao salvar: $e',
+        );
       }
     } finally {
-      if (mounted) setState(() => _carregando = false);
+      if (mounted) {
+        setState(() {
+          _carregando = false;
+        });
+      }
     }
   }
 
+  // ==============================================================
+  // ABRIR CONTATOS DO CELULAR
+  // ==============================================================
+
   Future<void> _abrirContatos() async {
-    final Uri uri = Uri.parse('content://contacts/people');
+    final Uri uri =
+        Uri.parse(
+      'content://contacts/people',
+    );
+
     try {
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri);
@@ -368,68 +973,228 @@ class _AdicionarContatoEmergenciaPageState
         );
       }
     } catch (_) {
-      AcolleDesign.snackbar(context, 'Não foi possível abrir os contatos.');
+      AcolleDesign.snackbar(
+        context,
+        'Não foi possível abrir os contatos.',
+      );
     }
   }
 
+  // ==============================================================
+  // BUILD
+  // ==============================================================
+
   @override
   Widget build(BuildContext context) {
+    final altoContraste =
+        _acessibilidade.altoContraste;
+
+    final fundo =
+        AcolleDesign.corFundo(
+      altoContraste,
+    );
+
+    final corTexto =
+        AcolleDesign.corTexto(
+      altoContraste,
+    );
+
+    final corDestaque =
+        AcolleDesign.corIcone(
+      altoContraste,
+    );
+
     return Scaffold(
-      backgroundColor: AcolleDesign.fundo,
-      appBar: AcolleDesign.appBarPadrao('Adicionar contato'),
+      backgroundColor: fundo,
+
+      appBar: AcolleDesign.appBarPadrao(
+        'Adicionar contato',
+      ),
+
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(28),
+          padding:
+              const EdgeInsets.all(28),
+
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            crossAxisAlignment:
+                CrossAxisAlignment.stretch,
+
             children: [
-              const Icon(
+              // ==================================================
+              // ÍCONE
+              // ==================================================
+
+              Icon(
                 Icons.person_add_alt_1,
                 size: 70,
-                color: AcolleDesign.roxo,
+                color: corDestaque,
               ),
-              const SizedBox(height: 12),
-              const Text(
+
+              const SizedBox(
+                height: 12,
+              ),
+
+              // ==================================================
+              // TÍTULO
+              // ==================================================
+
+              Text(
                 'Adicionar contato de emergência',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  color: AcolleDesign.texto,
+
+                textAlign:
+                    TextAlign.center,
+
+                style:
+                    AcolleDesign.texto(
+                  tamanho: 26,
+                  peso:
+                      FontWeight.bold,
+                  cor: corTexto,
                 ),
               ),
-              const SizedBox(height: 24),
+
+              const SizedBox(
+                height: 24,
+              ),
+
+              // ==================================================
+              // NOME
+              // ==================================================
+
               AcolleDesign.campoTexto(
                 label: 'Nome completo',
-                controller: _nomeController,
-                icone: Icons.person_outline,
-                teclado: TextInputType.name,
+                controller:
+                    _nomeController,
+                icone:
+                    Icons.person_outline,
+                teclado:
+                    TextInputType.name,
               ),
-              const SizedBox(height: 16),
-              AcolleDesign.campoTexto(
-                label: 'Telefone',
-                controller: _telefoneController,
-                icone: Icons.phone_outlined,
-                teclado: TextInputType.phone,
-                suffix: IconButton(
-                  icon: const Icon(
-                    Icons.contact_page_outlined,
-                    color: AcolleDesign.roxo,
+
+              const SizedBox(
+                height: 16,
+              ),
+
+              // ==================================================
+              // TELEFONE
+              // ==================================================
+
+              Row(
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
+
+                children: [
+                  Expanded(
+                    child:
+                        AcolleDesign.campoTexto(
+                      label: 'Telefone',
+                      controller:
+                          _telefoneController,
+                      icone:
+                          Icons.phone_outlined,
+                      teclado:
+                          TextInputType.phone,
+                    ),
                   ),
-                  onPressed: _abrirContatos,
-                ),
+
+                  const SizedBox(
+                    width: 8,
+                  ),
+
+                  // Botão para abrir os contatos
+                  Semantics(
+                    button: true,
+                    label:
+                        'Abrir contatos do celular',
+
+                    child: SizedBox(
+                      height: 58,
+                      width: 58,
+
+                      child:
+                          OutlinedButton(
+                        onPressed:
+                            _abrirContatos,
+
+                        style:
+                            OutlinedButton
+                                .styleFrom(
+                          side:
+                              BorderSide(
+                            color:
+                                corDestaque,
+                            width: 2,
+                          ),
+
+                          shape:
+                              RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius
+                                    .circular(
+                              16,
+                            ),
+                          ),
+
+                          padding:
+                              EdgeInsets.zero,
+                        ),
+
+                        child: Icon(
+                          Icons
+                              .contact_page_outlined,
+                          color:
+                              corDestaque,
+                          size: 28,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 28),
+
+              const SizedBox(
+                height: 28,
+              ),
+
+              // ==================================================
+              // BOTÃO SALVAR
+              // ==================================================
+
               AcolleDesign.botaoPrimario(
-                texto: 'Salvar contato',
-                icone: Icons.check,
-                carregando: _carregando,
-                onPressed: _salvar,
+                texto:
+                    'Salvar contato',
+
+                icone:
+                    Icons.check,
+
+                carregando:
+                    _carregando,
+
+                onPressed:
+                    _salvar,
               ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  // ==============================================================
+  // DISPOSE
+  // ==============================================================
+
+  @override
+  void dispose() {
+    _acessibilidade.removeListener(
+      _atualizarAcessibilidade,
+    );
+
+    _nomeController.dispose();
+
+    _telefoneController.dispose();
+
+    super.dispose();
   }
 }

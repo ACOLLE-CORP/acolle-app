@@ -19,10 +19,14 @@ class _OnboardingContatoEmergenciaPageState
     extends State<OnboardingContatoEmergenciaPage> {
   final _nomeController = TextEditingController();
   final _telefoneController = TextEditingController();
+
   final _telefoneMask = MaskTextInputFormatter(
     mask: '(##) #####-####',
-    filter: {'#': RegExp(r'[0-9]')},
+    filter: {
+      '#': RegExp(r'[0-9]'),
+    },
   );
+
   bool _carregando = false;
 
   @override
@@ -32,115 +36,328 @@ class _OnboardingContatoEmergenciaPageState
     super.dispose();
   }
 
-  Future<void> _salvarEContinuar({bool pular = false}) async {
+  // ============================================================
+  // SALVAR E CONTINUAR
+  // ============================================================
+
+  Future<void> _salvarEContinuar({
+    bool pular = false,
+  }) async {
     if (!pular) {
       if (_nomeController.text.trim().isEmpty) {
-        AcolleDesign.snackbar(context, 'Digite o nome do contato.');
+        AcolleDesign.snackbar(
+          context,
+          'Digite o nome do contato.',
+        );
         return;
       }
+
       if (_telefoneController.text.trim().length < 15) {
-        AcolleDesign.snackbar(context, 'Digite um telefone válido.');
+        AcolleDesign.snackbar(
+          context,
+          'Digite um telefone válido.',
+        );
         return;
       }
     }
 
-    setState(() => _carregando = true);
+    setState(() {
+      _carregando = true;
+    });
+
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null && !pular &&
+      final user =
+          FirebaseAuth.instance.currentUser;
+
+      if (user != null &&
+          !pular &&
           _nomeController.text.trim().isNotEmpty) {
         await FirebaseFirestore.instance
             .collection('contatos_emergencia')
             .add({
           'usuarioId': user.uid,
           'nome': _nomeController.text.trim(),
-          'telefone': _telefoneController.text.trim(),
-          'criadoEm': FieldValue.serverTimestamp(),
+          'telefone':
+              _telefoneController.text.trim(),
+          'criadoEm':
+              FieldValue.serverTimestamp(),
         });
       }
+
       if (!mounted) return;
+
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const TudoProntoPage()),
+        MaterialPageRoute(
+          builder: (context) =>
+              const TudoProntoPage(),
+        ),
       );
     } catch (e) {
       if (mounted) {
         AcolleDesign.snackbar(
-            context, 'Não foi possível salvar o contato. Tente novamente.');
+          context,
+          'Não foi possível salvar o contato. '
+          'Tente novamente.',
+        );
       }
     } finally {
-      if (mounted) setState(() => _carregando = false);
+      if (mounted) {
+        setState(() {
+          _carregando = false;
+        });
+      }
     }
   }
 
+  // ============================================================
+  // CONTATOS
+  // ============================================================
+
   Future<void> _adicionarDeContatos() async {
     AcolleDesign.snackbar(
-        context, 'Toque em "Permitir contatos" para usar seus contatos.');
+      context,
+      'Toque em "Permitir contatos" para usar '
+      'seus contatos.',
+    );
   }
+
+  // ============================================================
+  // BUILD
+  // ============================================================
 
   @override
   Widget build(BuildContext context) {
+    final contraste =
+        AcolleDesign.altoContraste;
+
+    final corTexto =
+        AcolleDesign.corTexto(
+      contraste,
+    );
+
+    final corSecundaria =
+        AcolleDesign.corTextoSecundario(
+      contraste,
+    );
+
+    final corDestaque =
+        AcolleDesign.corIcone(
+      contraste,
+    );
+
     return Scaffold(
-      backgroundColor: AcolleDesign.fundo,
-      appBar: AcolleDesign.appBarPadrao('Contato de Emergência'),
+      backgroundColor:
+          AcolleDesign.corFundo(contraste),
+
+      appBar: AcolleDesign.appBarPadrao(
+        'Contato de Emergência',
+      ),
+
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(28),
+
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            crossAxisAlignment:
+                CrossAxisAlignment.stretch,
+
             children: [
-              const Icon(Icons.contact_emergency,
-                  size: 70, color: AcolleDesign.roxo),
+              // ========================================================
+              // ÍCONE
+              // ========================================================
+
+              Icon(
+                Icons.contact_emergency,
+                size: AcolleDesign.tamanhoTexto(70),
+                color: corDestaque,
+              ),
+
               const SizedBox(height: 12),
-              const Text(
-                'Quem você quer avisar em caso de dúvida?',
+
+              // ========================================================
+              // TÍTULO
+              // ========================================================
+
+              Text(
+                'Quem você quer avisar em caso '
+                'de dúvida?',
+
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: AcolleDesign.texto,
+
+                style: AcolleDesign.texto(
+                  tamanho: 28,
+                  cor: corTexto,
+                  peso: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 6),
-              const Text(
-                'Cadicione agora um familiar, vizinho ou pessoa de confiança. '
-                'Você poderá ligar e avisar esta pessoa com um toque.',
+
+              const SizedBox(height: 10),
+
+              // ========================================================
+              // DESCRIÇÃO
+              // ========================================================
+
+              Text(
+                'Adicione agora um familiar, vizinho '
+                'ou pessoa de confiança. Você poderá '
+                'ligar e avisar esta pessoa com um toque.',
+
                 textAlign: TextAlign.center,
-                style: AcolleDesign.estiloCorpo,
+
+                style: AcolleDesign.texto(
+                  tamanho: 17,
+                  cor: corSecundaria,
+                  altura: 1.4,
+                ),
               ),
+
               const SizedBox(height: 28),
+
+              // ========================================================
+              // NOME
+              // ========================================================
+
               AcolleDesign.campoTexto(
                 label: 'Nome completo',
                 controller: _nomeController,
                 icone: Icons.person_outline,
                 teclado: TextInputType.name,
               ),
+
               const SizedBox(height: 16),
-              AcolleDesign.campoTexto(
-                label: 'Telefone',
+
+              // ========================================================
+              // TELEFONE
+              // ========================================================
+
+              TextField(
                 controller: _telefoneController,
-                icone: Icons.phone_outlined,
-                teclado: TextInputType.phone,
-                mascaras: [_telefoneMask],
-                suffix: IconButton(
-                  tooltip: 'Buscar nos contatos',
-                  icon: const Icon(Icons.contact_page_outlined,
-                      color: AcolleDesign.roxo),
-                  onPressed: _adicionarDeContatos,
+
+                keyboardType:
+                    TextInputType.phone,
+
+                inputFormatters: [
+                  _telefoneMask,
+                ],
+
+                style: AcolleDesign.texto(
+                  tamanho: 18,
+                  cor: corTexto,
+                ),
+
+                decoration:
+                    AcolleDesign.inputDecoration(
+                  label: 'Telefone',
+                  icone: Icons.phone_outlined,
+                  altoContraste: contraste,
+                ).copyWith(
+                  suffixIcon: IconButton(
+                    tooltip:
+                        'Buscar nos contatos',
+
+                    icon: Icon(
+                      Icons.contact_page_outlined,
+                      color: corDestaque,
+                      size: 27,
+                    ),
+
+                    onPressed:
+                        _adicionarDeContatos,
+                  ),
                 ),
               ),
+
               const SizedBox(height: 32),
+
+              // ========================================================
+              // SALVAR
+              // ========================================================
+
               AcolleDesign.botaoPrimario(
                 texto: 'Salvar e continuar',
                 icone: Icons.check,
                 carregando: _carregando,
-                onPressed: () => _salvarEContinuar(),
+                onPressed: () =>
+                    _salvarEContinuar(),
               ),
+
               const SizedBox(height: 12),
-              AcolleDesign.botaoSecundario(
-                texto: 'Fazer depois',
-                cor: Colors.grey.shade700,
-                onPressed: () => _salvarEContinuar(pular: true),
+
+              // ========================================================
+              // FAZER DEPOIS
+              // ========================================================
+
+              SizedBox(
+                height: 58,
+                width: double.infinity,
+
+                child: OutlinedButton(
+                  onPressed: _carregando
+                      ? null
+                      : () =>
+                          _salvarEContinuar(
+                            pular: true,
+                          ),
+
+                  style:
+                      OutlinedButton.styleFrom(
+                    foregroundColor:
+                        contraste
+                            ? Colors.white
+                            : Colors.grey.shade700,
+
+                    side: BorderSide(
+                      color:
+                          AcolleDesign.corBorda(
+                        contraste,
+                      ),
+
+                      width: contraste
+                          ? 2
+                          : 1.5,
+                    ),
+
+                    shape:
+                        RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.circular(
+                        16,
+                      ),
+                    ),
+                  ),
+
+                  child: Text(
+                    'Fazer depois',
+
+                    style:
+                        AcolleDesign.texto(
+                      tamanho: 17,
+                      peso: FontWeight.bold,
+                      cor: contraste
+                          ? Colors.white
+                          : Colors.grey.shade700,
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // ========================================================
+              // INFORMAÇÃO
+              // ========================================================
+
+              Text(
+                'Você poderá cadastrar ou alterar '
+                'seus contatos de emergência depois.',
+
+                textAlign: TextAlign.center,
+
+                style: AcolleDesign.texto(
+                  tamanho: 14,
+                  cor: corSecundaria,
+                ),
               ),
             ],
           ),

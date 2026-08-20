@@ -1,283 +1,499 @@
 import 'package:flutter/material.dart';
-import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
-/// Design system central do Acolle.
-/// Todas as telas novas devem reaproveitar estas cores e componentes,
-/// em vez de redeclarar constantes soltas.
+import '../services/acessibilidade_service.dart';
+
 class AcolleDesign {
-  AcolleDesign._();
+  // ============================================================
+  // CORES PRINCIPAIS
+  // ============================================================
 
-  // ---------- Cores ----------
   static const Color roxo = Color(0xFF773FD1);
-  static const Color fundo = Color(0xFFFAF7FC);
+
   static const Color laranja = Color(0xFFF47A07);
-  static const Color vermelho = Color(0xFFD32F2F);
+
+  static const Color vermelho = Color(0xFFE53935);
+
   static const Color verde = Color(0xFF2E7D32);
+
+  static const Color fundo = Color(0xFFFAF7FC);
+
   static const Color card = Color(0xFFF3EEFA);
-  static const Color texto = Color(0xFF25212B);
+
+  // IMPORTANTE:
+  // Não pode se chamar "texto", pois temos também
+  // o método AcolleDesign.texto().
+  static const Color textoBase = Color(0xFF25212B);
+
+  static const Color textoSecundario = Colors.black87;
+
   static const Color borda = Color(0xFFD4CBDD);
-  static const Color cinzaClaro = Color(0xFFF0F0F0);
 
-  // ---------- Texto ----------
+  // ============================================================
+  // ACESSIBILIDADE
+  // ============================================================
 
-  /// Título padrão de AppBar (a	scende no roxo Acolle).
-  static const TextStyle estiloTituloAppBar = TextStyle(
-    color: roxo,
-    fontWeight: FontWeight.bold,
-    fontSize: 24,
-  );
+  static bool get altoContraste {
+    return AcessibilidadeService.instance.altoContraste;
+  }
 
-  static const TextStyle estiloSecao = TextStyle(
-    fontSize: 22,
-    fontWeight: FontWeight.bold,
-    color: texto,
-  );
+  static double get escalaTexto {
+    return AcessibilidadeService.instance.escalaTexto;
+  }
 
-  static const TextStyle estiloCorpo = TextStyle(
-    fontSize: 18,
-    color: Colors.black87,
-    height: 1.4,
-  );
+  // ============================================================
+  // CORES DINÂMICAS
+  // ============================================================
 
-  static const TextStyle estiloBotao = TextStyle(
-    fontSize: 21,
-    fontWeight: FontWeight.bold,
-    color: Colors.white,
-  );
+  static Color corFundo(bool altoContraste) {
+    return altoContraste ? Colors.black : fundo;
+  }
 
-  // ---------- Componentes ----------
+  static Color corTexto(bool altoContraste) {
+    return altoContraste ? Colors.white : textoBase;
+  }
 
-  /// AppBar padrão do app Acolle.
-  static AppBar appBarPadrao(
+  static Color corTextoSecundario(bool altoContraste) {
+    return altoContraste
+        ? Colors.white
+        : textoSecundario;
+  }
+
+  static Color corIcone(bool altoContraste) {
+    // O laranja continua sendo a cor de destaque,
+    // inclusive no alto contraste.
+    return laranja;
+  }
+
+  static Color corCampo(bool altoContraste) {
+    return altoContraste
+        ? Colors.black
+        : Colors.white;
+  }
+
+  static Color corCard(bool altoContraste) {
+    return altoContraste
+        ? Colors.black
+        : card;
+  }
+
+  static Color corBorda(bool altoContraste) {
+    return altoContraste
+        ? Colors.white
+        : borda;
+  }
+
+  // ============================================================
+  // APPBAR
+  // ============================================================
+
+  static PreferredSizeWidget appBarPadrao(
     String titulo, {
-    List<Widget>? actions,
-    Widget? leading,
-    bool center = true,
+    bool centralizado = false,
   }) {
+    final contraste = altoContraste;
+
     return AppBar(
-      backgroundColor: fundo,
+      backgroundColor: corFundo(contraste),
+
       elevation: 0,
-      centerTitle: center,
-      title: Text(titulo, style: estiloTituloAppBar),
-      iconTheme: const IconThemeData(color: roxo),
-      actions: actions,
-      leading: leading,
+
+      centerTitle: centralizado,
+
+      iconTheme: IconThemeData(
+        color: corIcone(contraste),
+      ),
+
+      title: Text(
+        titulo,
+        style: TextStyle(
+          color: corIcone(contraste),
+          fontSize: tamanhoTexto(24),
+          fontWeight: FontWeight.bold,
+        ),
+      ),
     );
   }
 
-  /// Botão primário (roxo, grande, com loading opcional).
-  static Widget botaoPrimario({
-    required String texto,
-    required VoidCallback? onPressed,
-    bool carregando = false,
+  // ============================================================
+  // INPUT DECORATION
+  // ============================================================
+
+  static InputDecoration inputDecoration({
+    String? label,
+    String? hint,
     IconData? icone,
-    double altura = 60,
-    Color cor = roxo,
+    bool altoContraste = false,
   }) {
-    // FIX: ConstrainedBox(minHeight) no lugar de SizedBox(height) fixo,
-    // para o botão crescer com o texto em vez de estourar quando a fonte
-    // do sistema é ampliada.
-    return ConstrainedBox(
-      constraints: BoxConstraints(minHeight: altura, minWidth: double.infinity),
-      child: ElevatedButton.icon(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: cor,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(22),
+    final corTextoAtual =
+        corTextoSecundario(altoContraste);
+
+    final corDestaque =
+        corIcone(altoContraste);
+
+    return InputDecoration(
+      labelText: label,
+
+      hintText: hint,
+
+      labelStyle: TextStyle(
+        fontSize: tamanhoTexto(17),
+        color: corTextoAtual,
+      ),
+
+      hintStyle: TextStyle(
+        fontSize: tamanhoTexto(16),
+        color: corTextoAtual,
+      ),
+
+      prefixIcon: icone != null
+          ? Icon(
+              icone,
+              color: corDestaque,
+            )
+          : null,
+
+      filled: true,
+
+      fillColor: corCampo(
+        altoContraste,
+      ),
+
+      border: OutlineInputBorder(
+        borderRadius:
+            BorderRadius.circular(18),
+
+        borderSide: BorderSide(
+          color: corBorda(
+            altoContraste,
           ),
+          width: 1.5,
         ),
-        onPressed: carregando ? null : onPressed,
-        icon: carregando
-            ? const SizedBox.shrink()
-            : (icone != null ? Icon(icone, size: 24) : const SizedBox.shrink()),
-        label: carregando
-            ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.4,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              )
-            : Text(texto, style: estiloBotao, textAlign: TextAlign.center),
+      ),
+
+      enabledBorder: OutlineInputBorder(
+        borderRadius:
+            BorderRadius.circular(18),
+
+        borderSide: BorderSide(
+          color: corBorda(
+            altoContraste,
+          ),
+          width: 1.5,
+        ),
+      ),
+
+      focusedBorder: OutlineInputBorder(
+        borderRadius:
+            BorderRadius.circular(18),
+
+        borderSide: BorderSide(
+          color: corDestaque,
+          width: 2,
+        ),
+      ),
+
+      contentPadding:
+          const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 18,
       ),
     );
   }
 
-  /// Botão secundário (Outline roxo).
-  static Widget botaoSecundario({
-    required String texto,
-    required VoidCallback onPressed,
-    Color cor = roxo,
-  }) {
-    // FIX: mesmo ajuste do botaoPrimario — minHeight em vez de height fixo.
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 56, minWidth: double.infinity),
-      child: OutlinedButton(
-        style: OutlinedButton.styleFrom(
-          foregroundColor: cor,
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-          side: BorderSide(color: cor, width: 2),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(22),
-          ),
-        ),
-        onPressed: onPressed,
-        child: Text(
-          texto,
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: cor),
-        ),
-      ),
-    );
-  }
+  // ============================================================
+  // CAMPO DE TEXTO
+  // ============================================================
 
-  /// Campo de texto padrão (label + ícone + máscara opcional).
   static Widget campoTexto({
     required String label,
     required TextEditingController controller,
-    IconData? icone,
-    TextInputType teclado = TextInputType.text,
-    bool obscure = false,
-    Widget? suffix,
-    List<MaskTextInputFormatter>? mascaras,
-    int maxLinhas = 1,
+    required IconData icone,
+    TextInputType? teclado,
     String? dica,
-    FocusNode? focusNode,
-    TextInputAction acaoTeclado = TextInputAction.next,
-    ValueChanged<String>? onChanged,
+    bool obscureText = false,
+    int maxLines = 1,
   }) {
+    final contraste = altoContraste;
+
     return TextField(
       controller: controller,
+
       keyboardType: teclado,
-      obscureText: obscure,
-      inputFormatters: mascaras,
-      maxLines: obscure ? 1 : maxLinhas,
-      focusNode: focusNode,
-      textInputAction: acaoTeclado,
-      onChanged: onChanged,
-      style: const TextStyle(fontSize: 18),
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: dica,
-        prefixIcon: icone != null ? Icon(icone) : null,
-        suffixIcon: suffix,
-        filled: true,
-        fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(18)),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: BorderSide(color: borda, width: 1.5),
+
+      obscureText: obscureText,
+
+      maxLines: maxLines,
+
+      style: TextStyle(
+        fontSize: tamanhoTexto(18),
+        color: corTexto(contraste),
+      ),
+
+      decoration: inputDecoration(
+        label: label,
+        hint: dica,
+        icone: icone,
+        altoContraste: contraste,
+      ),
+    );
+  }
+
+  // ============================================================
+  // TEXTO PADRÃO
+  // ============================================================
+
+  static TextStyle texto({
+    required double tamanho,
+    Color? cor,
+    FontWeight? peso,
+    double? altura,
+  }) {
+    return TextStyle(
+      fontSize: tamanhoTexto(tamanho),
+
+      color: cor ??
+          corTexto(altoContraste),
+
+      fontWeight: peso,
+
+      height: altura,
+    );
+  }
+
+  // ============================================================
+  // TAMANHO DO TEXTO
+  // ============================================================
+
+  static double tamanhoTexto(
+    double tamanho,
+  ) {
+    return tamanho * escalaTexto;
+  }
+
+  // ============================================================
+  // BOTÃO PRINCIPAL
+  // ============================================================
+
+  static Widget botaoPrimario({
+    required String texto,
+    required IconData icone,
+    required VoidCallback? onPressed,
+    bool carregando = false,
+  }) {
+    final contraste = altoContraste;
+
+    final corBotao =
+        corIcone(contraste);
+
+    final corTextoBotao =
+        contraste
+            ? Colors.black
+            : Colors.white;
+
+    return SizedBox(
+      height: 58,
+
+      width: double.infinity,
+
+      child: ElevatedButton.icon(
+        onPressed: carregando
+            ? null
+            : onPressed,
+
+        icon: carregando
+            ? SizedBox(
+                width: 24,
+                height: 24,
+
+                child:
+                    CircularProgressIndicator(
+                  strokeWidth: 2.5,
+
+                  color:
+                      corTextoBotao,
+                ),
+              )
+            : Icon(
+                icone,
+                color:
+                    corTextoBotao,
+              ),
+
+        label: Text(
+          carregando
+              ? 'Carregando...'
+              : texto,
+
+          style: TextStyle(
+            fontSize:
+                tamanhoTexto(18),
+
+            fontWeight:
+                FontWeight.bold,
+
+            color:
+                corTextoBotao,
+          ),
         ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: roxo, width: 2),
+
+        style:
+            ElevatedButton.styleFrom(
+          backgroundColor:
+              corBotao,
+
+          foregroundColor:
+              corTextoBotao,
+
+          shape:
+              RoundedRectangleBorder(
+            borderRadius:
+                BorderRadius.circular(
+              16,
+            ),
+          ),
         ),
       ),
     );
   }
 
-  /// Cartão branco arredondado usado em listas.
+  // ============================================================
+  // CARTÃO
+  // ============================================================
+
   static Widget cartao({
     required Widget filho,
-    EdgeInsets padding = const EdgeInsets.all(18),
-    Color cor = Colors.white,
-    Color bordaCor = const Color(0xFFE8E0F0),
-    double raio = 20,
+
+    EdgeInsetsGeometry padding =
+        const EdgeInsets.all(16),
+
+    EdgeInsetsGeometry? margem,
+
+    Color? cor,
+
+    Border? borda,
   }) {
+    final contraste =
+        altoContraste;
+
     return Container(
+      margin: margem,
+
       padding: padding,
+
       decoration: BoxDecoration(
-        color: cor,
-        borderRadius: BorderRadius.circular(raio),
-        border: Border.all(color: bordaCor, width: 1.2),
+        color:
+            cor ?? corCard(contraste),
+
+        borderRadius:
+            BorderRadius.circular(18),
+
+        border:
+            borda ??
+            Border.all(
+              color:
+                  corBorda(contraste),
+
+              width: 1.2,
+            ),
       ),
+
       child: filho,
     );
   }
+// ============================================================
+// ESTADO VAZIO
+// ============================================================
 
-  /// Estado vazio padrão (ícone + texto).
-  static Widget estadoVazio({
-    required IconData icone,
-    required String texto,
-  }) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icone, size: 72, color: Colors.grey.shade400),
-          const SizedBox(height: 16),
-          Text(
-            texto,
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
+static Widget estadoVazio({
+  required IconData icone,
+  required String mensagem,
+}) {
+  final contraste = altoContraste;
+
+  return Padding(
+    padding: const EdgeInsets.symmetric(
+      horizontal: 28,
+    ),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          icone,
+          size: tamanhoTexto(64),
+          color: corIcone(contraste),
+        ),
+
+        const SizedBox(height: 16),
+
+        Text(
+          mensagem,
+          textAlign: TextAlign.center,
+          style: AcolleDesign.texto(
+            tamanho: 17,
+            cor: corTexto(contraste),
+            peso: FontWeight.w500,
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
+  // ============================================================
+  // SNACKBAR
+  // ============================================================
 
-  /// Scaffold base com fundo Acolle + SafeArea.
-  static Widget scaffoldBase({
-    required Widget body,
-    PreferredSizeWidget? appBar,
-    Widget? floatingActionButton,
+  static void snackbar(
+    BuildContext context,
+    String mensagem, {
+    Color? cor,
   }) {
-    return Scaffold(
-      backgroundColor: fundo,
-      appBar: appBar,
-      body: SafeArea(child: body),
-      floatingActionButton: floatingActionButton,
-    );
-  }
+    ScaffoldMessenger.of(context)
+        .hideCurrentSnackBar();
 
-  /// SnackBar utilitário usado por todas as telas.
-  static void snackbar(BuildContext context, String mensagem,
-      {Color? cor}) {
-    ScaffoldMessenger.of(context).showSnackBar(
+    ScaffoldMessenger.of(context)
+        .showSnackBar(
       SnackBar(
-        content: Text(mensagem),
-        backgroundColor: cor,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
+        content: Text(
+          mensagem,
 
-  /// Diálogo de erro simples.
-  static Future<void> dialogoErro(BuildContext context, String titulo, String mensagem) async {
-    await showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        icon: Icon(Icons.error_outline, color: Colors.red.shade700, size: 40),
-        title: Text(titulo),
-        content: Text(mensagem, style: const TextStyle(fontSize: 17)),
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Entendi'),
+          style: TextStyle(
+            fontSize:
+                tamanhoTexto(16),
           ),
-        ],
+        ),
+
+        backgroundColor:
+            cor ?? laranja,
+
+        behavior:
+            SnackBarBehavior.floating,
+
+        shape:
+            RoundedRectangleBorder(
+          borderRadius:
+              BorderRadius.circular(12),
+        ),
       ),
     );
   }
 
-  /// Indicador circular de carregamento central.
-  static Widget carregandoCentral([String? mensagem]) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const CircularProgressIndicator(color: roxo),
-          if (mensagem != null) ...[
-            const SizedBox(height: 16),
-            Text(mensagem,
-                style: const TextStyle(fontSize: 16, color: Colors.black54)),
-          ],
-        ],
+  // ============================================================
+  // DIÁLOGOS
+  // ============================================================
+
+  static TextStyle get tituloDialogo {
+    return texto(
+      tamanho: 21,
+      peso: FontWeight.bold,
+    );
+  }
+
+  static TextStyle get textoDialogo {
+    return texto(
+      tamanho: 17,
+      cor:
+          corTextoSecundario(
+        altoContraste,
       ),
     );
   }

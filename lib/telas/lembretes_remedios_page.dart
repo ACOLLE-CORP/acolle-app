@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -7,23 +8,39 @@ import '../shared/acolle_design.dart';
 import 'adicionar_lembrete_page.dart';
 import '../services/notificacao_service.dart';
 
-/// Tela de Lembretes de Remédios: lista horários cadastrados, com toggle para
-/// ativar/desativar cada um, e botão "+" para adicionar novo lembrete.
+/// Tela de Lembretes de Remédios.
+///
+/// Lista os lembretes cadastrados pelo usuário, permitindo:
+/// - ativar/desativar lembretes;
+/// - remover lembretes;
+/// - adicionar novos lembretes.
+///
+/// A tela utiliza o AcolleDesign para:
+/// - alto contraste;
+/// - escala de fonte;
+/// - cores;
+/// - cartões;
+/// - botões;
+/// - AppBar.
 class LembretesRemediosPage extends StatefulWidget {
   const LembretesRemediosPage({super.key});
 
   @override
-  State<LembretesRemediosPage> createState() => _LembretesRemediosPageState();
+  State<LembretesRemediosPage> createState() =>
+      _LembretesRemediosPageState();
 }
 
 class _LembretesRemediosPageState extends State<LembretesRemediosPage> {
-  late final String _uid = FirebaseAuth.instance.currentUser!.uid;
+  late final String _uid =
+      FirebaseAuth.instance.currentUser!.uid;
+
   StreamController<int>? _tick;
   int _tickValue = 0;
 
   @override
   void initState() {
     super.initState();
+
     _tick = StreamController<int>.broadcast();
   }
 
@@ -35,59 +52,126 @@ class _LembretesRemediosPageState extends State<LembretesRemediosPage> {
 
   @override
   Widget build(BuildContext context) {
+    final contraste = AcolleDesign.altoContraste;
+
     return Scaffold(
-      backgroundColor: AcolleDesign.fundo,
-      appBar: AcolleDesign.appBarPadrao('Lembretes de Remédios'),
+      backgroundColor:
+          AcolleDesign.corFundo(contraste),
+
+      appBar: AcolleDesign.appBarPadrao(
+        'Lembretes de Remédios',
+      ),
+
       body: StreamBuilder<int>(
         stream: _tick?.stream,
         initialData: 0,
         builder: (context, tickSnap) {
           final tick = tickSnap.data ?? 0;
+
           if (tick != _tickValue) {
             _tickValue = tick;
           }
+
           return RefreshIndicator(
+            color: AcolleDesign.corIcone(contraste),
+
             onRefresh: () async {
               _tick?.add(_tickValue + 1);
-              await Future.delayed(const Duration(seconds: 2));
+
+              await Future.delayed(
+                const Duration(seconds: 2),
+              );
             },
+
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('remedios')
-                  .where('usuarioId', isEqualTo: _uid)
-                  .orderBy('ativo', descending: true)
+                  .where(
+                    'usuarioId',
+                    isEqualTo: _uid,
+                  )
+                  .orderBy(
+                    'ativo',
+                    descending: true,
+                  )
                   .snapshots(),
+
               builder: (context, snapshot) {
+                // ======================================================
+                // ERRO DO FIRESTORE
+                // ======================================================
+
                 if (snapshot.hasError) {
-                  final msg = snapshot.error.toString();
-                  final waitingIndex = msg.contains('failed-precondition') ||
+                  final msg =
+                      snapshot.error.toString();
+
+                  final waitingIndex =
+                      msg.contains('failed-precondition') ||
                       msg.contains('building') ||
                       msg.contains('currently building');
+
                   if (waitingIndex) {
-                    Future.delayed(const Duration(seconds: 4), () {
-                      if (!mounted) return;
-                      _tick?.add(_tickValue + 1);
-                    });
+                    Future.delayed(
+                      const Duration(seconds: 4),
+                      () {
+                        if (!mounted) return;
+
+                        _tick?.add(
+                          _tickValue + 1,
+                        );
+                      },
+                    );
+
                     return ListView(
+                      physics:
+                          const AlwaysScrollableScrollPhysics(),
+
                       children: [
                         const SizedBox(height: 80),
+
                         Center(
                           child: Padding(
-                            padding: const EdgeInsets.all(24),
+                            padding:
+                                const EdgeInsets.all(24),
+
                             child: Column(
                               children: [
-                                const Icon(Icons.hourglass_top,
-                                    size: 72, color: Colors.orange),
-                                const SizedBox(height: 16),
-                                const Text(
-                                  'Preparando índice do Firestore...\nAguarde alguns segundos.',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(fontSize: 17),
+                                Icon(
+                                  Icons.hourglass_top,
+                                  size: AcolleDesign
+                                      .tamanhoTexto(72),
+                                  color: AcolleDesign
+                                      .corIcone(contraste),
                                 ),
+
                                 const SizedBox(height: 16),
-                                const Text('Puxe para baixo para tentar de novo',
-                                    style: TextStyle(
-                                        color: Colors.grey, fontSize: 14)),
+
+                                Text(
+                                  'Preparando índice do Firestore...\n'
+                                  'Aguarde alguns segundos.',
+                                  textAlign:
+                                      TextAlign.center,
+                                  style:
+                                      AcolleDesign.texto(
+                                    tamanho: 17,
+                                  ),
+                                ),
+
+                                const SizedBox(height: 16),
+
+                                Text(
+                                  'Puxe para baixo para tentar de novo',
+                                  textAlign:
+                                      TextAlign.center,
+                                  style:
+                                      AcolleDesign.texto(
+                                    tamanho: 14,
+                                    cor: AcolleDesign
+                                        .corTextoSecundario(
+                                      contraste,
+                                    ),
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -95,61 +179,152 @@ class _LembretesRemediosPageState extends State<LembretesRemediosPage> {
                       ],
                     );
                   }
+
                   return ListView(
+                    physics:
+                        const AlwaysScrollableScrollPhysics(),
+
                     children: [
                       const SizedBox(height: 80),
+
                       Padding(
-                        padding: const EdgeInsets.all(20),
+                        padding:
+                            const EdgeInsets.all(20),
+
                         child: SelectableText(
-                          'ERRO ao carregar lembretes:\n${snapshot.error}',
+                          'ERRO ao carregar lembretes:\n'
+                          '${snapshot.error}',
+
                           style:
-                              const TextStyle(color: Colors.red, fontSize: 13),
+                              AcolleDesign.texto(
+                            tamanho: 13,
+                            cor: contraste
+                                ? Colors.white
+                                : Colors.red,
+                          ),
                         ),
                       ),
                     ],
                   );
                 }
-                if (snapshot.connectionState == ConnectionState.waiting &&
+
+                // ======================================================
+                // CARREGANDO
+                // ======================================================
+
+                if (snapshot.connectionState ==
+                        ConnectionState.waiting &&
                     !snapshot.hasData) {
                   return ListView(
-                    children: const [
-                      SizedBox(height: 80),
+                    physics:
+                        const AlwaysScrollableScrollPhysics(),
+
+                    children: [
+                      const SizedBox(height: 80),
+
                       Center(
                         child: Padding(
-                          padding: EdgeInsets.all(20),
-                          child: Text('Carregando lembretes...',
-                              style: TextStyle(fontSize: 18)),
+                          padding:
+                              const EdgeInsets.all(20),
+
+                          child: Text(
+                            'Carregando lembretes...',
+
+                            textAlign:
+                                TextAlign.center,
+
+                            style:
+                                AcolleDesign.texto(
+                              tamanho: 18,
+                            ),
+                          ),
                         ),
                       ),
                     ],
                   );
                 }
-                final docs = snapshot.data?.docs ?? [];
+
+                // ======================================================
+                // DOCUMENTOS
+                // ======================================================
+
+                final docs =
+                    snapshot.data?.docs ?? [];
+
+                // ======================================================
+                // LISTA VAZIA
+                // ======================================================
+
                 if (docs.isEmpty) {
                   return ListView(
+                    physics:
+                        const AlwaysScrollableScrollPhysics(),
+
                     children: [
                       const SizedBox(height: 100),
+
                       Center(
-                        child: AcolleDesign.estadoVazio(
-                          icone: Icons.medication_outlined,
-                          texto:
-                              'Nenhum lembrete cadastrado.\nToque no botão + para adicionar um remédio.',
+                        child:
+                            AcolleDesign.estadoVazio(
+                          icone:
+                              Icons.medication_outlined,
+
+                          mensagem:
+                              'Nenhum lembrete cadastrado.\n'
+                              'Toque no botão + para adicionar '
+                              'um remédio.',
                         ),
                       ),
                     ],
                   );
                 }
+
+                // ======================================================
+                // LISTA
+                // ======================================================
+
                 return ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+                  physics:
+                      const AlwaysScrollableScrollPhysics(),
+
+                  padding:
+                      const EdgeInsets.fromLTRB(
+                    16,
+                    12,
+                    16,
+                    100,
+                  ),
+
                   itemCount: docs.length,
-                  itemBuilder: (context, index) {
-                    final dados = docs[index].data() as Map<String, dynamic>;
+
+                  itemBuilder:
+                      (context, index) {
+                    final dados =
+                        docs[index].data()
+                            as Map<String, dynamic>;
+
                     return _ItemLembrete(
                       id: docs[index].id,
-                      nome: dados['nome'] as String? ?? '',
-                      horario: dados['horario'] as String? ?? '',
-                      frequencia: dados['frequencia'] as String? ?? 'Diário',
-                      ativo: dados['ativo'] as bool? ?? true,
+
+                      nome:
+                          dados['nome']
+                                  as String? ??
+                              '',
+
+                      horario:
+                          dados['horario']
+                                  as String? ??
+                              '',
+
+                      frequencia:
+                          dados['frequencia']
+                                  as String? ??
+                              'Diário',
+
+                      ativo:
+                          dados['ativo']
+                                  as bool? ??
+                              true,
                     );
                   },
                 );
@@ -158,21 +333,53 @@ class _LembretesRemediosPageState extends State<LembretesRemediosPage> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (context) => const AdicionarLembretePage()),
-        ),
+
+      // ================================================================
+      // BOTÃO ADICIONAR
+      // ================================================================
+
+      floatingActionButton:
+          FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) =>
+                  const AdicionarLembretePage(),
+            ),
+          );
+        },
+
         icon: const Icon(Icons.add),
-        label: const Text('Adicionar',
-            style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: AcolleDesign.roxo,
-        foregroundColor: AcolleDesign.fundo,
+
+        label: Text(
+          'Adicionar',
+
+          style:
+              AcolleDesign.texto(
+            tamanho: 16,
+            peso: FontWeight.bold,
+            cor: contraste
+                ? Colors.black
+                : Colors.white,
+          ),
+        ),
+
+        backgroundColor:
+            AcolleDesign.corIcone(contraste),
+
+        foregroundColor:
+            contraste
+                ? Colors.black
+                : Colors.white,
       ),
     );
   }
 }
+
+// ======================================================================
+// ITEM DO LEMBRETE
+// ======================================================================
 
 class _ItemLembrete extends StatefulWidget {
   const _ItemLembrete({
@@ -190,19 +397,30 @@ class _ItemLembrete extends StatefulWidget {
   final bool ativo;
 
   @override
-  State<_ItemLembrete> createState() => _ItemLembreteState();
+  State<_ItemLembrete> createState() =>
+      _ItemLembreteState();
 }
 
-class _ItemLembreteState extends State<_ItemLembrete> {
+class _ItemLembreteState
+    extends State<_ItemLembrete> {
   late bool _ativo = widget.ativo;
 
+  // ====================================================================
+  // ATIVAR / DESATIVAR
+  // ====================================================================
+
   Future<void> _alternar(bool valor) async {
-    setState(() => _ativo = valor);
+    setState(() {
+      _ativo = valor;
+    });
+
     try {
       await FirebaseFirestore.instance
           .collection('remedios')
           .doc(widget.id)
-          .update({'ativo': valor});
+          .update({
+        'ativo': valor,
+      });
 
       if (valor) {
         await NotificacaoService.agendarLembrete(
@@ -212,79 +430,316 @@ class _ItemLembreteState extends State<_ItemLembrete> {
           frequencia: widget.frequencia,
         );
       } else {
-        await NotificacaoService.cancelarLembrete(widget.id);
+        await NotificacaoService.cancelarLembrete(
+          widget.id,
+        );
       }
     } catch (_) {
-      if (mounted) {
-        setState(() => _ativo = !valor);
-        AcolleDesign.snackbar(context, 'Erro ao atualizar lembrete.');
-      }
+      if (!mounted) return;
+
+      setState(() {
+        _ativo = !valor;
+      });
+
+      AcolleDesign.snackbar(
+        context,
+        'Erro ao atualizar lembrete.',
+      );
     }
   }
 
+  // ====================================================================
+  // REMOVER
+  // ====================================================================
+
   Future<void> _remover() async {
-    final confirmar = await showDialog<bool>(
+    final confirmar =
+        await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Remover lembrete'),
-        content: Text('Deseja remover o lembrete de "${widget.nome}"?'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancelar')),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red.shade700),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Remover'),
+
+      builder: (context) {
+        final contraste =
+            AcolleDesign.altoContraste;
+
+        return AlertDialog(
+          backgroundColor:
+              AcolleDesign.corCard(
+            contraste,
           ),
-        ],
-      ),
+
+          title: Text(
+            'Remover lembrete',
+
+            style:
+                AcolleDesign.tituloDialogo,
+          ),
+
+          content: Text(
+            'Deseja remover o lembrete de '
+            '"${widget.nome}"?',
+
+            style:
+                AcolleDesign.textoDialogo,
+          ),
+
+          actions: [
+            TextButton(
+              onPressed: () =>
+                  Navigator.pop(
+                context,
+                false,
+              ),
+
+              child: Text(
+                'Cancelar',
+
+                style:
+                    AcolleDesign.texto(
+                  tamanho: 16,
+                  peso: FontWeight.w600,
+                  cor: AcolleDesign
+                      .corIcone(
+                    contraste,
+                  ),
+                ),
+              ),
+            ),
+
+            FilledButton(
+              style:
+                  FilledButton.styleFrom(
+                backgroundColor:
+                    Colors.red.shade700,
+
+                foregroundColor:
+                    Colors.white,
+              ),
+
+              onPressed: () =>
+                  Navigator.pop(
+                context,
+                true,
+              ),
+
+              child: Text(
+                'Remover',
+
+                style:
+                    AcolleDesign.texto(
+                  tamanho: 16,
+                  peso: FontWeight.bold,
+                  cor: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
-    if (confirmar == true) {
-      await NotificacaoService.cancelarLembrete(widget.id);
-      await FirebaseFirestore.instance.collection('remedios').doc(widget.id).delete();
-      if (mounted) AcolleDesign.snackbar(context, 'Lembrete removido.');
+
+    if (confirmar != true) {
+      return;
+    }
+
+    try {
+      await NotificacaoService
+          .cancelarLembrete(
+        widget.id,
+      );
+
+      await FirebaseFirestore.instance
+          .collection('remedios')
+          .doc(widget.id)
+          .delete();
+
+      if (!mounted) return;
+
+      AcolleDesign.snackbar(
+        context,
+        'Lembrete removido.',
+      );
+    } catch (_) {
+      if (!mounted) return;
+
+      AcolleDesign.snackbar(
+        context,
+        'Não foi possível remover o lembrete.',
+      );
     }
   }
+
+  // ====================================================================
+  // BUILD
+  // ====================================================================
 
   @override
   Widget build(BuildContext context) {
+    final contraste =
+        AcolleDesign.altoContraste;
+
+    final corTexto =
+        AcolleDesign.corTexto(
+      contraste,
+    );
+
+    final corSecundaria =
+        AcolleDesign.corTextoSecundario(
+      contraste,
+    );
+
+    final corDestaque =
+        AcolleDesign.corIcone(
+      contraste,
+    );
+
     return AcolleDesign.cartao(
+      padding:
+          const EdgeInsets.all(14),
+
+      margem:
+          const EdgeInsets.only(
+        bottom: 12,
+      ),
+
       filho: Row(
+        crossAxisAlignment:
+            CrossAxisAlignment.center,
+
         children: [
+          // ============================================================
+          // ÍCONE
+          // ============================================================
+
           Container(
             width: 52,
             height: 52,
-            decoration: const BoxDecoration(
-              color: AcolleDesign.card,
+
+            decoration: BoxDecoration(
+              color:
+                  contraste
+                      ? Colors.black
+                      : AcolleDesign.card,
+
               shape: BoxShape.circle,
+
+              border: contraste
+                  ? Border.all(
+                      color: Colors.white,
+                      width: 1.5,
+                    )
+                  : null,
             ),
-            child: const Icon(Icons.medication, color: AcolleDesign.roxo),
+
+            child: Icon(
+              Icons.medication,
+              color: corDestaque,
+              size: 28,
+            ),
           ),
-          const SizedBox(width: 14),
+
+          const SizedBox(width: 12),
+
+          // ============================================================
+          // INFORMAÇÕES
+          // ============================================================
+
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+
               children: [
-                Text(widget.nome,
-                    style: const TextStyle(
-                        fontSize: 19, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 4),
                 Text(
-                  '${widget.horario} • ${widget.frequencia}',
-                  style: const TextStyle(fontSize: 15, color: Colors.black54),
+                  widget.nome,
+
+                  maxLines: 2,
+
+                  overflow:
+                      TextOverflow.ellipsis,
+
+                  style:
+                      AcolleDesign.texto(
+                    tamanho: 19,
+                    peso: FontWeight.bold,
+                    cor: corTexto,
+                  ),
+                ),
+
+                const SizedBox(height: 4),
+
+                Text(
+                  '${widget.horario} • '
+                  '${widget.frequencia}',
+
+                  maxLines: 2,
+
+                  overflow:
+                      TextOverflow.ellipsis,
+
+                  style:
+                      AcolleDesign.texto(
+                    tamanho: 15,
+                    cor: corSecundaria,
+                  ),
                 ),
               ],
             ),
           ),
-          Switch.adaptive(
-            value: _ativo,
-            activeTrackColor: AcolleDesign.verde,
-            activeThumbColor: const Color.fromARGB(255, 218, 224, 218),
-            onChanged: _alternar,
+
+          const SizedBox(width: 6),
+
+          // ============================================================
+          // SWITCH
+          // ============================================================
+
+          Semantics(
+            label: _ativo
+                ? 'Lembrete ativado'
+                : 'Lembrete desativado',
+
+            toggled: _ativo,
+
+            child: Switch.adaptive(
+              value: _ativo,
+
+              activeTrackColor:
+                  AcolleDesign.verde,
+
+              activeThumbColor:
+                  Colors.white,
+
+              inactiveTrackColor:
+                  contraste
+                      ? Colors.grey.shade800
+                      : Colors.grey.shade300,
+
+              inactiveThumbColor:
+                  contraste
+                      ? Colors.white
+                      : Colors.grey.shade600,
+
+              onChanged: _alternar,
+            ),
           ),
+
+          // ============================================================
+          // EXCLUIR
+          // ============================================================
+
           IconButton(
-            icon: Icon(Icons.delete_outline, color: Colors.red.shade400),
+            tooltip: 'Remover lembrete',
+
+            icon: Icon(
+              Icons.delete_outline,
+
+              color:
+                  contraste
+                      ? Colors.redAccent
+                      : Colors.red.shade400,
+
+              size: 27,
+            ),
+
             onPressed: _remover,
           ),
         ],
