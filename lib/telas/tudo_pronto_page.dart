@@ -73,12 +73,15 @@ class _TudoProntoPageState extends State<TudoProntoPage> {
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
-                'O Acolle está preparado para te proteger. '
-                'Agora você tem um parceiro contra golpes digitais.',
-                textAlign: TextAlign.center,
-                style: AcolleDesign.estiloCorpo,
-              ),
+                Text(
+                  'O Acolle está preparado para te proteger. '
+                  'Agora você tem um parceiro contra golpes digitais.',
+                  textAlign: TextAlign.center,
+                  style: AcolleDesign.texto(
+                    tamanho: 17,
+                    peso: FontWeight.w500,
+                  ),
+                ),
               const Spacer(),
               if (_inicializando)
                 AcolleDesign.carregandoCentral('Preparando suas notificações...')

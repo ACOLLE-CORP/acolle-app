@@ -17,6 +17,10 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:label="Acolle"
@@ -59,7 +63,14 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
-
+        <service
+            android:name=".FloatingBubbleService"
+            android:foregroundServiceType="specialUse"
+            android:exported="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Botao flutuante de protecao contra golpes" />
+        </service>
         <!-- Serviço do pacote alarm: aviso opcional se o app for encerrado
              enquanto um alarme está agendado. -->
         <service android:name="com.gdelataillade.alarm.services.NotificationOnKillService" />

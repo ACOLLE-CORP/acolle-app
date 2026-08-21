@@ -5,7 +5,10 @@ import 'package:flutter/services.dart';
 import '../shared/acolle_design.dart';
 
 class ConfigurarProtecaoChamadasPage extends StatefulWidget {
-  const ConfigurarProtecaoChamadasPage({super.key, required this.proxima});
+  const ConfigurarProtecaoChamadasPage({
+    super.key,
+    required this.proxima,
+  });
 
   final WidgetBuilder proxima;
 
@@ -17,7 +20,8 @@ class ConfigurarProtecaoChamadasPage extends StatefulWidget {
 class _ConfigurarProtecaoChamadasPageState
     extends State<ConfigurarProtecaoChamadasPage>
     with WidgetsBindingObserver {
-  static const _canal = MethodChannel('acolle/caller_id');
+  static const MethodChannel _canal = MethodChannel('acolle/caller_id');
+
   bool _identificacaoAtiva = false;
   bool _sobreposicaoAtiva = false;
   bool _verificando = true;
@@ -25,6 +29,7 @@ class _ConfigurarProtecaoChamadasPageState
   @override
   void initState() {
     super.initState();
+
     WidgetsBinding.instance.addObserver(this);
     _atualizarEstado();
   }
@@ -37,49 +42,107 @@ class _ConfigurarProtecaoChamadasPageState
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _atualizarEstado();
+    if (state == AppLifecycleState.resumed) {
+      _atualizarEstado();
+    }
   }
 
   Future<void> _atualizarEstado() async {
     if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
-      if (mounted) setState(() => _verificando = false);
+      if (mounted) {
+        setState(() {
+          _verificando = false;
+        });
+      }
       return;
     }
+
     try {
       final resultados = await Future.wait([
         _canal.invokeMethod<bool>('isScreeningRoleEnabled'),
         _canal.invokeMethod<bool>('isOverlayPermissionEnabled'),
       ]);
+
       if (!mounted) return;
+
       setState(() {
         _identificacaoAtiva = resultados[0] ?? false;
         _sobreposicaoAtiva = resultados[1] ?? false;
         _verificando = false;
       });
     } on PlatformException {
-      if (mounted) setState(() => _verificando = false);
+      if (mounted) {
+        setState(() {
+          _verificando = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _verificando = false;
+        });
+      }
     }
   }
 
   Future<void> _ativarIdentificacao() async {
-    await _canal.invokeMethod<bool>('requestScreeningRole');
-    await _atualizarEstado();
+    try {
+      await _canal.invokeMethod<bool>('requestScreeningRole');
+      await _atualizarEstado();
+    } on PlatformException {
+      if (mounted) {
+        AcolleDesign.snackbar(
+          context,
+          'Não foi possível abrir a configuração de identificação de chamadas.',
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        AcolleDesign.snackbar(
+          context,
+          'Não foi possível ativar a identificação de chamadas.',
+        );
+      }
+    }
   }
 
   Future<void> _ativarSobreposicao() async {
-    await _canal.invokeMethod<bool>('requestOverlayPermission');
+    try {
+      await _canal.invokeMethod<bool>('requestOverlayPermission');
+
+      // O usuário pode voltar das configurações depois.
+      // O estado será atualizado novamente pelo lifecycle.
+    } on PlatformException {
+      if (mounted) {
+        AcolleDesign.snackbar(
+          context,
+          'Não foi possível abrir a configuração de sobreposição.',
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        AcolleDesign.snackbar(
+          context,
+          'Não foi possível ativar o aviso na tela.',
+        );
+      }
+    }
   }
 
   void _continuar() {
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: widget.proxima),
+      MaterialPageRoute(
+        builder: widget.proxima,
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final tudoPronto = _identificacaoAtiva && _sobreposicaoAtiva;
+    final bool tudoPronto =
+        _identificacaoAtiva && _sobreposicaoAtiva;
+
     return Scaffold(
       backgroundColor: AcolleDesign.fundo,
       body: SafeArea(
@@ -91,53 +154,70 @@ class _ConfigurarProtecaoChamadasPageState
               const Icon(
                 Icons.phone_in_talk,
                 size: 76,
-                color: AcolleDesign.roxo,
+                color: Color(0xFF773FD1),
               ),
+
               const SizedBox(height: 18),
+
               const Text(
                 'Proteção durante as ligações',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 27,
                   fontWeight: FontWeight.bold,
-                  color: AcolleDesign.texto,
+                  color: Color(0xFF773FD1),
                 ),
               ),
+
               const SizedBox(height: 12),
+
               const Text(
-                'Ative os dois passos abaixo. Você só precisa fazer isso uma vez neste celular.',
+                'Ative os dois passos abaixo. '
+                'Você só precisa fazer isso uma vez neste celular.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 16,
-                  color: AcolleDesign.corTexto(
-                    altoContraste,
-                  ),
+                  color: Colors.black87,
+                  height: 1.4,
                 ),
               ),
+
               const SizedBox(height: 28),
+
               if (_verificando)
-                const Center(child: CircularProgressIndicator())
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: CircularProgressIndicator(),
+                  ),
+                )
               else ...[
                 _PassoPermissao(
                   numero: '1',
                   titulo: 'Identificar chamadas',
-                  explicacao: 'Na próxima tela, escolha Acolle e confirme.',
+                  explicacao:
+                      'Na próxima tela, escolha Acolle e confirme.',
                   ativo: _identificacaoAtiva,
                   textoBotao: 'Ativar identificação',
                   onPressed: _ativarIdentificacao,
                 ),
+
                 const SizedBox(height: 16),
+
                 _PassoPermissao(
                   numero: '2',
                   titulo: 'Mostrar o aviso grande',
                   explicacao:
-                      'Ative a chave “Permitir exibição sobre outros apps”.',
+                      'Ative a chave "Permitir exibição sobre outros apps".',
                   ativo: _sobreposicaoAtiva,
                   textoBotao: 'Permitir aviso na tela',
-                  onPressed: _identificacaoAtiva ? _ativarSobreposicao : null,
+                  onPressed:
+                      _identificacaoAtiva ? _ativarSobreposicao : null,
                 ),
               ],
+
               const SizedBox(height: 28),
+
               if (tudoPronto)
                 Container(
                   padding: const EdgeInsets.all(16),
@@ -147,7 +227,10 @@ class _ConfigurarProtecaoChamadasPageState
                   ),
                   child: const Row(
                     children: [
-                      Icon(Icons.verified, color: AcolleDesign.verde),
+                      Icon(
+                        Icons.verified,
+                        color: AcolleDesign.verde,
+                      ),
                       SizedBox(width: 10),
                       Expanded(
                         child: Text(
@@ -161,16 +244,29 @@ class _ConfigurarProtecaoChamadasPageState
                     ],
                   ),
                 ),
+
               const SizedBox(height: 18),
+
               AcolleDesign.botaoPrimario(
-                texto: tudoPronto ? 'Continuar' : 'Concluir os passos acima',
-                icone: tudoPronto ? Icons.arrow_forward : Icons.lock_outline,
+                texto: tudoPronto
+                    ? 'Continuar'
+                    : 'Concluir os passos acima',
+                icone: tudoPronto
+                    ? Icons.arrow_forward
+                    : Icons.lock_outline,
                 onPressed: tudoPronto ? _continuar : null,
               ),
+
               const SizedBox(height: 12),
+
               TextButton(
                 onPressed: _continuar,
-                child: const Text('Fazer isso mais tarde'),
+                child: const Text(
+                  'Fazer isso mais tarde',
+                  style: TextStyle(
+                    fontSize: 16,
+                  ),
+                ),
               ),
             ],
           ),
@@ -206,16 +302,21 @@ class _PassoPermissao extends StatelessWidget {
           Row(
             children: [
               CircleAvatar(
-                backgroundColor: ativo ? AcolleDesign.verde : AcolleDesign.roxo,
+                backgroundColor:
+                    ativo ? AcolleDesign.verde : AcolleDesign.roxo,
                 foregroundColor: Colors.white,
                 child: ativo
                     ? const Icon(Icons.check)
                     : Text(
                         numero,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
               ),
+
               const SizedBox(width: 12),
+
               Expanded(
                 child: Text(
                   titulo,
@@ -227,9 +328,19 @@ class _PassoPermissao extends StatelessWidget {
               ),
             ],
           ),
+
           const SizedBox(height: 10),
-          Text(explicacao, style: const TextStyle(fontSize: 16)),
+
+          Text(
+            explicacao,
+            style: const TextStyle(
+              fontSize: 16,
+              height: 1.4,
+            ),
+          ),
+
           const SizedBox(height: 14),
+
           if (ativo)
             const Text(
               'Ativado ✓',
@@ -244,7 +355,13 @@ class _PassoPermissao extends StatelessWidget {
             FilledButton.icon(
               onPressed: onPressed,
               icon: const Icon(Icons.touch_app),
-              label: Text(textoBotao),
+              label: Text(
+                textoBotao,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
         ],
       ),

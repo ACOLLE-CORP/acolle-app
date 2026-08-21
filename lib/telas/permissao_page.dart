@@ -110,7 +110,7 @@ class _PermissaoPageState extends State<PermissaoPage> {
           title: Text(
             'Abrir configurações',
             style: AcolleDesign.texto(
-              AcolleDesign.tamanhoTexto(22),
+              tamanho: AcolleDesign.tamanhoTexto(22),
               peso: FontWeight.bold,
             ).copyWith(
               color: AcolleDesign.corTexto(altoContraste),
@@ -120,7 +120,7 @@ class _PermissaoPageState extends State<PermissaoPage> {
             'Recusamos a permissão antes. Para ativar agora, abra as '
             'Configurações do aplicativo Acolle.',
             style: AcolleDesign.texto(
-              AcolleDesign.tamanhoTexto(17),
+              tamanho: AcolleDesign.tamanhoTexto(17),
             ).copyWith(
               color: AcolleDesign.corTexto(altoContraste),
             ),
@@ -131,7 +131,7 @@ class _PermissaoPageState extends State<PermissaoPage> {
               child: Text(
                 'Agora não',
                 style: AcolleDesign.texto(
-                  AcolleDesign.tamanhoTexto(16),
+                  tamanho: AcolleDesign.tamanhoTexto(16),
                   peso: FontWeight.bold,
                 ).copyWith(
                   color: AcolleDesign.corTexto(altoContraste),
@@ -197,7 +197,7 @@ class _PermissaoPageState extends State<PermissaoPage> {
                       label: Text(
                         'Pular',
                         style: AcolleDesign.texto(
-                          AcolleDesign.tamanhoTexto(16),
+                          tamanho: AcolleDesign.tamanhoTexto(16),
                           peso: FontWeight.bold,
                         ).copyWith(
                           color: AcolleDesign.corTexto(altoContraste),
@@ -232,7 +232,7 @@ class _PermissaoPageState extends State<PermissaoPage> {
                     widget.titulo,
                     textAlign: TextAlign.center,
                     style: AcolleDesign.texto(
-                      AcolleDesign.tamanhoTexto(28),
+                      tamanho: AcolleDesign.tamanhoTexto(28),
                       peso: FontWeight.bold,
                     ).copyWith(
                       color: AcolleDesign.corTexto(altoContraste),
@@ -245,7 +245,7 @@ class _PermissaoPageState extends State<PermissaoPage> {
                     widget.explicacao,
                     textAlign: TextAlign.center,
                     style: AcolleDesign.texto(
-                      AcolleDesign.tamanhoTexto(18),
+                      tamanho: AcolleDesign.tamanhoTexto(18),
                     ).copyWith(
                       color: AcolleDesign.corTextoSecundario(
                         altoContraste,
@@ -283,7 +283,7 @@ class _PermissaoPageState extends State<PermissaoPage> {
                               'Permissão concedida!',
                               textAlign: TextAlign.center,
                               style: AcolleDesign.texto(
-                                AcolleDesign.tamanhoTexto(16),
+                                tamanho: AcolleDesign.tamanhoTexto(16),
                                 peso: FontWeight.bold,
                               ).copyWith(
                                 color: AcolleDesign.corTexto(

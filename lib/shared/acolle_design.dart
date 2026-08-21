@@ -45,11 +45,15 @@ class AcolleDesign {
   // ============================================================
 
   static Color corFundo(bool altoContraste) {
-    return altoContraste ? Colors.black : fundo;
+    return altoContraste 
+    ? Colors.black 
+    : fundo;
   }
 
   static Color corTexto(bool altoContraste) {
-    return altoContraste ? Colors.white : textoBase;
+    return altoContraste 
+    ? Colors.white
+    : textoBase;
   }
 
   static Color corTextoSecundario(bool altoContraste) {
@@ -61,7 +65,9 @@ class AcolleDesign {
   static Color corIcone(bool altoContraste) {
     // O laranja continua sendo a cor de destaque,
     // inclusive no alto contraste.
-    return laranja;
+    return altoContraste 
+    ? laranja 
+    : roxo;
   }
 
   static Color corCampo(bool altoContraste) {
@@ -209,31 +215,31 @@ class AcolleDesign {
     required TextEditingController controller,
     required IconData icone,
     TextInputType? teclado,
+    TextInputAction? acaoTeclado,
     String? dica,
     bool obscureText = false,
     int maxLines = 1,
+    Widget? suffix,
   }) {
     final contraste = altoContraste;
 
     return TextField(
       controller: controller,
-
       keyboardType: teclado,
-
+      textInputAction: acaoTeclado,
       obscureText: obscureText,
-
-      maxLines: maxLines,
-
+      maxLines: obscureText ? 1 : maxLines,
       style: TextStyle(
         fontSize: tamanhoTexto(18),
         color: corTexto(contraste),
       ),
-
       decoration: inputDecoration(
         label: label,
         hint: dica,
         icone: icone,
         altoContraste: contraste,
+      ).copyWith(
+        suffixIcon: suffix,
       ),
     );
   }
@@ -357,6 +363,38 @@ class AcolleDesign {
   }
 
   // ============================================================
+  // BOTÃO SECUNDÁRIO
+  // ============================================================
+  static Widget botaoSecundario({
+    required String texto,
+    required VoidCallback? onPressed,
+    Color? cor,
+  }) {
+    final contraste = altoContraste;
+
+    final corBotao =
+        cor ?? corIcone(contraste);
+
+    return SizedBox(
+      height: 50,
+
+      width: double.infinity,
+
+      child: OutlinedButton(
+        onPressed: onPressed,
+
+        child: Text(
+          texto,
+
+          style: TextStyle(
+            fontSize:
+                tamanhoTexto(17),
+          ),
+        ),
+      ),
+    );
+  }
+  // ============================================================
   // CARTÃO
   // ============================================================
 
@@ -438,6 +476,32 @@ static Widget estadoVazio({
     ),
   );
 }
+  // ============================================================
+  // CARREGAMENTO CENTRAL
+  // ============================================================
+
+  static Widget carregandoCentral(String mensagem) {
+    final contraste = altoContraste;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        CircularProgressIndicator(
+          color: corIcone(contraste),
+          strokeWidth: 3,
+        ),
+        const SizedBox(height: 16),
+        Text(
+          mensagem,
+          textAlign: TextAlign.center,
+          style: texto(
+            tamanho: 17,
+            peso: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
   // ============================================================
   // SNACKBAR
   // ============================================================

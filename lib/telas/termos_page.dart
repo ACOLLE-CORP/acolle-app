@@ -116,7 +116,7 @@ Este termo pode ser atualizado. Sempre que mudar algo importante, mostraremos es
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
-                        color: AcolleDesign.texto,
+                        color: AcolleDesign.textoBase,
                       ),
                     ),
                     const SizedBox(height: 16),

@@ -9,6 +9,7 @@ import '../services/emergencia_service.dart';
 import '../shared/acolle_design.dart';
 
 import 'analisar_mensagem_page.dart';
+import 'botao_flutuante.dart';
 import 'contatos_emergencia_page.dart';
 import 'dicas_page.dart';
 import 'historico_chamadas_page.dart';
@@ -237,7 +238,9 @@ class _HomePageState extends State<HomePage> {
                               min: 0.9,
                               max: 1.4,
                               divisions: 5,
-                              activeColor: AcolleDesign.laranja,
+                              activeColor: AcolleDesign.corIcone(
+                                altoContraste,
+                              ),
 
                               label:
                                   '${(acessibilidade.escalaTexto * 100).round()}%',
@@ -297,12 +300,23 @@ class _HomePageState extends State<HomePage> {
                         },
                       ),
 
+                      const SizedBox(height: 20),
+
+                      const Divider(),
+
+                      const SizedBox(height: 8),
+
+                      // Botão flutuante de proteção (não é bem
+                      // "acessibilidade", mas fica aqui junto com as
+                      // outras configurações rápidas do app).
+                      const BotaoFlutuanteCard(),
+
                       const SizedBox(height: 12),
 
                       FilledButton(
                         style: FilledButton.styleFrom(
-                          backgroundColor: AcolleDesign.laranja,
-                          foregroundColor: Colors.white,
+                          backgroundColor: AcolleDesign.corIcone(altoContraste),
+                          foregroundColor: AcolleDesign.fundo,
                           minimumSize: const Size(
                             double.infinity,
                             54,
@@ -525,7 +539,7 @@ class _HomePageState extends State<HomePage> {
         title: Text(
           'Acolle',
           style: TextStyle(
-            color: AcolleDesign.laranja,
+            color: AcolleDesign.corIcone( altoContraste),
             fontWeight: FontWeight.bold,
             fontSize: 28,
           ),
@@ -755,7 +769,7 @@ class _HomePageState extends State<HomePage> {
                 const EdgeInsets.only(bottom: 8),
 
             decoration: BoxDecoration(
-              color: AcolleDesign.laranja,
+              color: AcolleDesign.corIcone( altoContraste),
               borderRadius:
                   BorderRadius.circular(20),
             ),

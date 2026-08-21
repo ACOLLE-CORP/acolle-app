@@ -7,8 +7,13 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'firebase_options.dart';
 import 'services/notificacao_service.dart';
 import 'services/acessibilidade_service.dart';
+import 'services/floating_button_service.dart';
 import 'telas/splash_page.dart';
 import 'telas/tela_alarme_tocando.dart';
+import 'telas/analisar_mensagem_page.dart';
+import 'telas/verificar_link_page.dart';
+import 'telas/historico_page.dart';
+import 'telas/home_page.dart';
 
 /// Chave global de navegação — usada para abrir a tela de alarme por cima
 /// de qualquer tela em que o usuário estiver, mesmo com o app em segundo
@@ -57,6 +62,35 @@ class _AcolleAppState extends State<AcolleApp> {
         );
       }
     });
+
+    // Novo: se o app foi aberto por um toque no menu do botão
+    // flutuante, navega direto para a tela correspondente.
+    // O postFrameCallback garante que o navigatorKey já está pronto.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _verificarAberturaPeloBotaoFlutuante();
+    });
+  }
+
+  Future<void> _verificarAberturaPeloBotaoFlutuante() async {
+    final rota = await FloatingButtonService.rotaInicial();
+    if (rota == null) return;
+
+    final Widget? tela = switch (rota) {
+      'analisar' => const AnalisarMensagemPage(),
+      'verificar_link' => const VerificarLinkPage(),
+      'alertas' => const HistoricoPage(),
+      // Ainda não existe uma tela de chat dedicada — por enquanto,
+      // "Falar com o Acolle" leva para a Home. Ajuste aqui quando
+      // essa tela existir.
+      'chat' => const HomePage(),
+      _ => null,
+    };
+
+    if (tela != null) {
+      navigatorKey.currentState?.push(
+        MaterialPageRoute(builder: (_) => tela),
+      );
+    }
   }
 
   @override
@@ -68,214 +102,6 @@ class _AcolleAppState extends State<AcolleApp> {
       builder: (context, _) {
         final acessibilidade = AcessibilidadeService.instance;
 
-        // ============================================================
-        // TEMA NORMAL DO ACOLLE
-        // ============================================================
-        final temaNormal = ThemeData(
-          useMaterial3: true,
-          brightness: Brightness.light,
-
-          scaffoldBackgroundColor: const Color(0xFFFAF7FC),
-
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF773FD1),
-            brightness: Brightness.light,
-          ),
-
-          appBarTheme: const AppBarTheme(
-            backgroundColor: Color(0xFFFAF7FC),
-            foregroundColor: Color(0xFF25212B),
-            elevation: 0,
-          ),
-
-          cardTheme: const CardThemeData(
-            color: Color(0xFFF2EDF5),
-            elevation: 0,
-          ),
-
-          inputDecorationTheme: InputDecorationTheme(
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.all(
-                Radius.circular(16),
-              ),
-              borderSide: BorderSide(
-                color: Color(0xFFD4CBDD),
-              ),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.all(
-                Radius.circular(16),
-              ),
-              borderSide: BorderSide(
-                color: Color(0xFFD4CBDD),
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.all(
-                Radius.circular(16),
-              ),
-              borderSide: BorderSide(
-                color: Color(0xFF773FD1),
-                width: 2,
-              ),
-            ),
-          ),
-
-          textTheme: const TextTheme(
-            bodyLarge: TextStyle(
-              color: Color(0xFF25212B),
-            ),
-            bodyMedium: TextStyle(
-              color: Color(0xFF25212B),
-            ),
-            titleLarge: TextStyle(
-              color: Color(0xFF25212B),
-            ),
-          ),
-        );
-
-        // ============================================================
-        // TEMA DE ALTO CONTRASTE
-        // ============================================================
-        final temaAltoContraste = ThemeData(
-          useMaterial3: true,
-          brightness: Brightness.dark,
-
-          scaffoldBackgroundColor: Colors.black,
-
-          colorScheme: const ColorScheme.dark(
-            primary: Colors.white,
-            onPrimary: Colors.black,
-
-            secondary: Colors.white,
-            onSecondary: Colors.black,
-
-            surface: Colors.black,
-            onSurface: Colors.white,
-
-            error: Colors.red,
-            onError: Colors.white,
-          ),
-
-          appBarTheme: const AppBarTheme(
-            backgroundColor: Colors.black,
-            foregroundColor: Colors.white,
-            elevation: 0,
-          ),
-
-          cardTheme: const CardThemeData(
-            color: Colors.black,
-            elevation: 0,
-            shape: RoundedRectangleBorder(
-              side: BorderSide(
-                color: Colors.white,
-                width: 1.5,
-              ),
-              borderRadius: BorderRadius.all(
-                Radius.circular(16),
-              ),
-            ),
-          ),
-
-          inputDecorationTheme: const InputDecorationTheme(
-            filled: true,
-            fillColor: Colors.black,
-
-            hintStyle: TextStyle(
-              color: Colors.white,
-            ),
-
-            labelStyle: TextStyle(
-              color: Colors.white,
-            ),
-
-            prefixIconColor: Colors.white,
-            suffixIconColor: Colors.white,
-
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.all(
-                Radius.circular(16),
-              ),
-              borderSide: BorderSide(
-                color: Colors.white,
-                width: 2,
-              ),
-            ),
-
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.all(
-                Radius.circular(16),
-              ),
-              borderSide: BorderSide(
-                color: Colors.white,
-                width: 2,
-              ),
-            ),
-
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.all(
-                Radius.circular(16),
-              ),
-              borderSide: BorderSide(
-                color: Colors.white,
-                width: 3,
-              ),
-            ),
-          ),
-
-          textTheme: const TextTheme(
-            bodyLarge: TextStyle(
-              color: Colors.white,
-            ),
-            bodyMedium: TextStyle(
-              color: Colors.white,
-            ),
-            bodySmall: TextStyle(
-              color: Colors.white,
-            ),
-            titleLarge: TextStyle(
-              color: Colors.white,
-            ),
-            titleMedium: TextStyle(
-              color: Colors.white,
-            ),
-            titleSmall: TextStyle(
-              color: Colors.white,
-            ),
-            headlineLarge: TextStyle(
-              color: Colors.white,
-            ),
-            headlineMedium: TextStyle(
-              color: Colors.white,
-            ),
-            headlineSmall: TextStyle(
-              color: Colors.white,
-            ),
-          ),
-
-          iconTheme: const IconThemeData(
-            color: Colors.white,
-          ),
-
-          dividerTheme: const DividerThemeData(
-            color: Colors.white,
-            thickness: 1,
-          ),
-
-          switchTheme: SwitchThemeData(
-            thumbColor: WidgetStateProperty.all(
-              Colors.white,
-            ),
-            trackColor: WidgetStateProperty.all(
-              Colors.black,
-            ),
-            trackOutlineColor: WidgetStateProperty.all(
-              Colors.white,
-            ),
-          ),
-        );
 
         return MaterialApp(
           navigatorKey: navigatorKey,
@@ -293,19 +119,6 @@ class _AcolleAppState extends State<AcolleApp> {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-
-          // ==========================================================
-          // APLICA O TEMA GLOBAL
-          // ==========================================================
-          theme: temaNormal,
-
-          darkTheme: temaAltoContraste,
-
-          // Quando o alto contraste estiver ligado,
-          // usa o tema de alto contraste.
-          themeMode: acessibilidade.altoContraste
-              ? ThemeMode.dark
-              : ThemeMode.light,
 
           // ==========================================================
           // TAMANHO DA LETRA

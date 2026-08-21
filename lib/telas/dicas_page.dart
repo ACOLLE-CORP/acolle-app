@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/acessibilidade_service.dart';
-
-const Color roxoAcolle = Color(0xFF773FD1);
-const Color fundoAcolle = Color(0xFFFAF7FC);
-const Color laranjaAcolle = Color(0xFFF47A07);
+import '../shared/acolle_design.dart';
 
 class DicasPage extends StatefulWidget {
   const DicasPage({super.key});
@@ -35,60 +32,20 @@ class _DicasPageState extends State<DicasPage> {
     AcessibilidadeService.instance.removeListener(
       _onAcessibilidadeChanged,
     );
+
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final acessibilidade = AcessibilidadeService.instance;
-
-    final bool altoContraste = acessibilidade.altoContraste;
-    final double escalaTexto = acessibilidade.escalaTexto;
-
-    final Color fundo =
-        altoContraste ? Colors.black : fundoAcolle;
-
-    final Color texto =
-        altoContraste ? Colors.white : const Color(0xFF25212B);
-
-    final Color textoSecundario =
-        altoContraste ? Colors.white : Colors.black87;
-
-    final Color card =
-        altoContraste ? Colors.black : Colors.white;
-
-    final Color borda =
-        altoContraste ? Colors.white : const Color(0xFFE0DCE5);
-
-    final Color icone =
-        laranjaAcolle;
-
-    final Color destaque =
-        laranjaAcolle;
-
-    final Color destaqueTexto =
-        Colors.black;
+    final contraste = AcolleDesign.altoContraste;
 
     return Scaffold(
-      backgroundColor: fundo,
+      backgroundColor: AcolleDesign.corFundo(contraste),
 
-      appBar: AppBar(
-        backgroundColor: fundo,
-        elevation: 0,
-        centerTitle: true,
-
-        iconTheme: IconThemeData(
-          color: icone,
-        ),
-
-        title: Text(
-          'Dicas de Segurança',
-          style: TextStyle(
-            fontSize: 24 * escalaTexto,
-            fontWeight: FontWeight.bold,
-            color: destaque,
-          ),
-        ),
+      appBar: AcolleDesign.appBarPadrao(
+        'Dicas de Segurança',
+        centralizado: true,
       ),
 
       body: SafeArea(
@@ -97,13 +54,14 @@ class _DicasPageState extends State<DicasPage> {
 
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+
             children: [
               Text(
                 'Proteja-se de golpes',
-                style: TextStyle(
-                  fontSize: 28 * escalaTexto,
-                  fontWeight: FontWeight.bold,
-                  color: texto,
+                style: AcolleDesign.texto(
+                  tamanho: 28,
+                  cor: AcolleDesign.corTexto(contraste),
+                  peso: FontWeight.bold,
                 ),
               ),
 
@@ -111,10 +69,12 @@ class _DicasPageState extends State<DicasPage> {
 
               Text(
                 'Leia estas dicas antes de atender ligações ou mensagens.',
-                style: TextStyle(
-                  fontSize: 20 * escalaTexto,
-                  color: textoSecundario,
-                  height: 1.3,
+                style: AcolleDesign.texto(
+                  tamanho: 20,
+                  cor: AcolleDesign.corTextoSecundario(
+                    contraste,
+                  ),
+                  altura: 1.3,
                 ),
               ),
 
@@ -123,213 +83,50 @@ class _DicasPageState extends State<DicasPage> {
               _criarDica(
                 icone: Icons.phone,
                 titulo: 'Não passe sua senha',
-                texto:
+                descricao:
                     'Nenhum banco pede senha por telefone. '
                     'Se alguém pedir, desligue na hora.',
-                card: card,
-                borda: borda,
-                textocor: texto,
-                textoSecundario: textoSecundario,
-                iconeCor: icone,
-                escalaTexto: escalaTexto,
               ),
 
               _criarDica(
                 icone: Icons.link,
                 titulo: 'Não clique em links',
-                texto:
+                descricao:
                     'Abra apenas mensagens de pessoas conhecidas. '
                     'Links podem levar para páginas falsas ou perigosas.',
-                card: card,
-                borda: borda,
-                textocor: texto,
-                textoSecundario: textoSecundario,
-                iconeCor: icone,
-                escalaTexto: escalaTexto,
               ),
 
               _criarDica(
                 icone: Icons.payments,
                 titulo: 'Desconfie de pedidos',
-                texto:
+                descricao:
                     'Antes de enviar dinheiro, confirme com um familiar '
                     'ou diretamente com seu banco.',
-                card: card,
-                borda: borda,
-                textocor: texto,
-                textoSecundario: textoSecundario,
-                iconeCor: icone,
-                escalaTexto: escalaTexto,
               ),
 
               _criarDica(
                 icone: Icons.call_received,
                 titulo: 'Números estranhos',
-                texto:
+                descricao:
                     'Se receber ligação de número desconhecido pedindo '
                     'informações, desligue.',
-                card: card,
-                borda: borda,
-                textocor: texto,
-                textoSecundario: textoSecundario,
-                iconeCor: icone,
-                escalaTexto: escalaTexto,
               ),
 
               _criarDica(
                 icone: Icons.warning_amber_rounded,
                 titulo: 'Prêmios não pedidos',
-                texto:
+                descricao:
                     'Se ganhou algo de uma promoção da qual não participou, '
                     'desconfie. Não forneça seus dados.',
-                card: card,
-                borda: borda,
-                textocor: texto,
-                textoSecundario: textoSecundario,
-                iconeCor: icone,
-                escalaTexto: escalaTexto,
               ),
 
               const SizedBox(height: 10),
 
-              // CARD PRINCIPAL
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(24),
-
-                decoration: BoxDecoration(
-                  color: destaque,
-                  borderRadius: BorderRadius.circular(20),
-
-                  border: altoContraste
-                      ? Border.all(
-                          color: Colors.white,
-                          width: 2,
-                        )
-                      : null,
-                ),
-
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.shield,
-                      color: destaqueTexto,
-                      size: 60,
-                    ),
-
-                    const SizedBox(height: 15),
-
-                    Text(
-                      'Em caso de dúvida,\nnão responda imediatamente.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: destaqueTexto,
-                        fontSize: 22 * escalaTexto,
-                        fontWeight: FontWeight.bold,
-                        height: 1.25,
-                      ),
-                    ),
-
-                    const SizedBox(height: 10),
-
-                    Text(
-                      'Peça ajuda para um familiar ou pessoa de confiança.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: destaqueTexto,
-                        fontSize: 18 * escalaTexto,
-                        height: 1.3,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              _buildCardPrincipal(),
 
               const SizedBox(height: 30),
 
-              // NÚMEROS DE EMERGÊNCIA
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-
-                decoration: BoxDecoration(
-                  color: altoContraste
-                      ? Colors.black
-                      : Colors.amber.shade50,
-
-                  borderRadius: BorderRadius.circular(16),
-
-                  border: Border.all(
-                    color: altoContraste
-                        ? Colors.white
-                        : Colors.amber.shade300,
-                    width: 1.5,
-                  ),
-                ),
-
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(
-                          Icons.info_outline,
-                          color: icone,
-                          size: 28,
-                        ),
-
-                        const SizedBox(width: 10),
-
-                        Expanded(
-                          child: Text(
-                            'Números de emergência úteis',
-                            style: TextStyle(
-                              fontSize: 18 * escalaTexto,
-                              fontWeight: FontWeight.bold,
-                              color: icone,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    _buildEmergencyNumber(
-                      'Polícia',
-                      '190',
-                      texto: texto,
-                      icone: icone,
-                      escalaTexto: escalaTexto,
-                    ),
-
-                    _buildEmergencyNumber(
-                      'Bombeiros',
-                      '193',
-                      texto: texto,
-                      icone: icone,
-                      escalaTexto: escalaTexto,
-                    ),
-
-                    _buildEmergencyNumber(
-                      'Ambulância',
-                      '192',
-                      texto: texto,
-                      icone: icone,
-                      escalaTexto: escalaTexto,
-                    ),
-
-                    _buildEmergencyNumber(
-                      'Disque Denúncia',
-                      '100',
-                      texto: texto,
-                      icone: icone,
-                      escalaTexto: escalaTexto,
-                    ),
-                  ],
-                ),
-              ),
+              _buildNumerosEmergencia(),
 
               const SizedBox(height: 20),
             ],
@@ -339,83 +136,22 @@ class _DicasPageState extends State<DicasPage> {
     );
   }
 
-  Widget _buildEmergencyNumber(
-    String label,
-    String numero, {
-    required Color texto,
-    required Color icone,
-    required double escalaTexto,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            Icons.phone,
-            size: 18,
-            color: icone,
-          ),
-
-          const SizedBox(width: 12),
-
-          Expanded(
-            child: RichText(
-              text: TextSpan(
-                children: [
-                  TextSpan(
-                    text: '$label: ',
-                    style: TextStyle(
-                      fontSize: 16 * escalaTexto,
-                      fontWeight: FontWeight.w600,
-                      color: texto,
-                    ),
-                  ),
-                  TextSpan(
-                    text: numero,
-                    style: TextStyle(
-                      fontSize: 16 * escalaTexto,
-                      fontWeight: FontWeight.bold,
-                      color: icone,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // ============================================================
+  // DICA
+  // ============================================================
 
   Widget _criarDica({
     required IconData icone,
     required String titulo,
-    required String texto,
-    required Color card,
-    required Color borda,
-    required Color textocor,
-    required Color textoSecundario,
-    required Color iconeCor,
-    required double escalaTexto,
+    required String descricao,
   }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
+    final contraste = AcolleDesign.altoContraste;
 
+    return AcolleDesign.cartao(
+      margem: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(22),
 
-      decoration: BoxDecoration(
-        color: card,
-        borderRadius: BorderRadius.circular(20),
-
-        border: Border.all(
-          color: borda,
-          width: 1.5,
-        ),
-      ),
-
-      child: Row(
+      filho: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
 
         children: [
@@ -424,12 +160,16 @@ class _DicasPageState extends State<DicasPage> {
             height: 56,
 
             decoration: BoxDecoration(
-              color: laranjaAcolle.withValues(
-                alpha: 0.15,
-              ),
+              color: contraste
+                  ? Colors.black
+                  : AcolleDesign.laranja.withValues(
+                      alpha: 0.15,
+                    ),
+
               borderRadius: BorderRadius.circular(14),
+
               border: Border.all(
-                color: iconeCor,
+                color: AcolleDesign.corIcone(contraste),
                 width: 1,
               ),
             ),
@@ -437,7 +177,7 @@ class _DicasPageState extends State<DicasPage> {
             child: Center(
               child: Icon(
                 icone,
-                color: iconeCor,
+                color: AcolleDesign.corIcone(contraste),
                 size: 32,
               ),
             ),
@@ -452,25 +192,237 @@ class _DicasPageState extends State<DicasPage> {
               children: [
                 Text(
                   titulo,
-                  style: TextStyle(
-                    fontSize: 18 * escalaTexto,
-                    fontWeight: FontWeight.bold,
-                    color: textocor,
-                    height: 1.2,
+                  style: AcolleDesign.texto(
+                    tamanho: 18,
+                    cor: AcolleDesign.corTexto(contraste),
+                    peso: FontWeight.bold,
+                    altura: 1.2,
                   ),
                 ),
 
                 const SizedBox(height: 6),
 
                 Text(
-                  texto,
-                  style: TextStyle(
-                    fontSize: 15 * escalaTexto,
-                    height: 1.5,
-                    color: textoSecundario,
+                  descricao,
+                  style: AcolleDesign.texto(
+                    tamanho: 15,
+                    cor: AcolleDesign.corTextoSecundario(
+                      contraste,
+                    ),
+                    altura: 1.5,
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // CARD PRINCIPAL
+  // ============================================================
+
+  Widget _buildCardPrincipal() {
+    final contraste = AcolleDesign.altoContraste;
+
+    return Container(
+      width: double.infinity,
+
+      padding: const EdgeInsets.all(24),
+
+      decoration: BoxDecoration(
+        color: AcolleDesign.laranja,
+
+        borderRadius: BorderRadius.circular(20),
+
+        border: contraste
+            ? Border.all(
+                color: Colors.white,
+                width: 2,
+              )
+            : null,
+      ),
+
+      child: Column(
+        children: [
+          Icon(
+            Icons.shield,
+            color: Colors.black,
+            size: 60,
+          ),
+
+          const SizedBox(height: 15),
+
+          Text(
+            'Em caso de dúvida,\nnão responda imediatamente.',
+            textAlign: TextAlign.center,
+
+            style: AcolleDesign.texto(
+              tamanho: 22,
+              cor: Colors.black,
+              peso: FontWeight.bold,
+              altura: 1.25,
+            ),
+          ),
+
+          const SizedBox(height: 10),
+
+          Text(
+            'Peça ajuda para um familiar ou pessoa de confiança.',
+            textAlign: TextAlign.center,
+
+            style: AcolleDesign.texto(
+              tamanho: 18,
+              cor: Colors.black,
+              altura: 1.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // NÚMEROS DE EMERGÊNCIA
+  // ============================================================
+
+  Widget _buildNumerosEmergencia() {
+    final contraste = AcolleDesign.altoContraste;
+
+    return Container(
+      width: double.infinity,
+
+      padding: const EdgeInsets.all(20),
+
+      decoration: BoxDecoration(
+        color: AcolleDesign.corCard(contraste),
+
+        borderRadius: BorderRadius.circular(16),
+
+        border: Border.all(
+          color: contraste
+              ? Colors.white
+              : Colors.amber.shade300,
+          width: 1.5,
+        ),
+      ),
+
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+
+            children: [
+              Icon(
+                Icons.info_outline,
+                color: AcolleDesign.corIcone(contraste),
+                size: 28,
+              ),
+
+              const SizedBox(width: 10),
+
+              Expanded(
+                child: Text(
+                  'Números de emergência úteis',
+
+                  style: AcolleDesign.texto(
+                    tamanho: 18,
+                    cor: AcolleDesign.corIcone(
+                      contraste,
+                    ),
+                    peso: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          _buildEmergencyNumber(
+            'Polícia',
+            '190',
+          ),
+
+          _buildEmergencyNumber(
+            'Bombeiros',
+            '193',
+          ),
+
+          _buildEmergencyNumber(
+            'Ambulância',
+            '192',
+          ),
+
+          _buildEmergencyNumber(
+            'Disque Denúncia',
+            '100',
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // NÚMERO INDIVIDUAL
+  // ============================================================
+
+  Widget _buildEmergencyNumber(
+    String label,
+    String numero,
+  ) {
+    final contraste = AcolleDesign.altoContraste;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        vertical: 8,
+      ),
+
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+
+        children: [
+          Icon(
+            Icons.phone,
+            size: 18,
+            color: AcolleDesign.corIcone(contraste),
+          ),
+
+          const SizedBox(width: 12),
+
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                children: [
+                  TextSpan(
+                    text: '$label: ',
+
+                    style: AcolleDesign.texto(
+                      tamanho: 16,
+                      cor: AcolleDesign.corTexto(
+                        contraste,
+                      ),
+                      peso: FontWeight.w600,
+                    ),
+                  ),
+
+                  TextSpan(
+                    text: numero,
+
+                    style: AcolleDesign.texto(
+                      tamanho: 16,
+                      cor: AcolleDesign.corIcone(
+                        contraste,
+                      ),
+                      peso: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],

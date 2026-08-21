@@ -112,7 +112,7 @@ class _CodigoRedefinicaoPageState extends State<CodigoRedefinicaoPage> {
                 'que você recebeu — abra o e-mail, toque em "redefinir senha" '
                 'e copie o código da página que abrir.',
                 textAlign: TextAlign.center,
-                style: AcolleDesign.corFundo,
+                selectionColor: AcolleDesign.fundo,
               ),
               const SizedBox(height: 28),
               AcolleDesign.campoTexto(
@@ -257,14 +257,14 @@ class _RedefinirSenhaPageState extends State<RedefinirSenhaPage> {
                 'Use uma senha fácil para você lembrar, mas difícil para '
                 'outras pessoas adivinharem. Mínimo de 6 caracteres.',
                 textAlign: TextAlign.center,
-                style: AcolleDesign.estiloCorpo,
+                selectionColor: AcolleDesign.fundo,
               ),
               const SizedBox(height: 28),
               AcolleDesign.campoTexto(
                 label: 'Nova senha',
                 controller: _novaController,
                 icone: Icons.lock_outline,
-                obscure: !_mostrar,
+                obscureText: !_mostrar,
                 suffix: IconButton(
                   icon: Icon(_mostrar ? Icons.visibility_off : Icons.visibility),
                   onPressed: () => setState(() => _mostrar = !_mostrar),
@@ -275,7 +275,7 @@ class _RedefinirSenhaPageState extends State<RedefinirSenhaPage> {
                 label: 'Confirmar nova senha',
                 controller: _confirmarController,
                 icone: Icons.lock_outline,
-                obscure: !_mostrar,
+                obscureText: !_mostrar,
                 acaoTeclado: TextInputAction.done,
               ),
               const SizedBox(height: 28),

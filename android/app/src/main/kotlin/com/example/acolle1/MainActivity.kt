@@ -20,15 +20,15 @@ class MainActivity : FlutterActivity() {
         private const val NUMBERS_KEY = "suspect_numbers"
         private const val ROLE_REQUEST_CODE = 7412
 
-        // Novo: canais do Notification Listener
         private const val CHANNEL_NOTIF_METODOS = "com.example.acolle1/notification_settings"
         private const val CHANNEL_NOTIF_EVENTOS = "com.example.acolle1/notification_events"
+
+        // Novo: canal do botão flutuante
+        private const val CHANNEL_BOTAO_FLUTUANTE = "acolle/floating_button"
     }
 
-    // Novo: sink do EventChannel para mandar notificações capturadas ao Dart
     private var eventSink: EventChannel.EventSink? = null
 
-    // Novo: receiver que escuta o broadcast enviado pelo NotificationListener.kt
     private val notificationReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             val pacote = intent.getStringExtra("pacote") ?: ""
@@ -43,6 +43,14 @@ class MainActivity : FlutterActivity() {
                 )
             )
         }
+    }
+
+    // Novo: garante que this.intent sempre reflita o toque mais recente
+    // em uma opção do menu flutuante, mesmo se o app já estiver aberto
+    // (launchMode singleTop/singleTask não atualiza getIntent() sozinho).
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -70,7 +78,7 @@ class MainActivity : FlutterActivity() {
                 }
             }
 
-        // Novo: canal de métodos do Notification Listener (permissão)
+        // Canal de métodos do Notification Listener (permissão)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL_NOTIF_METODOS)
             .setMethodCallHandler { call, result ->
                 when (call.method) {
@@ -89,7 +97,7 @@ class MainActivity : FlutterActivity() {
                 }
             }
 
-        // Novo: canal de eventos (stream) do Notification Listener
+        // Canal de eventos (stream) do Notification Listener
         EventChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL_NOTIF_EVENTOS)
             .setStreamHandler(object : EventChannel.StreamHandler {
                 override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
@@ -106,6 +114,30 @@ class MainActivity : FlutterActivity() {
                     unregisterReceiver(notificationReceiver)
                 }
             })
+
+        // Novo: canal do botão flutuante — ligar, desligar, e descobrir
+        // se o app foi aberto por um toque no menu do botão.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL_BOTAO_FLUTUANTE)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "iniciarBotao" -> {
+                        startForegroundService(Intent(this, FloatingBubbleService::class.java))
+                        result.success(true)
+                    }
+                    "pararBotao" -> {
+                        stopService(Intent(this, FloatingBubbleService::class.java))
+                        result.success(true)
+                    }
+                    "rotaInicial" -> {
+                        val rota = intent?.getStringExtra(FloatingBubbleService.EXTRA_ROTA)
+                        // Consome a rota para não reabrir a mesma tela de novo
+                        // se o Flutter perguntar outra vez mais tarde.
+                        intent?.removeExtra(FloatingBubbleService.EXTRA_ROTA)
+                        result.success(rota)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
     }
 
     private fun isScreeningRoleEnabled(): Boolean {

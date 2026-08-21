@@ -80,7 +80,7 @@ class _EsqueciSenhaPageState extends State<EsqueciSenhaPage> {
               const Text(
                 'Digite seu e-mail cadastrado.\nVamos enviar um código para você criar uma nova senha.',
                 textAlign: TextAlign.center,
-                style: AcolleDesign.estiloCorpo,
+                selectionColor: AcolleDesign.card,
               ),
               const SizedBox(height: 34),
               AcolleDesign.campoTexto(
