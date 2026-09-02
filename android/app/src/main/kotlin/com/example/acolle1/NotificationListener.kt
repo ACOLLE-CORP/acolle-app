@@ -24,9 +24,9 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
     private var tts: TextToSpeech? = null
 
     companion object {
-        private const val BASE_URL = "https://acolle-api.onrender.com/analisar"
+        private const val BASE_URL = "https://acolle-ia.acolle-corp.workers.dev"
         private const val WORKER_URL =
-            "https://acolle-spam-check.acolle-corp.workers.dev/verificar"
+            "https://acolle-spam-check.acolle-corp.workers.dev"
         private const val CANAL_ALERTA_ID = "acolle_alertas"
         private const val TIMEOUT_MS = 60_000
 
@@ -81,7 +81,7 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
 
         val extras = sbn.notification.extras
         val titulo = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString() ?: ""
-        val texto = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: ""
+        val texto = extrairTextoNotificacao(extras)
 
         val ehChamadaWhatsApp = sbn.packageName == "com.whatsapp" &&
             (sbn.notification.category == Notification.CATEGORY_CALL ||
@@ -106,6 +106,29 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
                 }
             }
         }
+    }
+
+    private fun extrairTextoNotificacao(extras: android.os.Bundle): String {
+        val direto = extras.getCharSequence(Notification.EXTRA_TEXT)
+            ?.toString()?.trim().orEmpty()
+        if (direto.isNotEmpty()) return direto
+
+        val grande = extras.getCharSequence(Notification.EXTRA_BIG_TEXT)
+            ?.toString()?.trim().orEmpty()
+        if (grande.isNotEmpty()) return grande
+
+        // Compatibilidade com notificações MessagingStyle.
+        val mensagens = extras.getParcelableArray(Notification.EXTRA_MESSAGES)
+        if (mensagens != null) {
+            val textos = mensagens.mapNotNull { item ->
+                val bundle = item as? android.os.Bundle ?: return@mapNotNull null
+                bundle.getCharSequence("text")?.toString()?.trim()
+            }.filter { it.isNotEmpty() }
+
+            if (textos.isNotEmpty()) return textos.joinToString("\n")
+        }
+
+        return ""
     }
 
     // ============================================================
@@ -225,11 +248,15 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
             mostrarNotificacaoAlerta(classificacao, risco, recomendacao)
         }
 
-        val intent = Intent("com.example.acolle1.NOVA_NOTIFICACAO")
-        intent.putExtra("texto", textoOriginal)
-        intent.putExtra("classificacao", classificacao)
-        intent.putExtra("risco", risco)
-        intent.putExtra("recomendacao", recomendacao)
+        val intent = Intent("com.example.acolle1.NOVA_NOTIFICACAO").apply {
+            setPackage(packageName)
+            putExtra("pacote", packageName)
+            putExtra("titulo", "Verificação automática")
+            putExtra("texto", textoOriginal)
+            putExtra("classificacao", classificacao)
+            putExtra("risco", risco)
+            putExtra("recomendacao", recomendacao)
+        }
         sendBroadcast(intent)
     }
 

@@ -16,7 +16,7 @@ class VerificarLinkPage extends StatefulWidget {
   State<VerificarLinkPage> createState() => _VerificarLinkPageState();
 }
 
-class _VerificarLinkPageState extends State<VerificarLinkPage> {
+class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindingObserver {
   final TextEditingController _linkController =
       TextEditingController();
 
@@ -69,6 +69,8 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> {
   void initState() {
     super.initState();
 
+    WidgetsBinding.instance.addObserver(this);
+
     AcessibilidadeService.instance.addListener(
       _onAcessibilidadeChanged,
     );
@@ -82,6 +84,13 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> {
     if (!mounted) return;
 
     setState(() {});
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _verificarPermissaoNotificacao();
+    }
   }
 
   // ============================================================
@@ -309,6 +318,7 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     AcessibilidadeService.instance
         .removeListener(
       _onAcessibilidadeChanged,

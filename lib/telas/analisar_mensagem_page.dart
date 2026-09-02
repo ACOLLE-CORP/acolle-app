@@ -21,7 +21,7 @@ class AnalisarMensagemPage extends StatefulWidget {
 }
 
 class _AnalisarMensagemPageState
-    extends State<AnalisarMensagemPage> {
+    extends State<AnalisarMensagemPage> with WidgetsBindingObserver {
   final TextEditingController _controller =
       TextEditingController();
 
@@ -54,6 +54,8 @@ class _AnalisarMensagemPageState
   @override
   void initState() {
     super.initState();
+
+    WidgetsBinding.instance.addObserver(this);
 
     acessibilidade.addListener(
       _atualizarTela,
@@ -152,6 +154,13 @@ class _AnalisarMensagemPageState
         });
       },
     );
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _verificarPermissaoNotificacao();
+    }
   }
 
   // ============================================================
@@ -944,6 +953,7 @@ class _AnalisarMensagemPageState
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     acessibilidade.removeListener(
       _atualizarTela,
     );

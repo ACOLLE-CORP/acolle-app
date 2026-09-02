@@ -39,7 +39,10 @@ class MainActivity : FlutterActivity() {
                 mapOf(
                     "pacote" to pacote,
                     "titulo" to titulo,
-                    "texto" to texto
+                    "texto" to texto,
+                    "classificacao" to (intent.getStringExtra("classificacao") ?: ""),
+                    "risco" to intent.getIntExtra("risco", 0),
+                    "recomendacao" to (intent.getStringExtra("recomendacao") ?: "")
                 )
             )
         }
