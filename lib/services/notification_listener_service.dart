@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 /// Serviço responsável por conversar com o NotificationListener.kt
 /// (lado nativo Android) via MethodChannel/EventChannel.
@@ -28,11 +30,14 @@ class NotificationListenerService {
   /// o acesso a notificações. Não existe forma de conceder isso via
   /// pop-up padrão do Android.
   static Future<void> abrirConfiguracoes() async {
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      await Permission.notification.request();
+    }
     await _canalMetodos.invokeMethod('abrirConfiguracoes');
   }
 
   /// Stream com as notificações capturadas em tempo real.
-  /// Cada evento vem como um Map com as chaves: 'pacote', 'titulo', 'texto'.
+  /// Inclui pacote, título, texto, classificação, risco e recomendação.
   static Stream<Map<String, dynamic>> get notificacoes {
     return _canalEventos.receiveBroadcastStream().map(
           (evento) => Map<String, dynamic>.from(evento as Map),

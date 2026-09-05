@@ -8,6 +8,7 @@ import android.content.IntentFilter
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
@@ -28,6 +29,7 @@ class MainActivity : FlutterActivity() {
     }
 
     private var eventSink: EventChannel.EventSink? = null
+    private var notificationReceiverRegistered = false
 
     private val notificationReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -105,16 +107,23 @@ class MainActivity : FlutterActivity() {
             .setStreamHandler(object : EventChannel.StreamHandler {
                 override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
                     eventSink = events
-                    registerReceiver(
-                        notificationReceiver,
-                        IntentFilter("com.example.acolle1.NOVA_NOTIFICACAO"),
-                        Context.RECEIVER_EXPORTED
-                    )
+                    if (!notificationReceiverRegistered) {
+                        ContextCompat.registerReceiver(
+                            this@MainActivity,
+                            notificationReceiver,
+                            IntentFilter("com.example.acolle1.NOVA_NOTIFICACAO"),
+                            ContextCompat.RECEIVER_NOT_EXPORTED,
+                        )
+                        notificationReceiverRegistered = true
+                    }
                 }
 
                 override fun onCancel(arguments: Any?) {
                     eventSink = null
-                    unregisterReceiver(notificationReceiver)
+                    if (notificationReceiverRegistered) {
+                        unregisterReceiver(notificationReceiver)
+                        notificationReceiverRegistered = false
+                    }
                 }
             })
 
