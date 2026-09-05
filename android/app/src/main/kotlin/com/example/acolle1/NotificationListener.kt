@@ -15,12 +15,14 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URI
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 
 class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitListener {
 
     private val executor = Executors.newFixedThreadPool(2)
     private var tts: TextToSpeech? = null
+    private val eventosRecentes = ConcurrentHashMap<String, Long>()
 
     companion object {
         private const val BASE_URL = "https://acolle-ia.acolle-corp.workers.dev/analisar"
@@ -115,17 +117,22 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
     }
 
     private fun extrairTextoNotificacao(extras: android.os.Bundle): String {
-        // O array inclui histórico. Nunca reanalisar a conversa inteira a cada atualização.
+        val partes = linkedSetOf<String>()
+
+        extras.getCharSequence(Notification.EXTRA_TEXT)?.toString()?.trim()
+            ?.takeIf { it.isNotEmpty() }?.let(partes::add)
+        extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString()?.trim()
+            ?.takeIf { it.isNotEmpty() }?.let(partes::add)
+
+        // Compatibilidade com notificações MessagingStyle.
         val mensagens = extras.getParcelableArray(Notification.EXTRA_MESSAGES)
-        val ultima = mensagens?.mapNotNull { it as? android.os.Bundle }
-            ?.maxByOrNull { it.getLong("time") }
-        if (ultima != null) {
-            val instante = ultima.getLong("time")
-            if (instante > 0 && System.currentTimeMillis() - instante > 120_000) return ""
-            return ultima.getCharSequence("text")?.toString()?.trim()?.take(4_000) ?: ""
+        if (mensagens != null) {
+            mensagens.mapNotNull { item ->
+                val bundle = item as? android.os.Bundle ?: return@mapNotNull null
+                bundle.getCharSequence("text")?.toString()?.trim()
+            }.filter { it.isNotEmpty() }.forEach(partes::add)
         }
-        return (extras.getCharSequence(Notification.EXTRA_BIG_TEXT)
-            ?: extras.getCharSequence(Notification.EXTRA_TEXT))?.toString()?.trim()?.take(4_000) ?: ""
+        return partes.joinToString("\n").take(4_000)
     }
 
     @Synchronized
@@ -206,7 +213,17 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
     // ============================================================
 
     private fun analisarConteudo(texto: String): JSONObject {
-        return chamarApi(sanitizarParaAnalise(texto))
+        val local = analisarMensagemLocal(texto)
+        if (local.optInt("risco", 0) >= 70) return local
+
+        val link = regexLink.find(texto)?.value
+        val corpoTexto = if (link != null) {
+            """
+            Analise esta URL para identificar se é segura ou perigosa (golpe/phishing): $link
+            Responda com: classificacao, risco numerico de 0 a 100, motivos e recomendacao.
+            """.trimIndent()
+        } else sanitizarParaAnalise(texto)
+        return chamarApi(corpoTexto)
     }
 
     private fun sanitizarParaAnalise(texto: String): String {
@@ -270,7 +287,6 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
             val resultadoLink = analisarLinkLocal(link)
             if (resultadoLink.optInt("risco", 0) >= 65) return resultadoLink
         }
-
         val normalizado = texto.lowercase(Locale("pt", "BR"))
         var risco = if (link != null) 15 else 0
         val motivos = mutableListOf<String>()
