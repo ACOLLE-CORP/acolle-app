@@ -124,6 +124,7 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
     _subscricaoNotificacoes =
         NotificationListenerService.notificacoes.listen(
       (notificacao) {
+        if (_linkController.text.trim().isNotEmpty || _resultado != null) return;
         final texto =
             notificacao['texto'] as String? ?? '';
 
@@ -429,7 +430,7 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
       decoration: AcolleDesign.inputDecoration(
         label: 'Cole o link aqui',
         hint: 'https://exemplo.com',
-        icone: Icons.link,
+        icone: Icons.link_rounded,
         altoContraste:
             _altoContraste,
       ),
@@ -445,7 +446,7 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
       texto: _carregando
           ? 'Analisando...'
           : 'Analisar',
-      icone: Icons.search,
+      icone: Icons.manage_search_rounded,
       carregando: _carregando,
       onPressed:
           _carregando
@@ -489,7 +490,7 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
           Row(
             children: [
               Icon(
-                Icons.notifications_active_outlined,
+                Icons.notifications_active_rounded,
                 color: _icone,
                 size: 28,
               ),
@@ -596,7 +597,7 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
 
         children: [
           const Icon(
-            Icons.error_outline,
+            Icons.error_outline_rounded,
             color: Colors.red,
             size: 28,
           ),
@@ -630,9 +631,6 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
                 as String? ??
             'Desconhecido';
 
-    final risco =
-        _resultado!['risco'] ?? 0;
-
     final motivos =
         (_resultado!['motivos']
                 as List?) ??
@@ -649,10 +647,10 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
 
     final IconData icone =
         classificacao == 'Alto'
-            ? Icons.dangerous
+            ? Icons.dangerous_rounded
             : classificacao == 'Médio'
                 ? Icons.warning_amber_rounded
-                : Icons.verified;
+                : Icons.verified_rounded;
 
     return Column(
       crossAxisAlignment:
@@ -711,7 +709,7 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
               const SizedBox(height: 8),
 
               Text(
-                'Score: $risco%',
+                'Confirme a origem antes de abrir o link.',
                 style: TextStyle(
                   fontSize:
                       17 * _escalaTexto,
@@ -812,7 +810,7 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
                 Row(
                   children: [
                     Icon(
-                      Icons.info_outline,
+                      Icons.info_outline_rounded,
                       color: _icone,
                       size: 26,
                     ),
@@ -894,7 +892,7 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
 
               children: [
                 Icon(
-                  Icons.lightbulb_outline,
+                  Icons.lightbulb_outline_rounded,
                   color:
                       Colors.amber.shade700,
                   size: 28,

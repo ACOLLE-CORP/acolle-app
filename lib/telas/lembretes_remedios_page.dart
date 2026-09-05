@@ -137,7 +137,7 @@ class _LembretesRemediosPageState extends State<LembretesRemediosPage> {
                             child: Column(
                               children: [
                                 Icon(
-                                  Icons.hourglass_top,
+                                  Icons.hourglass_top_rounded,
                                   size: AcolleDesign
                                       .tamanhoTexto(72),
                                   color: AcolleDesign
@@ -267,7 +267,7 @@ class _LembretesRemediosPageState extends State<LembretesRemediosPage> {
                         child:
                             AcolleDesign.estadoVazio(
                           icone:
-                              Icons.medication_outlined,
+                              Icons.medication_rounded,
 
                           mensagem:
                               'Nenhum lembrete cadastrado.\n'
@@ -350,7 +350,7 @@ class _LembretesRemediosPageState extends State<LembretesRemediosPage> {
           );
         },
 
-        icon: const Icon(Icons.add),
+        icon: const Icon(Icons.add_rounded),
 
         label: Text(
           'Adicionar',
@@ -631,7 +631,7 @@ class _ItemLembreteState
             ),
 
             child: Icon(
-              Icons.medication,
+              Icons.medication_rounded,
               color: corDestaque,
               size: 28,
             ),
@@ -730,7 +730,7 @@ class _ItemLembreteState
             tooltip: 'Remover lembrete',
 
             icon: Icon(
-              Icons.delete_outline,
+              Icons.delete_outline_rounded,
 
               color:
                   contraste

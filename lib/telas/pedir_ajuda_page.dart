@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../services/acessibilidade_service.dart';
 import '../services/emergencia_service.dart';
 import '../shared/acolle_design.dart';
+import '../shared/acolle_icons.dart';
 import 'contatos_emergencia_page.dart';
 
 class PedirAjudaPage extends StatefulWidget {
@@ -132,7 +133,7 @@ class _PedirAjudaPageState
       builder: (dialogContext) {
         return AlertDialog(
           icon: Icon(
-            Icons.contact_emergency_outlined,
+            AcolleIcons.contatos,
             size: 48,
             color: AcolleDesign.laranja,
           ),
@@ -153,7 +154,7 @@ class _PedirAjudaPageState
             ),
             FilledButton.icon(
               icon: const Icon(
-                Icons.person_add,
+                Icons.person_add_rounded,
               ),
               label: const Text(
                 'Cadastrar',
@@ -243,7 +244,7 @@ class _PedirAjudaPageState
 
               _BotaoAjuda(
                 icone:
-                    Icons.phone_in_talk,
+                    AcolleIcons.ligar,
                 titulo:
                     'Ligar para meu contato',
                 descricao:
@@ -262,7 +263,7 @@ class _PedirAjudaPageState
 
               _BotaoAjuda(
                 icone:
-                    Icons.contact_emergency_outlined,
+                    AcolleIcons.contatos,
                 titulo:
                     'Meus contatos de confiança',
                 descricao:
@@ -405,7 +406,7 @@ class _BotaoAjuda extends StatelessWidget {
                 ),
 
                 Icon(
-                  Icons.chevron_right,
+                  AcolleIcons.avancar,
                   size: 30,
                   color:
                       AcolleDesign.corIcone(

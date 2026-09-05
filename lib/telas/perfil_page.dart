@@ -255,7 +255,7 @@ class _PerfilPageState extends State<PerfilPage> {
             ),
             child: Center(
               child: Icon(
-                Icons.person,
+                Icons.person_rounded,
                 size: 60,
                 color: contraste
                     ? Colors.black
@@ -319,7 +319,7 @@ class _PerfilPageState extends State<PerfilPage> {
           _buildCampoInfo(
             label: 'Nome Completo',
             controller: _nomeController,
-            icone: Icons.person,
+            icone: Icons.person_rounded,
             editavel: true,
           ),
 
@@ -328,7 +328,7 @@ class _PerfilPageState extends State<PerfilPage> {
           _buildCampoInfo(
             label: 'Telefone',
             controller: _telefoneController,
-            icone: Icons.phone,
+            icone: Icons.phone_rounded,
             editavel: true,
           ),
 
@@ -337,7 +337,7 @@ class _PerfilPageState extends State<PerfilPage> {
           _buildCampoInfo(
             label: 'Cidade',
             controller: _cidadeController,
-            icone: Icons.location_city,
+            icone: Icons.location_city_rounded,
             editavel: true,
           ),
 
@@ -348,7 +348,7 @@ class _PerfilPageState extends State<PerfilPage> {
             controller: TextEditingController(
               text: _user.email ?? '',
             ),
-            icone: Icons.email,
+            icone: Icons.email_rounded,
             editavel: false,
           ),
         ],
@@ -429,7 +429,7 @@ class _PerfilPageState extends State<PerfilPage> {
             contentPadding: EdgeInsets.zero,
 
             leading: Icon(
-              Icons.lock,
+              Icons.lock_rounded,
               color: AcolleDesign.corIcone(contraste),
               size: 28,
             ),
@@ -451,7 +451,7 @@ class _PerfilPageState extends State<PerfilPage> {
             ),
 
             trailing: Icon(
-              Icons.arrow_forward_ios,
+              Icons.arrow_forward_ios_rounded,
               color: AcolleDesign.corTextoSecundario(contraste),
             ),
 
@@ -467,7 +467,7 @@ class _PerfilPageState extends State<PerfilPage> {
             contentPadding: EdgeInsets.zero,
 
             leading: Icon(
-              Icons.verified_user,
+              Icons.verified_user_rounded,
               color: AcolleDesign.corIcone(contraste),
               size: 28,
             ),
@@ -489,7 +489,7 @@ class _PerfilPageState extends State<PerfilPage> {
             ),
 
             trailing: Icon(
-              Icons.arrow_forward_ios,
+              Icons.arrow_forward_ios_rounded,
               color: AcolleDesign.corTextoSecundario(contraste),
             ),
 
@@ -512,7 +512,7 @@ class _PerfilPageState extends State<PerfilPage> {
   Widget _buildBotaoEditar() {
     return AcolleDesign.botaoPrimario(
       texto: 'Editar Perfil',
-      icone: Icons.edit,
+      icone: Icons.edit_rounded,
       onPressed: () {
         setState(() {
           _editando = true;
@@ -565,7 +565,7 @@ class _PerfilPageState extends State<PerfilPage> {
         Expanded(
           child: AcolleDesign.botaoPrimario(
             texto: 'Salvar',
-            icone: Icons.check,
+            icone: Icons.check_rounded,
             carregando: _carregando,
             onPressed: _salvarAlteracoes,
           ),
@@ -763,7 +763,7 @@ class _MudarSenhaDialogState
               decoration:
                   AcolleDesign.inputDecoration(
                 label: 'Senha Atual',
-                icone: Icons.lock_outline,
+                icone: Icons.lock_rounded,
                 altoContraste:
                     contraste,
               ).copyWith(
@@ -773,8 +773,8 @@ class _MudarSenhaDialogState
                       : 'Mostrar senha',
                   icon: Icon(
                     _mostrarSenhaAtual
-                        ? Icons.visibility
-                        : Icons.visibility_off,
+                        ? Icons.visibility_rounded
+                        : Icons.visibility_off_rounded,
                     color:
                         AcolleDesign.corIcone(
                       contraste,
@@ -806,7 +806,7 @@ class _MudarSenhaDialogState
               decoration:
                   AcolleDesign.inputDecoration(
                 label: 'Nova Senha',
-                icone: Icons.lock_outline,
+                icone: Icons.lock_rounded,
                 altoContraste:
                     contraste,
               ).copyWith(
@@ -816,8 +816,8 @@ class _MudarSenhaDialogState
                       : 'Mostrar senha',
                   icon: Icon(
                     _mostrarNovaSenha
-                        ? Icons.visibility
-                        : Icons.visibility_off,
+                        ? Icons.visibility_rounded
+                        : Icons.visibility_off_rounded,
                     color:
                         AcolleDesign.corIcone(
                       contraste,
@@ -849,7 +849,7 @@ class _MudarSenhaDialogState
               decoration:
                   AcolleDesign.inputDecoration(
                 label: 'Confirmar Nova Senha',
-                icone: Icons.lock_outline,
+                icone: Icons.lock_rounded,
                 altoContraste:
                     contraste,
               ).copyWith(
@@ -859,8 +859,8 @@ class _MudarSenhaDialogState
                       : 'Mostrar senha',
                   icon: Icon(
                     _mostrarNovaSenha
-                        ? Icons.visibility
-                        : Icons.visibility_off,
+                        ? Icons.visibility_rounded
+                        : Icons.visibility_off_rounded,
                     color:
                         AcolleDesign.corIcone(
                       contraste,

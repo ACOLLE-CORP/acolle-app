@@ -201,6 +201,8 @@ class _AnalisarMensagemPageState
             .notificacoes
             .listen(
       (notificacao) {
+        // Uma notificação não pode substituir a análise que a pessoa está lendo.
+        if (_controller.text.trim().isNotEmpty || _resultado != null) return;
         final texto =
             notificacao['texto']
                     as String? ??
@@ -489,7 +491,7 @@ class _AnalisarMensagemPageState
                       'Cole a conversa aqui ou use o microfone...',
 
                   icone:
-                      Icons.message_outlined,
+                      Icons.chat_bubble_outline_rounded,
 
                   altoContraste:
                       altoContraste,
@@ -530,7 +532,7 @@ class _AnalisarMensagemPageState
 
               AcolleDesign.botaoPrimario(
                 texto: 'Analisar',
-                icone: Icons.search,
+                icone: Icons.manage_search_rounded,
                 carregando: _carregando,
                 onPressed: _analisar,
               ),
@@ -712,8 +714,8 @@ class _AnalisarMensagemPageState
 
             child: Icon(
               _ouvindo
-                  ? Icons.mic
-                  : Icons.mic_none,
+                  ? Icons.mic_rounded
+                  : Icons.mic_none_rounded,
 
               color:
                   Colors.white,
@@ -785,9 +787,6 @@ class _AnalisarMensagemPageState
             as String? ??
         'Desconhecido';
 
-    final risco =
-        _resultado!['risco'] ?? 0;
-
     final motivos =
         (_resultado!['motivos']
                 as List?) ??
@@ -843,7 +842,11 @@ class _AnalisarMensagemPageState
 
               Expanded(
                 child: Text(
-                  'Risco $classificacao ($risco%)',
+                  classificacao == 'Alto'
+                      ? 'Pare e confira: sinais de golpe'
+                      : classificacao == 'Médio'
+                          ? 'Confira esta mensagem com cuidado'
+                          : 'Nenhum sinal forte identificado',
 
                   style:
                       AcolleDesign.texto(

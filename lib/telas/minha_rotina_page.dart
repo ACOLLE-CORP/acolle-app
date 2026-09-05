@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/acessibilidade_service.dart';
 import '../shared/acolle_design.dart';
+import '../shared/acolle_icons.dart';
 import 'lembretes_remedios_page.dart';
 
 class MinhaRotinaPage extends StatelessWidget {
@@ -59,7 +60,7 @@ class MinhaRotinaPage extends StatelessWidget {
               const SizedBox(height: 24),
 
               _Opcao(
-                icone: Icons.medication_outlined,
+                icone: AcolleIcons.medicamento,
                 titulo: 'Lembretes de remédios',
                 descricao:
                     'Cadastre medicamentos e acompanhe seus horários.',
@@ -172,7 +173,7 @@ class _Opcao extends StatelessWidget {
                 ),
 
                 Icon(
-                  Icons.chevron_right,
+                  AcolleIcons.avancar,
                   size: 30,
                   color: AcolleDesign.corIcone(
                     altoContraste,

@@ -59,7 +59,7 @@ class _TudoProntoPageState extends State<TudoProntoPage> {
                   color: AcolleDesign.card,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.check_circle,
+                child: const Icon(Icons.check_circle_rounded,
                     color: AcolleDesign.verde, size: 92),
               ),
               const SizedBox(height: 28),
@@ -88,7 +88,7 @@ class _TudoProntoPageState extends State<TudoProntoPage> {
               else
                 AcolleDesign.botaoPrimario(
                   texto: 'Ir para o app',
-                  icone: Icons.arrow_forward,
+                  icone: Icons.arrow_forward_rounded,
                   onPressed: _irParaApp,
                 ),
               const SizedBox(height: 32),

@@ -31,6 +31,10 @@ class FloatingBubbleService : Service() {
         // Extra usado para dizer ao Flutter qual tela abrir ao tocar
         // em uma opção do menu.
         const val EXTRA_ROTA = "acolle_rota"
+
+        @Volatile
+        var emExecucao: Boolean = false
+            private set
     }
 
     private lateinit var windowManager: WindowManager
@@ -38,12 +42,15 @@ class FloatingBubbleService : Service() {
     private var menuView: View? = null
     private var menuAberto = false
 
-    private val roxo = Color.parseColor("#773FD1")
+    private val roxo = Color.parseColor("#6D59F4")
+    private val roxoEscuro = Color.parseColor("#2A1B5D")
+    private val fundoSuave = Color.parseColor("#FBFAFF")
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
+        emExecucao = true
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         iniciarComoForegroundService()
         criarBolinha()
@@ -80,7 +87,7 @@ class FloatingBubbleService : Service() {
         )
 
         val notificacao = NotificationCompat.Builder(this, CANAL_SERVICO_ID)
-            .setSmallIcon(R.mipmap.icon)
+            .setSmallIcon(R.drawable.ic_acolle_notification)
             .setContentTitle("Acolle protegendo você")
             .setContentText("Toque para abrir o app")
             .setPriority(NotificationCompat.PRIORITY_MIN)
@@ -100,17 +107,19 @@ class FloatingBubbleService : Service() {
         fun dp(v: Int) = (v * density).toInt()
 
         val bolinha = ImageView(this).apply {
-            setImageResource(android.R.drawable.ic_dialog_alert)
-            setColorFilter(Color.WHITE)
+            setImageResource(R.drawable.acolle_collin)
+            scaleType = ImageView.ScaleType.CENTER_INSIDE
+            contentDescription = "Abrir proteção rápida do Acolle"
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
-                setColor(roxo)
+                setColor(fundoSuave)
+                setStroke(dp(3), roxo)
             }
-            setPadding(dp(14), dp(14), dp(14), dp(14))
+            setPadding(dp(5), dp(5), dp(5), dp(5))
             elevation = dp(8).toFloat()
         }
 
-        val tamanho = dp(56)
+        val tamanho = dp(64)
         val params = WindowManager.LayoutParams(
             tamanho, tamanho,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
@@ -145,13 +154,30 @@ class FloatingBubbleService : Service() {
                     val dx = (event.rawX - xToqueInicial).toInt()
                     val dy = (event.rawY - yToqueInicial).toInt()
                     if (abs(dx) > 10 || abs(dy) > 10) houveArrasto = true
-                    params.x = xInicial + dx
-                    params.y = yInicial + dy
+                    params.x = (xInicial + dx).coerceIn(
+                        dp(8),
+                        resources.displayMetrics.widthPixels - tamanho - dp(8),
+                    )
+                    params.y = (yInicial + dy).coerceIn(
+                        dp(32),
+                        resources.displayMetrics.heightPixels - tamanho - dp(32),
+                    )
                     windowManager.updateViewLayout(bolinha, params)
                     true
                 }
                 MotionEvent.ACTION_UP -> {
-                    if (!houveArrasto) alternarMenu(params)
+                    if (!houveArrasto) {
+                        alternarMenu(params)
+                    } else {
+                        params.x = if (
+                            params.x + tamanho / 2 < resources.displayMetrics.widthPixels / 2
+                        ) {
+                            dp(12)
+                        } else {
+                            resources.displayMetrics.widthPixels - tamanho - dp(12)
+                        }
+                        windowManager.updateViewLayout(bolinha, params)
+                    }
                     true
                 }
                 else -> false
@@ -177,25 +203,35 @@ class FloatingBubbleService : Service() {
 
         val menu = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(4), dp(4), dp(4), dp(4))
+            setPadding(dp(8), dp(8), dp(8), dp(8))
+            background = GradientDrawable().apply {
+                setColor(fundoSuave)
+                cornerRadius = dp(28).toFloat()
+                setStroke(dp(1), Color.parseColor("#E1DCEF"))
+            }
+            elevation = dp(10).toFloat()
         }
 
-        menu.addView(itemMenu("Analisar esta tela", android.R.drawable.ic_menu_camera) {
+        menu.addView(itemMenu("Analisar mensagem", "💬") {
             abrirTelaFlutter("analisar")
         })
-        menu.addView(itemMenu("Verificar link", android.R.drawable.ic_menu_share) {
+        menu.addView(itemMenu("Verificar link", "🔗") {
             abrirTelaFlutter("verificar_link")
         })
-        menu.addView(itemMenu("Meus alertas", android.R.drawable.ic_dialog_alert) {
+        menu.addView(itemMenu("Meus alertas", "🔔") {
             abrirTelaFlutter("alertas")
         })
-        menu.addView(itemMenu("Falar com o Acolle", android.R.drawable.ic_menu_send) {
-            abrirTelaFlutter("chat")
+        menu.addView(itemMenu("Pedir ajuda", "🤝") {
+            abrirTelaFlutter("ajuda")
         })
         menu.addView(itemMenuFechar())
 
+        val larguraMenu = dp(280)
+        val alturaEstimada = dp(324)
+        val larguraTela = resources.displayMetrics.widthPixels
+        val alturaTela = resources.displayMetrics.heightPixels
         val params = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
+            larguraMenu,
             WindowManager.LayoutParams.WRAP_CONTENT,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
@@ -204,8 +240,12 @@ class FloatingBubbleService : Service() {
             PixelFormat.TRANSLUCENT,
         ).apply {
             gravity = Gravity.TOP or Gravity.START
-            x = paramsBolinha.x
-            y = paramsBolinha.y + dp(64)
+            x = paramsBolinha.x.coerceIn(dp(12), larguraTela - larguraMenu - dp(12))
+            y = if (paramsBolinha.y > alturaTela / 2) {
+                (paramsBolinha.y - alturaEstimada).coerceAtLeast(dp(32))
+            } else {
+                (paramsBolinha.y + dp(72)).coerceAtMost(alturaTela - alturaEstimada - dp(24))
+            }
         }
 
         windowManager.addView(menu, params)
@@ -213,20 +253,21 @@ class FloatingBubbleService : Service() {
         menuAberto = true
     }
 
-    private fun itemMenu(texto: String, icone: Int, acao: () -> Unit): View {
+    private fun itemMenu(texto: String, simbolo: String, acao: () -> Unit): View {
         val density = resources.displayMetrics.density
         fun dp(v: Int) = (v * density).toInt()
 
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(16), dp(12), dp(20), dp(12))
+            setPadding(dp(12), dp(10), dp(14), dp(10))
             background = GradientDrawable().apply {
                 setColor(Color.WHITE)
-                cornerRadius = dp(24).toFloat()
+                cornerRadius = dp(18).toFloat()
             }
-            elevation = dp(4).toFloat()
-            (layoutParams as? LinearLayout.LayoutParams)?.setMargins(0, 0, 0, dp(8))
+            isClickable = true
+            isFocusable = true
+            contentDescription = texto
             setOnClickListener {
                 fecharMenu()
                 acao()
@@ -236,24 +277,29 @@ class FloatingBubbleService : Service() {
         val bolaIcone = FrameLayout(this).apply {
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
-                setColor(roxo)
+                setColor(Color.parseColor("#EDE9FF"))
             }
         }
-        val img = ImageView(this).apply {
-            setImageResource(icone)
-            setColorFilter(Color.WHITE)
-            setPadding(dp(8), dp(8), dp(8), dp(8))
+        val img = TextView(this).apply {
+            text = simbolo
+            textSize = 21f
+            gravity = Gravity.CENTER
+            importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
         }
-        bolaIcone.addView(img, FrameLayout.LayoutParams(dp(36), dp(36)))
-        container.addView(bolaIcone, LinearLayout.LayoutParams(dp(36), dp(36)))
+        bolaIcone.addView(img, FrameLayout.LayoutParams(dp(40), dp(40)))
+        container.addView(bolaIcone, LinearLayout.LayoutParams(dp(40), dp(40)))
 
         container.addView(TextView(this).apply {
             text = texto
-            textSize = 15f
-            setTextColor(Color.parseColor("#333333"))
+            textSize = 16f
+            setTextColor(roxoEscuro)
             setPadding(dp(12), 0, 0, 0)
             typeface = Typeface.DEFAULT_BOLD
-        })
+        }, LinearLayout.LayoutParams(
+            0,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            1f,
+        ))
 
         // Envolve num LinearLayout externo para aplicar a margem inferior.
         return LinearLayout(this).apply {
@@ -273,16 +319,23 @@ class FloatingBubbleService : Service() {
         return LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
-            setPadding(dp(16), dp(10), dp(16), dp(10))
+            setPadding(dp(16), dp(11), dp(16), dp(11))
             background = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
                 setColor(roxo)
+                cornerRadius = dp(18).toFloat()
             }
+            contentDescription = "Fechar menu de proteção"
             setOnClickListener { fecharMenu() }
-            addView(ImageView(this@FloatingBubbleService).apply {
-                setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
-                setColorFilter(Color.WHITE)
-            }, LinearLayout.LayoutParams(dp(24), dp(24)))
+            addView(TextView(this@FloatingBubbleService).apply {
+                text = "Fechar menu"
+                textSize = 16f
+                setTextColor(Color.WHITE)
+                gravity = Gravity.CENTER
+                typeface = Typeface.DEFAULT_BOLD
+            }, LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(28),
+            ))
         }
     }
 
@@ -308,6 +361,7 @@ class FloatingBubbleService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        emExecucao = false
         bolinhaView?.let { runCatching { windowManager.removeView(it) } }
         fecharMenu()
     }

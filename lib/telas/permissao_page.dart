@@ -191,7 +191,7 @@ class _PermissaoPageState extends State<PermissaoPage> {
                     child: TextButton.icon(
                       onPressed: _pular,
                       icon: Icon(
-                        Icons.close,
+                        Icons.close_rounded,
                         color: AcolleDesign.corIcone(altoContraste),
                       ),
                       label: Text(
@@ -274,7 +274,7 @@ class _PermissaoPageState extends State<PermissaoPage> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
-                            Icons.check_circle,
+                            Icons.check_circle_rounded,
                             color: AcolleDesign.verde,
                           ),
                           const SizedBox(width: 8),
@@ -298,7 +298,7 @@ class _PermissaoPageState extends State<PermissaoPage> {
 
                   AcolleDesign.botaoPrimario(
                     texto: widget.rotuloPermitir,
-                    icone: Icons.lock_open_outlined,
+                    icone: Icons.lock_open_rounded,
                     carregando: _carregando,
                     onPressed: _solicitar,
                   ),

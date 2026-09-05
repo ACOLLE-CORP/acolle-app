@@ -65,7 +65,7 @@ class _EsqueciSenhaPageState extends State<EsqueciSenhaPage> {
           padding: const EdgeInsets.all(28),
           child: Column(
             children: [
-              const Icon(Icons.lock_reset, size: 80, color: AcolleDesign.roxo),
+              const Icon(Icons.lock_reset_rounded, size: 80, color: AcolleDesign.roxo),
               const SizedBox(height: 18),
               const Text(
                 'Esqueceu sua senha?',
@@ -86,13 +86,13 @@ class _EsqueciSenhaPageState extends State<EsqueciSenhaPage> {
               AcolleDesign.campoTexto(
                 label: 'E-mail',
                 controller: emailController,
-                icone: Icons.email_outlined,
+                icone: Icons.alternate_email_rounded,
                 teclado: TextInputType.emailAddress,
               ),
               const SizedBox(height: 28),
               AcolleDesign.botaoPrimario(
                 texto: 'Enviar código',
-                icone: Icons.send,
+                icone: Icons.send_rounded,
                 carregando: carregando,
                 onPressed: enviarEmail,
               ),

@@ -49,7 +49,7 @@ Este termo pode ser atualizado. Sempre que mudar algo importante, mostraremos es
       context,
       MaterialPageRoute(
         builder: (context) => PermissaoPage(
-          icone: Icons.phone_in_talk,
+          icone: Icons.phone_in_talk_rounded,
           titulo: 'Permitir acesso a chamadas',
           explicacao:
               'Para avisar se uma chamada recebida está na lista de números '
@@ -58,7 +58,7 @@ Este termo pode ser atualizado. Sempre que mudar algo importante, mostraremos es
           rotuloPermitir: 'Permitir chamadas',
           proxima: (context) => ConfigurarProtecaoChamadasPage(
             proxima: (context) => PermissaoPage(
-              icone: Icons.mic,
+              icone: Icons.mic_rounded,
               titulo: 'Permitir microfone',
               explicacao:
                   'Você pode falar a mensagem que quer analisar. Precisamos do '
@@ -66,7 +66,7 @@ Este termo pode ser atualizado. Sempre que mudar algo importante, mostraremos es
               permissao: Permission.microphone,
               rotuloPermitir: 'Permitir microfone',
               proxima: (context) => PermissaoPage(
-                icone: Icons.notifications_active,
+                icone: Icons.notifications_active_rounded,
                 titulo: 'Ativar notificações',
                 explicacao:
                     'Vamos avisar você sobre chamadas suspeitas, lembretes de '
@@ -74,7 +74,7 @@ Este termo pode ser atualizado. Sempre que mudar algo importante, mostraremos es
                 permissao: Permission.notification,
                 rotuloPermitir: 'Ativar notificações',
                 proxima: (context) => PermissaoPage(
-                  icone: Icons.contact_page_outlined,
+                  icone: Icons.contact_page_rounded,
                   titulo: 'Permitir acesso aos contatos',
                   explicacao:
                       'Com os seus contatos, podemos ajudar você a chamar alguém de '
@@ -106,7 +106,7 @@ Este termo pode ser atualizado. Sempre que mudar algo importante, mostraremos es
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Icon(
-                      Icons.privacy_tip_outlined,
+                      Icons.privacy_tip_rounded,
                       size: 60,
                       color: AcolleDesign.roxo,
                     ),
@@ -137,7 +137,7 @@ Este termo pode ser atualizado. Sempre que mudar algo importante, mostraremos es
                 children: [
                   AcolleDesign.botaoPrimario(
                     texto: 'Entendi',
-                    icone: Icons.check_circle_outline,
+                    icone: Icons.check_circle_outline_rounded,
                     onPressed: () => _prosseguir(context),
                   ),
                 ],

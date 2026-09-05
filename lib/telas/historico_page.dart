@@ -233,7 +233,7 @@ class _HistoricoPageState extends State<HistoricoPage> {
                                   child: Column(
                                     children: [
                                       Icon(
-                                        Icons.hourglass_top,
+                                        Icons.hourglass_top_rounded,
                                         size: 72,
                                         color: destaque,
                                       ),
@@ -369,7 +369,7 @@ class _HistoricoPageState extends State<HistoricoPage> {
                                 child: Column(
                                   children: [
                                     Icon(
-                                      Icons.history,
+                                      Icons.history_rounded,
                                       size: 70,
                                       color:
                                           textoSecundario,
@@ -580,14 +580,14 @@ class _HistoricoPageState extends State<HistoricoPage> {
           'dd/MM/yyyy HH:mm',
         ).format(data);
 
-    IconData icone = Icons.info_outline;
+    IconData icone = Icons.info_outline_rounded;
 
     if (tipo == 'mensagem') {
-      icone = Icons.message_outlined;
+      icone = Icons.chat_bubble_outline_rounded;
     } else if (tipo == 'link') {
-      icone = Icons.link;
+      icone = Icons.link_rounded;
     } else if (tipo == 'chamada') {
-      icone = Icons.phone_missed;
+      icone = Icons.phone_missed_rounded;
     }
 
     Color cor = _corPorRisco(
@@ -920,7 +920,7 @@ class _HistoricoPageState extends State<HistoricoPage> {
               children: [
                 ListTile(
                   leading: Icon(
-                    Icons.visibility,
+                    Icons.visibility_rounded,
                     color: destaque,
                   ),
 
@@ -947,7 +947,7 @@ class _HistoricoPageState extends State<HistoricoPage> {
 
                 ListTile(
                   leading: const Icon(
-                    Icons.delete_outline,
+                    Icons.delete_outline_rounded,
                     color: Colors.red,
                   ),
 
@@ -1360,7 +1360,7 @@ class _HistoricoPageState extends State<HistoricoPage> {
     switch (risco) {
       case 'alto':
       case 'malicioso':
-        return Icons.dangerous;
+        return Icons.dangerous_rounded;
 
       case 'médio':
       case 'suspeito':
@@ -1368,10 +1368,10 @@ class _HistoricoPageState extends State<HistoricoPage> {
 
       case 'baixo':
       case 'confiável':
-        return Icons.verified;
+        return Icons.verified_rounded;
 
       default:
-        return Icons.help_outline;
+        return Icons.help_outline_rounded;
     }
   }
 }

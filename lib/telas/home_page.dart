@@ -5,6 +5,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../services/acessibilidade_service.dart';
 import '../services/caller_id_service.dart';
 import '../shared/acolle_design.dart';
+import '../shared/acolle_icons.dart';
 import 'aprender_page.dart';
 import 'botao_flutuante.dart';
 import 'login_page.dart';
@@ -227,7 +228,7 @@ class _HomePageState extends State<HomePage> {
                         Row(
                           children: [
                             Icon(
-                              Icons.text_decrease,
+                              Icons.text_decrease_rounded,
                               size: 30,
                               color:
                                   AcolleDesign.corIcone(
@@ -263,7 +264,7 @@ class _HomePageState extends State<HomePage> {
                             ),
 
                             Icon(
-                              Icons.text_increase,
+                              Icons.text_increase_rounded,
                               size: 30,
                               color:
                                   AcolleDesign.corIcone(
@@ -426,7 +427,7 @@ class _HomePageState extends State<HomePage> {
           IconButton(
             tooltip: 'Acessibilidade',
             icon: Icon(
-              Icons.accessibility_new,
+              AcolleIcons.acessibilidade,
               color:
                   AcolleDesign.corIcone(
                 altoContraste,
@@ -439,7 +440,7 @@ class _HomePageState extends State<HomePage> {
           IconButton(
             tooltip: 'Meu perfil',
             icon: Icon(
-              Icons.person_outline,
+              AcolleIcons.perfil,
               color:
                   AcolleDesign.corIcone(
                 altoContraste,
@@ -455,7 +456,7 @@ class _HomePageState extends State<HomePage> {
           IconButton(
             tooltip: 'Sair da conta',
             icon: Icon(
-              Icons.logout,
+              AcolleIcons.sair,
               color:
                   AcolleDesign.corIcone(
                 altoContraste,
@@ -611,7 +612,7 @@ class _HomePageState extends State<HomePage> {
       children: [
         _buildCardPrincipal(
           icone:
-              Icons.shield_outlined,
+              AcolleIcons.proteger,
 
           titulo: 'Proteger',
 
@@ -620,6 +621,8 @@ class _HomePageState extends State<HomePage> {
 
           altoContraste:
               altoContraste,
+
+          cor: AcolleDesign.roxo,
 
           onTap: () {
             _abrirPagina(
@@ -630,7 +633,7 @@ class _HomePageState extends State<HomePage> {
 
         _buildCardPrincipal(
           icone:
-              Icons.calendar_today_outlined,
+              AcolleIcons.rotina,
 
           titulo: 'Minha Rotina',
 
@@ -639,6 +642,8 @@ class _HomePageState extends State<HomePage> {
 
           altoContraste:
               altoContraste,
+
+          cor: AcolleDesign.azul,
 
           onTap: () {
             _abrirPagina(
@@ -649,7 +654,7 @@ class _HomePageState extends State<HomePage> {
 
         _buildCardPrincipal(
           icone:
-              Icons.people_outline,
+              AcolleIcons.pedirAjuda,
 
           titulo: 'Pedir Ajuda',
 
@@ -658,6 +663,8 @@ class _HomePageState extends State<HomePage> {
 
           altoContraste:
               altoContraste,
+
+          cor: AcolleDesign.verde,
 
           onTap: () {
             _abrirPagina(
@@ -668,7 +675,7 @@ class _HomePageState extends State<HomePage> {
 
         _buildCardPrincipal(
           icone:
-              Icons.menu_book_outlined,
+              AcolleIcons.aprender,
 
           titulo: 'Aprender',
 
@@ -677,6 +684,8 @@ class _HomePageState extends State<HomePage> {
 
           altoContraste:
               altoContraste,
+
+          cor: AcolleDesign.laranja,
 
           onTap: () {
             _abrirPagina(
@@ -693,6 +702,7 @@ class _HomePageState extends State<HomePage> {
     required String titulo,
     required String descricao,
     required bool altoContraste,
+    required Color cor,
     required VoidCallback onTap,
   }) {
     return Semantics(
@@ -732,14 +742,24 @@ class _HomePageState extends State<HomePage> {
                   MainAxisAlignment.center,
 
               children: [
-                Icon(
-                  icone,
-
-                  size: 40,
-
-                  color:
-                      AcolleDesign.corIcone(
-                    altoContraste,
+                Container(
+                  width: 58,
+                  height: 58,
+                  decoration: BoxDecoration(
+                    color: altoContraste
+                        ? Colors.black
+                        : cor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: altoContraste
+                          ? Colors.white
+                          : cor.withValues(alpha: 0.18),
+                    ),
+                  ),
+                  child: Icon(
+                    icone,
+                    size: 34,
+                    color: altoContraste ? AcolleDesign.laranja : cor,
                   ),
                 ),
 
@@ -854,7 +874,7 @@ class _HomePageState extends State<HomePage> {
             child: Row(
               children: [
                 Icon(
-                  Icons.more_horiz,
+                  AcolleIcons.mais,
 
                   size: 32,
 
@@ -889,7 +909,7 @@ class _HomePageState extends State<HomePage> {
                 ),
 
                 Icon(
-                  Icons.chevron_right,
+                  AcolleIcons.avancar,
 
                   size: 30,
 

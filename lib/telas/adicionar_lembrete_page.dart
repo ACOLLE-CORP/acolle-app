@@ -365,7 +365,7 @@ class _AdicionarLembretePageState extends State<AdicionarLembretePage> {
                 // ==================================================
 
                 Icon(
-                  Icons.medication_outlined,
+                  Icons.medication_rounded,
                   size:
                       AcolleDesign.tamanhoTexto(
                     70,
@@ -422,7 +422,7 @@ class _AdicionarLembretePageState extends State<AdicionarLembretePage> {
                         'Nome do remédio',
 
                     icone:
-                        Icons.medication,
+                        Icons.medication_rounded,
 
                     altoContraste:
                         contraste,
@@ -482,7 +482,7 @@ class _AdicionarLembretePageState extends State<AdicionarLembretePage> {
                       child: Row(
                         children: [
                           Icon(
-                            Icons.access_time,
+                            Icons.access_time_rounded,
                             color:
                                 corDestaque,
                             size:
@@ -512,7 +512,7 @@ class _AdicionarLembretePageState extends State<AdicionarLembretePage> {
                           ),
 
                           Icon(
-                            Icons.chevron_right,
+                            Icons.chevron_right_rounded,
                             color:
                                 corDestaque,
                             size:
@@ -571,7 +571,7 @@ class _AdicionarLembretePageState extends State<AdicionarLembretePage> {
                           true,
 
                       icon: Icon(
-                        Icons.repeat,
+                        Icons.repeat_rounded,
                         color:
                             corDestaque,
                         size:

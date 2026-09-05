@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:alarm/alarm.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -13,12 +15,14 @@ import 'telas/tela_alarme_tocando.dart';
 import 'telas/analisar_mensagem_page.dart';
 import 'telas/verificar_link_page.dart';
 import 'telas/historico_page.dart';
-import 'telas/home_page.dart';
+import 'telas/pedir_ajuda_page.dart';
+import 'shared/acolle_design.dart';
 
 /// Chave global de navegação — usada para abrir a tela de alarme por cima
 /// de qualquer tela em que o usuário estiver, mesmo com o app em segundo
 /// plano.
 final navigatorKey = GlobalKey<NavigatorState>();
+final navegacaoInicialPronta = Completer<void>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,6 +50,8 @@ class AcolleApp extends StatefulWidget {
 }
 
 class _AcolleAppState extends State<AcolleApp> {
+  StreamSubscription<String>? _subscricaoRotasBotao;
+
   @override
   void initState() {
     super.initState();
@@ -69,20 +75,25 @@ class _AcolleAppState extends State<AcolleApp> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _verificarAberturaPeloBotaoFlutuante();
     });
+
+    _subscricaoRotasBotao = FloatingButtonService.rotas.listen(_abrirRotaBotao);
   }
 
   Future<void> _verificarAberturaPeloBotaoFlutuante() async {
     final rota = await FloatingButtonService.rotaInicial();
     if (rota == null) return;
 
+    _abrirRotaBotao(rota);
+  }
+
+  Future<void> _abrirRotaBotao(String rota) async {
+    await navegacaoInicialPronta.future;
+    if (!mounted) return;
     final Widget? tela = switch (rota) {
       'analisar' => const AnalisarMensagemPage(),
       'verificar_link' => const VerificarLinkPage(),
       'alertas' => const HistoricoPage(),
-      // Ainda não existe uma tela de chat dedicada — por enquanto,
-      // "Falar com o Acolle" leva para a Home. Ajuste aqui quando
-      // essa tela existir.
-      'chat' => const HomePage(),
+      'ajuda' => const PedirAjudaPage(),
       _ => null,
     };
 
@@ -94,6 +105,12 @@ class _AcolleAppState extends State<AcolleApp> {
   }
 
   @override
+  void dispose() {
+    _subscricaoRotasBotao?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     // Reconstrói o MaterialApp sempre que o usuário mudar
     // o tamanho do texto ou o alto contraste.
@@ -102,11 +119,12 @@ class _AcolleAppState extends State<AcolleApp> {
       builder: (context, _) {
         final acessibilidade = AcessibilidadeService.instance;
 
-
         return MaterialApp(
           navigatorKey: navigatorKey,
 
           debugShowCheckedModeBanner: false,
+
+          theme: AcolleDesign.tema(),
 
           locale: const Locale('pt', 'BR'),
 

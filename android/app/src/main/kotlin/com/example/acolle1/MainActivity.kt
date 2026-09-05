@@ -8,6 +8,7 @@ import android.content.IntentFilter
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
@@ -25,9 +26,12 @@ class MainActivity : FlutterActivity() {
 
         // Novo: canal do botão flutuante
         private const val CHANNEL_BOTAO_FLUTUANTE = "acolle/floating_button"
+        private const val CHANNEL_ROTAS_BOTAO = "acolle/floating_button_routes"
     }
 
     private var eventSink: EventChannel.EventSink? = null
+    private var floatingRouteSink: EventChannel.EventSink? = null
+    private var notificationReceiverRegistered = false
 
     private val notificationReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -53,6 +57,11 @@ class MainActivity : FlutterActivity() {
     // (launchMode singleTop/singleTask não atualiza getIntent() sozinho).
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        val rota = intent.getStringExtra(FloatingBubbleService.EXTRA_ROTA)
+        if (rota != null && floatingRouteSink != null) {
+            floatingRouteSink?.success(rota)
+            intent.removeExtra(FloatingBubbleService.EXTRA_ROTA)
+        }
         setIntent(intent)
     }
 
@@ -105,16 +114,23 @@ class MainActivity : FlutterActivity() {
             .setStreamHandler(object : EventChannel.StreamHandler {
                 override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
                     eventSink = events
-                    registerReceiver(
-                        notificationReceiver,
-                        IntentFilter("com.example.acolle1.NOVA_NOTIFICACAO"),
-                        Context.RECEIVER_EXPORTED
-                    )
+                    if (!notificationReceiverRegistered) {
+                        ContextCompat.registerReceiver(
+                            this@MainActivity,
+                            notificationReceiver,
+                            IntentFilter("com.example.acolle1.NOVA_NOTIFICACAO"),
+                            ContextCompat.RECEIVER_NOT_EXPORTED,
+                        )
+                        notificationReceiverRegistered = true
+                    }
                 }
 
                 override fun onCancel(arguments: Any?) {
                     eventSink = null
-                    unregisterReceiver(notificationReceiver)
+                    if (notificationReceiverRegistered) {
+                        unregisterReceiver(notificationReceiver)
+                        notificationReceiverRegistered = false
+                    }
                 }
             })
 
@@ -124,13 +140,27 @@ class MainActivity : FlutterActivity() {
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "iniciarBotao" -> {
-                        startForegroundService(Intent(this, FloatingBubbleService::class.java))
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
+                            !Settings.canDrawOverlays(this)
+                        ) {
+                            result.error(
+                                "OVERLAY_PERMISSION_REQUIRED",
+                                "Autorize o Acolle a aparecer sobre outros aplicativos.",
+                                null,
+                            )
+                            return@setMethodCallHandler
+                        }
+                        ContextCompat.startForegroundService(
+                            this,
+                            Intent(this, FloatingBubbleService::class.java),
+                        )
                         result.success(true)
                     }
                     "pararBotao" -> {
                         stopService(Intent(this, FloatingBubbleService::class.java))
                         result.success(true)
                     }
+                    "isBotaoAtivo" -> result.success(FloatingBubbleService.emExecucao)
                     "rotaInicial" -> {
                         val rota = intent?.getStringExtra(FloatingBubbleService.EXTRA_ROTA)
                         // Consome a rota para não reabrir a mesma tela de novo
@@ -141,6 +171,17 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+
+        EventChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL_ROTAS_BOTAO)
+            .setStreamHandler(object : EventChannel.StreamHandler {
+                override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+                    floatingRouteSink = events
+                }
+
+                override fun onCancel(arguments: Any?) {
+                    floatingRouteSink = null
+                }
+            })
     }
 
     private fun isScreeningRoleEnabled(): Boolean {

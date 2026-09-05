@@ -118,7 +118,7 @@ class _CodigoRedefinicaoPageState extends State<CodigoRedefinicaoPage> {
               AcolleDesign.campoTexto(
                 label: 'Código de verificação',
                 controller: _codigoController,
-                icone: Icons.vpn_key_outlined,
+                icone: Icons.vpn_key_rounded,
                 teclado: TextInputType.visiblePassword,
                 acaoTeclado: TextInputAction.done,
               ),
@@ -131,7 +131,7 @@ class _CodigoRedefinicaoPageState extends State<CodigoRedefinicaoPage> {
                 ),
               AcolleDesign.botaoPrimario(
                 texto:  _verificado ? 'Confirmar e continuar' : 'Verificar código',
-                icone: _verificado ? Icons.check_circle : Icons.verified_outlined,
+                icone: _verificado ? Icons.check_circle_rounded : Icons.verified_user_rounded,
                 carregando: _carregando,
                 onPressed: _verificado
                     ? () => Navigator.push(
@@ -240,7 +240,7 @@ class _RedefinirSenhaPageState extends State<RedefinirSenhaPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(Icons.lock_reset,
+              const Icon(Icons.lock_reset_rounded,
                   size: 80, color: AcolleDesign.roxo),
               const SizedBox(height: 18),
               const Text(
@@ -263,10 +263,10 @@ class _RedefinirSenhaPageState extends State<RedefinirSenhaPage> {
               AcolleDesign.campoTexto(
                 label: 'Nova senha',
                 controller: _novaController,
-                icone: Icons.lock_outline,
+                icone: Icons.lock_rounded,
                 obscureText: !_mostrar,
                 suffix: IconButton(
-                  icon: Icon(_mostrar ? Icons.visibility_off : Icons.visibility),
+                  icon: Icon(_mostrar ? Icons.visibility_off_rounded : Icons.visibility_rounded),
                   onPressed: () => setState(() => _mostrar = !_mostrar),
                 ),
               ),
@@ -274,14 +274,14 @@ class _RedefinirSenhaPageState extends State<RedefinirSenhaPage> {
               AcolleDesign.campoTexto(
                 label: 'Confirmar nova senha',
                 controller: _confirmarController,
-                icone: Icons.lock_outline,
+                icone: Icons.lock_rounded,
                 obscureText: !_mostrar,
                 acaoTeclado: TextInputAction.done,
               ),
               const SizedBox(height: 28),
               AcolleDesign.botaoPrimario(
                 texto: 'Salvar nova senha',
-                icone: Icons.check_circle_outline,
+                icone: Icons.check_circle_outline_rounded,
                 carregando: _carregando,
                 onPressed: _salvar,
               ),

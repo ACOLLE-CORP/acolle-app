@@ -113,7 +113,7 @@ class _LoginPageState extends State<LoginPage> {
                   keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
                     labelText: 'E-mail',
-                    prefixIcon: const Icon(Icons.email_outlined),
+                    prefixIcon: const Icon(Icons.alternate_email_rounded),
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
@@ -129,12 +129,12 @@ class _LoginPageState extends State<LoginPage> {
                   obscureText: !mostrarSenha,
                   decoration: InputDecoration(
                     labelText: 'Senha',
-                    prefixIcon: const Icon(Icons.lock_outline),
+                    prefixIcon: const Icon(Icons.lock_rounded),
                     suffixIcon: IconButton(
                       icon: Icon(
                         mostrarSenha
-                            ? Icons.visibility_off
-                            : Icons.visibility,
+                            ? Icons.visibility_off_rounded
+                            : Icons.visibility_rounded,
                       ),
                       onPressed: () {
                         setState(() {

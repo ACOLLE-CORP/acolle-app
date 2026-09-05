@@ -174,7 +174,7 @@ class _ContatosEmergenciaPageState
                             child: Column(
                               children: [
                                 Icon(
-                                  Icons.hourglass_top,
+                                  Icons.hourglass_top_rounded,
                                   size: 72,
                                   color:
                                       AcolleDesign.laranja,
@@ -428,7 +428,7 @@ class _ContatosEmergenciaPageState
         },
 
         icon: const Icon(
-          Icons.person_add_alt_1,
+          Icons.person_add_alt_1_rounded,
         ),
 
         label: Text(
@@ -520,7 +520,7 @@ class _ItemContato extends StatelessWidget {
             ),
 
             child: Icon(
-              Icons.person,
+              Icons.person_rounded,
               color:
                   AcolleDesign.roxo,
               size: 28,
@@ -593,7 +593,7 @@ class _ItemContato extends StatelessWidget {
                 tooltip: 'Ligar',
 
                 icon: Icon(
-                  Icons.phone,
+                  Icons.phone_rounded,
                   color:
                       AcolleDesign.verde,
                 ),
@@ -629,7 +629,7 @@ class _ItemContato extends StatelessWidget {
                     'Enviar pelo WhatsApp',
 
                 icon: Icon(
-                  Icons.message,
+                  Icons.message_rounded,
                   color:
                       AcolleDesign.roxo,
                 ),
@@ -667,7 +667,7 @@ class _ItemContato extends StatelessWidget {
                     'Remover contato',
 
                 icon: Icon(
-                  Icons.delete_outline,
+                  Icons.delete_outline_rounded,
                   color:
                       AcolleDesign.vermelho,
                 ),
@@ -1026,7 +1026,7 @@ class _AdicionarContatoEmergenciaPageState
               // ==================================================
 
               Icon(
-                Icons.person_add_alt_1,
+                Icons.person_add_alt_1_rounded,
                 size: 70,
                 color: corDestaque,
               ),
@@ -1067,7 +1067,7 @@ class _AdicionarContatoEmergenciaPageState
                 controller:
                     _nomeController,
                 icone:
-                    Icons.person_outline,
+                    Icons.person_rounded,
                 teclado:
                     TextInputType.name,
               ),
@@ -1092,7 +1092,7 @@ class _AdicionarContatoEmergenciaPageState
                       controller:
                           _telefoneController,
                       icone:
-                          Icons.phone_outlined,
+                          Icons.phone_rounded,
                       teclado:
                           TextInputType.phone,
                     ),
@@ -1166,7 +1166,7 @@ class _AdicionarContatoEmergenciaPageState
                     'Salvar contato',
 
                 icone:
-                    Icons.check,
+                    Icons.check_rounded,
 
                 carregando:
                     _carregando,

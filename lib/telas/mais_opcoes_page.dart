@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/acessibilidade_service.dart';
 import '../shared/acolle_design.dart';
+import '../shared/acolle_icons.dart';
 import 'historico_chamadas_page.dart';
 import 'historico_page.dart';
 import 'perfil_page.dart';
@@ -77,7 +78,7 @@ class MaisOpcoesPage extends StatelessWidget {
 
               _Opcao(
                 icone:
-                    Icons.call_received_outlined,
+                    AcolleIcons.chamadasRecebidas,
                 titulo:
                     'Histórico de chamadas',
                 descricao:
@@ -99,7 +100,7 @@ class MaisOpcoesPage extends StatelessWidget {
 
               _Opcao(
                 icone:
-                    Icons.history,
+                    AcolleIcons.historico,
                 titulo:
                     'Histórico de verificações',
                 descricao:
@@ -121,7 +122,7 @@ class MaisOpcoesPage extends StatelessWidget {
 
               _Opcao(
                 icone:
-                    Icons.person_outline,
+                    AcolleIcons.perfil,
                 titulo:
                     'Meu perfil',
                 descricao:
@@ -251,7 +252,7 @@ class _Opcao extends StatelessWidget {
               ),
 
               Icon(
-                Icons.chevron_right,
+                AcolleIcons.avancar,
                 size: 30,
                 color:
                     AcolleDesign.corIcone(

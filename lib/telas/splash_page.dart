@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'login_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'home_page.dart';
+import '../main.dart' show navegacaoInicialPronta;
 
 const Color roxoAcolle = Color(0xFF773FD1);
 const Color fundoAcolle = Color(0xFFFAF7FC);
@@ -38,6 +39,9 @@ class _SplashPageState extends State<SplashPage> {
                 user != null ? const HomePage() : const LoginPage(),
           ),
         );
+        if (!navegacaoInicialPronta.isCompleted) {
+          navegacaoInicialPronta.complete();
+        }
       } else {
         setState(() {
           porcentagem++;

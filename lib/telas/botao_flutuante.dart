@@ -4,9 +4,7 @@ import 'package:flutter/services.dart';
 import '../services/floating_button_service.dart';
 import '../services/acessibilidade_service.dart';
 import '../shared/acolle_design.dart';
-
-const Color roxoAcolle = Color(0xFF773FD1);
-const Color fundoAcolle = Color(0xFFFAF7FC);
+import '../shared/acolle_icons.dart';
 
 /// Card/seção para ativar ou desativar o botão flutuante de proteção.
 class BotaoFlutuanteCard extends StatefulWidget {
@@ -18,7 +16,7 @@ class BotaoFlutuanteCard extends StatefulWidget {
 }
 
 class _BotaoFlutuanteCardState
-    extends State<BotaoFlutuanteCard> {
+    extends State<BotaoFlutuanteCard> with WidgetsBindingObserver {
   static const _canalPermissoes =
       MethodChannel('acolle/caller_id');
 
@@ -28,16 +26,33 @@ class _BotaoFlutuanteCardState
   bool _permissaoConcedida = false;
   bool _botaoAtivo = false;
   bool _carregando = true;
+  bool _ativarAoRetornar = false;
 
   @override
   void initState() {
     super.initState();
 
+    WidgetsBinding.instance.addObserver(this);
+
     acessibilidade.addListener(
       _atualizarAcessibilidade,
     );
 
-    _verificarPermissao();
+    _atualizarEstado();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    _aoRetornarDasConfiguracoes();
+  }
+
+  Future<void> _aoRetornarDasConfiguracoes() async {
+    await _atualizarEstado();
+    if (_ativarAoRetornar && _permissaoConcedida && !_botaoAtivo) {
+      _ativarAoRetornar = false;
+      await _alternarBotao(true);
+    }
   }
 
   void _atualizarAcessibilidade() {
@@ -46,18 +61,20 @@ class _BotaoFlutuanteCardState
     setState(() {});
   }
 
-  Future<void> _verificarPermissao() async {
+  Future<void> _atualizarEstado() async {
     try {
-      final concedida =
-          await _canalPermissoes.invokeMethod<bool>(
-        'isOverlayPermissionEnabled',
-      );
+      final resultados = await Future.wait<bool>([
+        _canalPermissoes.invokeMethod<bool>(
+          'isOverlayPermissionEnabled',
+        ).then((valor) => valor ?? false),
+        FloatingButtonService.estaAtivo(),
+      ]);
 
       if (!mounted) return;
 
       setState(() {
-        _permissaoConcedida =
-            concedida ?? false;
+        _permissaoConcedida = resultados[0];
+        _botaoAtivo = resultados[0] && resultados[1];
 
         _carregando = false;
       });
@@ -77,17 +94,10 @@ class _BotaoFlutuanteCardState
 
   Future<void> _pedirPermissao() async {
     try {
+      _ativarAoRetornar = true;
       await _canalPermissoes.invokeMethod(
         'requestOverlayPermission',
       );
-
-      // Aguarda um pouco para que o Android termine
-      // a transição para as configurações.
-      await Future.delayed(
-        const Duration(milliseconds: 500),
-      );
-
-      await _verificarPermissao();
     } catch (e) {
       debugPrint(
         'Erro ao solicitar permissão de sobreposição: $e',
@@ -121,10 +131,24 @@ class _BotaoFlutuanteCardState
 
       if (!mounted) return;
 
+      final ativo = await FloatingButtonService.estaAtivo();
+
+      if (!mounted) return;
+
       setState(() {
-        _botaoAtivo = ativar;
+        _botaoAtivo = ativo;
         _carregando = false;
       });
+
+      AcolleDesign.snackbar(
+        context,
+        ativo
+            ? 'Proteção rápida ativada.'
+            : 'Proteção rápida desativada.',
+        cor: ativo
+            ? AcolleDesign.verde
+            : AcolleDesign.textoSecundario,
+      );
     } catch (e) {
       if (!mounted) return;
 
@@ -212,8 +236,9 @@ class _BotaoFlutuanteCardState
                 ),
 
                 child: Icon(
-                  Icons.control_camera,
+                  AcolleIcons.proteger,
                   color: corIcone,
+                  size: 28,
                 ),
               ),
 
@@ -221,7 +246,7 @@ class _BotaoFlutuanteCardState
 
               Expanded(
                 child: Text(
-                  'Botão flutuante de proteção',
+                  'Proteção rápida',
 
                   style: TextStyle(
                     fontSize: 17,
@@ -258,13 +283,50 @@ class _BotaoFlutuanteCardState
             ],
           ),
 
+          const SizedBox(height: 10),
+
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 7,
+            ),
+            decoration: BoxDecoration(
+              color: (_botaoAtivo ? AcolleDesign.verde : corIcone)
+                  .withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  _botaoAtivo
+                      ? Icons.check_circle_rounded
+                      : Icons.pause_circle_rounded,
+                  size: 20,
+                  color: _botaoAtivo
+                      ? AcolleDesign.verde
+                      : corIcone,
+                ),
+                const SizedBox(width: 7),
+                Text(
+                  _botaoAtivo ? 'Ativa na tela' : 'Desativada',
+                  style: TextStyle(
+                    color: corTexto,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
           const SizedBox(height: 12),
 
           Text(
             _permissaoConcedida
-                ? 'Deixa uma bolinha na tela para analisar '
-                    'mensagens, verificar links e pedir ajuda '
-                    'a qualquer momento, mesmo com o Acolle fechado.'
+                ? 'O Collin fica na lateral da tela. Toque nele para '
+                    'analisar uma mensagem, verificar um link, consultar '
+                    'alertas ou pedir ajuda.'
                 : 'Para ativar, o Acolle precisa da permissão '
                     'para aparecer sobre outros aplicativos. '
                     'Toque na chave ao lado para conceder.',
@@ -285,6 +347,8 @@ class _BotaoFlutuanteCardState
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+
     acessibilidade.removeListener(
       _atualizarAcessibilidade,
     );

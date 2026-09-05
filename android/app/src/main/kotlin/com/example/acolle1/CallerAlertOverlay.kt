@@ -66,8 +66,10 @@ object CallerAlertOverlay {
             }
             header.addView(title, LinearLayout.LayoutParams(0, -2, 1f))
             val close = ImageButton(context).apply {
-                setImageResource(android.R.drawable.ic_menu_close_clear_cancel)
-                setBackgroundColor(Color.TRANSPARENT)
+                setImageResource(R.drawable.ic_close_rounded)
+                setColorFilter(0xFF2A1B5D.toInt())
+                background = rounded(0xFFF1EEFF.toInt(), 24f)
+                setPadding(dp(12), dp(12), dp(12), dp(12))
                 contentDescription = "Fechar alerta"
                 setOnClickListener { hide(context) }
             }

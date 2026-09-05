@@ -81,7 +81,7 @@ class _DicasPageState extends State<DicasPage> {
               const SizedBox(height: 30),
 
               _criarDica(
-                icone: Icons.phone,
+                icone: Icons.phone_rounded,
                 titulo: 'Não passe sua senha',
                 descricao:
                     'Nenhum banco pede senha por telefone. '
@@ -89,7 +89,7 @@ class _DicasPageState extends State<DicasPage> {
               ),
 
               _criarDica(
-                icone: Icons.link,
+                icone: Icons.link_rounded,
                 titulo: 'Não clique em links',
                 descricao:
                     'Abra apenas mensagens de pessoas conhecidas. '
@@ -97,7 +97,7 @@ class _DicasPageState extends State<DicasPage> {
               ),
 
               _criarDica(
-                icone: Icons.payments,
+                icone: Icons.payments_rounded,
                 titulo: 'Desconfie de pedidos',
                 descricao:
                     'Antes de enviar dinheiro, confirme com um familiar '
@@ -105,7 +105,7 @@ class _DicasPageState extends State<DicasPage> {
               ),
 
               _criarDica(
-                icone: Icons.call_received,
+                icone: Icons.call_received_rounded,
                 titulo: 'Números estranhos',
                 descricao:
                     'Se receber ligação de número desconhecido pedindo '
@@ -248,7 +248,7 @@ class _DicasPageState extends State<DicasPage> {
       child: Column(
         children: [
           Icon(
-            Icons.shield,
+            Icons.shield_rounded,
             color: Colors.black,
             size: 60,
           ),
@@ -318,7 +318,7 @@ class _DicasPageState extends State<DicasPage> {
 
             children: [
               Icon(
-                Icons.info_outline,
+                Icons.info_outline_rounded,
                 color: AcolleDesign.corIcone(contraste),
                 size: 28,
               ),
@@ -387,7 +387,7 @@ class _DicasPageState extends State<DicasPage> {
 
         children: [
           Icon(
-            Icons.phone,
+            Icons.phone_rounded,
             size: 18,
             color: AcolleDesign.corIcone(contraste),
           ),

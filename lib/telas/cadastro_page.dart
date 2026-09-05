@@ -205,7 +205,7 @@ class _CadastroPageState extends State<CadastroPage> {
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            const Icon(Icons.person_add_alt_1, size: 64, color: roxoAcolle),
+            const Icon(Icons.person_add_alt_1_rounded, size: 64, color: roxoAcolle),
             const SizedBox(height: 10),
             const Text(
               'Vamos criar sua conta',
@@ -226,7 +226,7 @@ class _CadastroPageState extends State<CadastroPage> {
 
             campoTexto(
               label: 'Nome completo',
-              icon: Icons.person_outline,
+              icon: Icons.person_rounded,
               controller: nomeController,
               teclado: TextInputType.name,
             ),
@@ -234,7 +234,7 @@ class _CadastroPageState extends State<CadastroPage> {
 
             campoTexto(
               label: 'E-mail',
-              icon: Icons.email_outlined,
+              icon: Icons.alternate_email_rounded,
               controller: emailController,
               teclado: TextInputType.emailAddress,
             ),
@@ -242,7 +242,7 @@ class _CadastroPageState extends State<CadastroPage> {
 
             campoTexto(
               label: 'Telefone',
-              icon: Icons.phone_outlined,
+              icon: Icons.phone_rounded,
               controller: telefoneController,
               teclado: TextInputType.phone,
               mascaras: [telefoneMask],
@@ -257,9 +257,9 @@ class _CadastroPageState extends State<CadastroPage> {
               decoration: InputDecoration(
                 labelText: 'Data de nascimento',
                 hintText: 'dd/mm/aaaa',
-                prefixIcon: const Icon(Icons.cake_outlined),
+                prefixIcon: const Icon(Icons.cake_rounded),
                 suffixIcon: IconButton(
-                  icon: const Icon(Icons.calendar_month_outlined),
+                  icon: const Icon(Icons.calendar_month_rounded),
                   onPressed: escolherData,
                 ),
                 filled: true,
@@ -379,9 +379,9 @@ class _CadastroPageState extends State<CadastroPage> {
       style: const TextStyle(fontSize: 18),
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: const Icon(Icons.lock_outline),
+        prefixIcon: const Icon(Icons.lock_rounded),
         suffixIcon: IconButton(
-          icon: Icon(mostrar ? Icons.visibility_off : Icons.visibility),
+          icon: Icon(mostrar ? Icons.visibility_off_rounded : Icons.visibility_rounded),
           onPressed: aoClicar,
         ),
         filled: true,

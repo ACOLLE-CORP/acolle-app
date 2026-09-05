@@ -7,26 +7,112 @@ class AcolleDesign {
   // CORES PRINCIPAIS
   // ============================================================
 
-  static const Color roxo = Color(0xFF773FD1);
+  static const Color roxo = Color(0xFF6D59F4);
 
-  static const Color laranja = Color(0xFFF47A07);
+  static const Color roxoEscuro = Color(0xFF2A1B5D);
+
+  static const Color roxoSuave = Color(0xFFEDE9FF);
+
+  static const Color azul = Color(0xFF2962FF);
+
+  static const Color laranja = Color(0xFFFF9129);
 
   static const Color vermelho = Color(0xFFE53935);
 
   static const Color verde = Color(0xFF2E7D32);
 
-  static const Color fundo = Color(0xFFFAF7FC);
+  static const Color fundo = Color(0xFFFBFAFF);
 
-  static const Color card = Color(0xFFF3EEFA);
+  static const Color card = Color(0xFFFFFFFF);
 
   // IMPORTANTE:
   // Não pode se chamar "texto", pois temos também
   // o método AcolleDesign.texto().
-  static const Color textoBase = Color(0xFF25212B);
+  static const Color textoBase = Color(0xFF251D3D);
 
-  static const Color textoSecundario = Colors.black87;
+  static const Color textoSecundario = Color(0xFF5E576D);
 
-  static const Color borda = Color(0xFFD4CBDD);
+  static const Color borda = Color(0xFFE1DCEF);
+
+  static ThemeData tema() {
+    final esquema = ColorScheme.fromSeed(
+      seedColor: roxo,
+      brightness: Brightness.light,
+      primary: roxo,
+      secondary: laranja,
+      surface: card,
+      error: vermelho,
+    );
+
+    return ThemeData(
+      useMaterial3: true,
+      colorScheme: esquema,
+      scaffoldBackgroundColor: fundo,
+      visualDensity: VisualDensity.standard,
+      splashFactory: InkRipple.splashFactory,
+      iconTheme: const IconThemeData(color: roxoEscuro, size: 26),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: fundo,
+        foregroundColor: roxoEscuro,
+        centerTitle: false,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(18),
+          borderSide: const BorderSide(color: borda),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(18),
+          borderSide: const BorderSide(color: borda, width: 1.2),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(18),
+          borderSide: const BorderSide(color: roxo, width: 2),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          minimumSize: const Size(48, 54),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          textStyle: const TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          elevation: 0,
+          minimumSize: const Size(48, 54),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size(48, 52),
+          side: const BorderSide(color: roxo, width: 1.5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+      ),
+    );
+  }
 
   // ============================================================
   // ACESSIBILIDADE
@@ -103,6 +189,8 @@ class AcolleDesign {
 
       elevation: 0,
 
+      surfaceTintColor: Colors.transparent,
+
       centerTitle: centralizado,
 
       iconTheme: IconThemeData(
@@ -114,7 +202,7 @@ class AcolleDesign {
         style: TextStyle(
           color: corIcone(contraste),
           fontSize: tamanhoTexto(24),
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w800,
         ),
       ),
     );
@@ -273,7 +361,9 @@ class AcolleDesign {
   static double tamanhoTexto(
     double tamanho,
   ) {
-    return tamanho * escalaTexto;
+    // A escala já é aplicada uma única vez pelo MediaQuery em main.dart.
+    // Multiplicar aqui novamente fazia 140% virar quase 200% e quebrava cards.
+    return tamanho;
   }
 
   // ============================================================
@@ -433,6 +523,16 @@ class AcolleDesign {
 
               width: 1.2,
             ),
+
+        boxShadow: contraste
+            ? null
+            : const [
+                BoxShadow(
+                  color: Color(0x0F2A1B5D),
+                  blurRadius: 18,
+                  offset: Offset(0, 6),
+                ),
+              ],
       ),
 
       child: filho,

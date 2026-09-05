@@ -152,7 +152,7 @@ class _ConfigurarProtecaoChamadasPageState
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Icon(
-                Icons.phone_in_talk,
+                Icons.phone_in_talk_rounded,
                 size: 76,
                 color: Color(0xFF773FD1),
               ),
@@ -228,7 +228,7 @@ class _ConfigurarProtecaoChamadasPageState
                   child: const Row(
                     children: [
                       Icon(
-                        Icons.verified,
+                        Icons.verified_rounded,
                         color: AcolleDesign.verde,
                       ),
                       SizedBox(width: 10),
@@ -252,8 +252,8 @@ class _ConfigurarProtecaoChamadasPageState
                     ? 'Continuar'
                     : 'Concluir os passos acima',
                 icone: tudoPronto
-                    ? Icons.arrow_forward
-                    : Icons.lock_outline,
+                    ? Icons.arrow_forward_rounded
+                    : Icons.lock_rounded,
                 onPressed: tudoPronto ? _continuar : null,
               ),
 
@@ -306,7 +306,7 @@ class _PassoPermissao extends StatelessWidget {
                     ativo ? AcolleDesign.verde : AcolleDesign.roxo,
                 foregroundColor: Colors.white,
                 child: ativo
-                    ? const Icon(Icons.check)
+                    ? const Icon(Icons.check_rounded)
                     : Text(
                         numero,
                         style: const TextStyle(
@@ -354,7 +354,7 @@ class _PassoPermissao extends StatelessWidget {
           else
             FilledButton.icon(
               onPressed: onPressed,
-              icon: const Icon(Icons.touch_app),
+              icon: const Icon(Icons.touch_app_rounded),
               label: Text(
                 textoBotao,
                 style: const TextStyle(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/acessibilidade_service.dart';
 import '../shared/acolle_design.dart';
+import '../shared/acolle_icons.dart';
 import 'analisar_mensagem_page.dart';
 import 'configurar_protecao_chamadas_page.dart';
 import 'historico_chamadas_page.dart';
@@ -60,7 +61,7 @@ class ProtegerPage extends StatelessWidget {
               const SizedBox(height: 24),
 
               _Opcao(
-                icone: Icons.message_outlined,
+                icone: AcolleIcons.mensagem,
                 titulo: 'Verificar mensagem',
                 descricao:
                     'Analise uma mensagem antes de confiar nela.',
@@ -78,7 +79,7 @@ class ProtegerPage extends StatelessWidget {
               const SizedBox(height: 12),
 
               _Opcao(
-                icone: Icons.link,
+                icone: AcolleIcons.link,
                 titulo: 'Verificar link',
                 descricao:
                     'Confira um link antes de abrir.',
@@ -96,7 +97,7 @@ class ProtegerPage extends StatelessWidget {
               const SizedBox(height: 12),
 
               _Opcao(
-                icone: Icons.phone_in_talk_outlined,
+                icone: AcolleIcons.chamada,
                 titulo: 'Proteção de chamadas',
                 descricao:
                     'Configure a identificação de chamadas suspeitas.',
@@ -117,7 +118,7 @@ class ProtegerPage extends StatelessWidget {
               const SizedBox(height: 12),
 
               _Opcao(
-                icone: Icons.call_received_outlined,
+                icone: AcolleIcons.chamadasRecebidas,
                 titulo: 'Histórico de chamadas',
                 descricao:
                     'Veja as chamadas identificadas pelo Acolle.',
@@ -135,7 +136,7 @@ class ProtegerPage extends StatelessWidget {
               const SizedBox(height: 12),
 
               _Opcao(
-                icone: Icons.history,
+                icone: AcolleIcons.historico,
                 titulo: 'Histórico de verificações',
                 descricao:
                     'Consulte suas verificações anteriores.',
@@ -250,7 +251,7 @@ class _Opcao extends StatelessWidget {
                 const SizedBox(width: 8),
 
                 Icon(
-                  Icons.chevron_right,
+                  AcolleIcons.avancar,
                   size: 30,
                   color: AcolleDesign.corIcone(
                     altoContraste,

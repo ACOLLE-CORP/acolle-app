@@ -168,7 +168,7 @@ class _OnboardingContatoEmergenciaPageState
               // ========================================================
 
               Icon(
-                Icons.contact_emergency,
+                Icons.contacts_rounded,
                 size: AcolleDesign.tamanhoTexto(70),
                 color: corDestaque,
               ),
@@ -221,7 +221,7 @@ class _OnboardingContatoEmergenciaPageState
               AcolleDesign.campoTexto(
                 label: 'Nome completo',
                 controller: _nomeController,
-                icone: Icons.person_outline,
+                icone: Icons.person_rounded,
                 teclado: TextInputType.name,
               ),
 
@@ -249,7 +249,7 @@ class _OnboardingContatoEmergenciaPageState
                 decoration:
                     AcolleDesign.inputDecoration(
                   label: 'Telefone',
-                  icone: Icons.phone_outlined,
+                  icone: Icons.phone_rounded,
                   altoContraste: contraste,
                 ).copyWith(
                   suffixIcon: IconButton(
@@ -257,7 +257,7 @@ class _OnboardingContatoEmergenciaPageState
                         'Buscar nos contatos',
 
                     icon: Icon(
-                      Icons.contact_page_outlined,
+                      Icons.contact_page_rounded,
                       color: corDestaque,
                       size: 27,
                     ),
@@ -276,7 +276,7 @@ class _OnboardingContatoEmergenciaPageState
 
               AcolleDesign.botaoPrimario(
                 texto: 'Salvar e continuar',
-                icone: Icons.check,
+                icone: Icons.check_rounded,
                 carregando: _carregando,
                 onPressed: () =>
                     _salvarEContinuar(),

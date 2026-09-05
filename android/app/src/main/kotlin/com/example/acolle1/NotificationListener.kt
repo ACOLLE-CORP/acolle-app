@@ -14,21 +14,22 @@ import androidx.core.app.NotificationCompat
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URI
-import java.net.URL
 import java.util.Locale
 import java.util.concurrent.Executors
 
 class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitListener {
 
-    private val executor = Executors.newCachedThreadPool()
+    private val executor = Executors.newFixedThreadPool(2)
     private var tts: TextToSpeech? = null
 
     companion object {
-        private const val BASE_URL = "https://acolle-ia.acolle-corp.workers.dev"
+        private const val BASE_URL = "https://acolle-ia.acolle-corp.workers.dev/analisar"
         private const val WORKER_URL =
-            "https://acolle-spam-check.acolle-corp.workers.dev"
+            "https://acolle-spam-check.acolle-corp.workers.dev/verificar"
         private const val CANAL_ALERTA_ID = "acolle_alertas"
-        private const val TIMEOUT_MS = 60_000
+        private const val CONNECT_TIMEOUT_MS = 5_000
+        private const val READ_TIMEOUT_MS = 30_000
+        private const val DEDUP_WINDOW_MS = 24 * 60 * 60 * 1000L
 
         // Mesmas chaves usadas pelo AcolleCallScreeningService, para
         // compartilhar o cache de números suspeitos.
@@ -37,6 +38,7 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
 
         private val pacotesMonitorados = setOf(
             "com.whatsapp",
+            "com.whatsapp.w4b",
             "com.google.android.apps.messaging",
             "com.android.mms",
         )
@@ -78,57 +80,69 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
         super.onNotificationPosted(sbn)
 
         if (sbn.packageName !in pacotesMonitorados) return
+        if (sbn.notification.flags and Notification.FLAG_GROUP_SUMMARY != 0) return
 
         val extras = sbn.notification.extras
         val titulo = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString() ?: ""
         val texto = extrairTextoNotificacao(extras)
 
-        val ehChamadaWhatsApp = sbn.packageName == "com.whatsapp" &&
+        val ehChamadaWhatsApp = sbn.packageName in setOf("com.whatsapp", "com.whatsapp.w4b") &&
             (sbn.notification.category == Notification.CATEGORY_CALL ||
                 palavrasChamada.any { it in titulo.lowercase() || it in texto.lowercase() })
 
         if (ehChamadaWhatsApp) {
+            if (eventoDuplicado(sbn.packageName, titulo, "chamada:$texto")) return
             tratarChamadaWhatsApp(titulo, texto)
             return
         }
 
-        // Fluxo já existente: mensagens de texto e links.
+        if (sbn.notification.flags and Notification.FLAG_ONGOING_EVENT != 0) return
+        val criado = sbn.notification.`when`
+        if (!extras.containsKey(Notification.EXTRA_MESSAGES) &&
+            criado > 0 && System.currentTimeMillis() - criado > 120_000) return
         if (texto.isBlank()) return
+        if (eventoDuplicado(sbn.packageName, titulo, texto)) return
+
         executor.submit {
             try {
                 val resultado = analisarConteudo(texto)
-                processarResultadoMensagem(texto, resultado)
+                processarResultadoMensagem(sbn.packageName, titulo, texto, resultado)
             } catch (e: Exception) {
-                val link = regexLink.find(texto)?.value
-                if (link != null) {
-                    val fallback = analisarLinkLocal(link)
-                    processarResultadoMensagem(texto, fallback)
-                }
+                val fallback = analisarMensagemLocal(texto).put("origem", "local")
+                processarResultadoMensagem(sbn.packageName, titulo, texto, fallback)
             }
         }
     }
 
     private fun extrairTextoNotificacao(extras: android.os.Bundle): String {
-        val direto = extras.getCharSequence(Notification.EXTRA_TEXT)
-            ?.toString()?.trim().orEmpty()
-        if (direto.isNotEmpty()) return direto
-
-        val grande = extras.getCharSequence(Notification.EXTRA_BIG_TEXT)
-            ?.toString()?.trim().orEmpty()
-        if (grande.isNotEmpty()) return grande
-
-        // Compatibilidade com notificações MessagingStyle.
+        // O array inclui histórico. Nunca reanalisar a conversa inteira a cada atualização.
         val mensagens = extras.getParcelableArray(Notification.EXTRA_MESSAGES)
-        if (mensagens != null) {
-            val textos = mensagens.mapNotNull { item ->
-                val bundle = item as? android.os.Bundle ?: return@mapNotNull null
-                bundle.getCharSequence("text")?.toString()?.trim()
-            }.filter { it.isNotEmpty() }
-
-            if (textos.isNotEmpty()) return textos.joinToString("\n")
+        val ultima = mensagens?.mapNotNull { it as? android.os.Bundle }
+            ?.maxByOrNull { it.getLong("time") }
+        if (ultima != null) {
+            val instante = ultima.getLong("time")
+            if (instante > 0 && System.currentTimeMillis() - instante > 120_000) return ""
+            return ultima.getCharSequence("text")?.toString()?.trim()?.take(4_000) ?: ""
         }
+        return (extras.getCharSequence(Notification.EXTRA_BIG_TEXT)
+            ?: extras.getCharSequence(Notification.EXTRA_TEXT))?.toString()?.trim()?.take(4_000) ?: ""
+    }
 
-        return ""
+    @Synchronized
+    private fun eventoDuplicado(pacote: String, titulo: String, texto: String): Boolean {
+        val agora = System.currentTimeMillis()
+        val chave = java.security.MessageDigest.getInstance("SHA-256")
+            .digest("$pacote\u0000$titulo\u0000${texto.trim()}".toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it) }
+        val prefs = getSharedPreferences("acolle_eventos_processados", Context.MODE_PRIVATE)
+        val anterior = prefs.getLong(chave, 0)
+        if (agora - anterior < DEDUP_WINDOW_MS) return true
+        val editor = prefs.edit()
+        prefs.all.forEach { (key, value) ->
+            if (value is Long && agora - value >= DEDUP_WINDOW_MS) editor.remove(key)
+        }
+        editor.putLong(chave, agora).apply()
+        return false
     }
 
     // ============================================================
@@ -192,29 +206,38 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
     // ============================================================
 
     private fun analisarConteudo(texto: String): JSONObject {
-        val link = regexLink.find(texto)?.value
-        val corpoTexto = if (link != null) {
-            """
-            Analise esta URL para identificar se é segura ou perigosa (golpe/phishing): $link
-            Responda com: classificacao, risco numerico de 0 a 100, motivos e recomendacao.
-            """.trimIndent()
-        } else texto
-        return chamarApi(corpoTexto)
+        return chamarApi(sanitizarParaAnalise(texto))
+    }
+
+    private fun sanitizarParaAnalise(texto: String): String {
+        return texto
+            .replace(Regex("(?i)\\b\\d{3}\\.?\\d{3}\\.?\\d{3}-?\\d{2}\\b"), "[CPF]")
+            .replace(Regex("\\b(?:\\d[ -]*?){13,19}\\b"), "[CARTÃO]")
+            .replace(Regex("(?i)\\b(?:código|codigo|token|senha)\\s*[:=-]?\\s*\\d{4,8}\\b"), "[CÓDIGO]")
+            .replace(Regex("[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}"), "[EMAIL]")
+            .take(4_000)
     }
 
     private fun chamarApi(texto: String): JSONObject {
-        val conexao = URL(BASE_URL).openConnection() as HttpURLConnection
+        val conexao = URI(BASE_URL).toURL().openConnection() as HttpURLConnection
         try {
             conexao.requestMethod = "POST"
             conexao.setRequestProperty("Content-Type", "application/json")
             conexao.doOutput = true
-            conexao.connectTimeout = TIMEOUT_MS
-            conexao.readTimeout = TIMEOUT_MS
-            val corpo = JSONObject().put("texto", texto).toString()
+            conexao.connectTimeout = CONNECT_TIMEOUT_MS
+            conexao.readTimeout = READ_TIMEOUT_MS
+            val corpo = JSONObject()
+                .put("tipo", "mensagem")
+                .put("texto", texto)
+                .toString()
             conexao.outputStream.use { it.write(corpo.toByteArray(Charsets.UTF_8)) }
             if (conexao.responseCode != 200) throw Exception("API retornou erro ${conexao.responseCode}")
             val resposta = conexao.inputStream.bufferedReader().use { it.readText() }
-            return JSONObject(resposta)
+            val json = JSONObject(resposta)
+            if (!json.has("risco") || !json.has("classificacao") || !json.has("recomendacao")) {
+                throw Exception("API retornou uma análise incompleta")
+            }
+            return json
         } finally {
             conexao.disconnect()
         }
@@ -222,7 +245,8 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
 
     private fun analisarLinkLocal(link: String): JSONObject {
         for ((dominio, risco) in dominiosSuspeitos) {
-            if (link.contains(dominio)) {
+            if (runCatching { URI(link).host?.lowercase() }.getOrNull()
+                    ?.let { it == dominio || it.endsWith(".$dominio") } == true) {
                 return JSONObject()
                     .put("risco", risco)
                     .put("classificacao", if (risco >= 90) "Alto" else "Médio")
@@ -230,7 +254,8 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
             }
         }
         for (dominio in dominiosConfiados) {
-            if (link.contains(dominio)) {
+            if (runCatching { URI(link).host?.lowercase() }.getOrNull()
+                    ?.let { it == dominio || it.endsWith(".$dominio") } == true) {
                 return JSONObject().put("risco", 5).put("classificacao", "Baixo")
                     .put("recomendacao", "Link aparentemente seguro.")
             }
@@ -239,19 +264,90 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
             .put("recomendacao", "Verifique o domínio em um buscador de confiança antes de abrir.")
     }
 
-    private fun processarResultadoMensagem(textoOriginal: String, resultado: JSONObject) {
-        val classificacao = resultado.optString("classificacao", "Desconhecido")
-        val risco = resultado.optInt("risco", 0)
-        val recomendacao = resultado.optString("recomendacao", "")
+    private fun analisarMensagemLocal(texto: String): JSONObject {
+        val link = regexLink.find(texto)?.value
+        if (link != null) {
+            val resultadoLink = analisarLinkLocal(link)
+            if (resultadoLink.optInt("risco", 0) >= 65) return resultadoLink
+        }
 
-        if (classificacao == "Alto" || classificacao == "Médio") {
-            mostrarNotificacaoAlerta(classificacao, risco, recomendacao)
+        val normalizado = texto.lowercase(Locale("pt", "BR"))
+        var risco = if (link != null) 15 else 0
+        val motivos = mutableListOf<String>()
+
+        fun marcar(padrao: Regex, pontos: Int, motivo: String) {
+            if (padrao.containsMatchIn(normalizado)) {
+                risco += pontos
+                motivos += motivo
+            }
+        }
+
+        marcar(Regex("\\b(urgente|agora|imediatamente|última chance|ultima chance|bloquead[oa])\\b"), 20,
+            "A mensagem tenta criar urgência ou medo.")
+        marcar(Regex("\\b(senha|código|codigo|token|cvv|confirme seus dados|validar cadastro)\\b"), 30,
+            "Há pedido de código, senha ou dados pessoais.")
+        marcar(Regex("\\b(pix|transferência|transferencia|depósito|deposito|pague|pagamento|dinheiro)\\b"), 25,
+            "Há pedido ou referência a pagamento.")
+        marcar(Regex("\\b(troquei de número|troquei de numero|número novo|numero novo|sou eu|mãe|mae|pai|filho|filha|neto|neta)\\b"), 25,
+            "A mensagem pode estar se passando por uma pessoa conhecida.")
+        marcar(Regex("\\b(prêmio|premio|sorteio|benefício|beneficio|ganhou|resgate)\\b"), 25,
+            "A mensagem promete prêmio ou benefício.")
+        marcar(Regex("(acesso remoto|anydesk|teamviewer|instale este aplicativo|compartilhe sua tela)"), 45,
+            "Há tentativa de obter acesso remoto ao aparelho.")
+
+        risco = risco.coerceIn(0, 100)
+        val classificacao = when {
+            risco >= 70 -> "Alto"
+            risco >= 30 -> "Médio"
+            else -> "Baixo"
+        }
+
+        return JSONObject()
+            .put("origem", "local")
+            .put("risco", risco)
+            .put("classificacao", classificacao)
+            .put("motivos", org.json.JSONArray(motivos))
+            .put("recomendacao", if (risco >= 30) {
+                "Não responda, não clique e não faça pagamentos antes de confirmar por outro meio."
+            } else {
+                "Nenhum sinal forte foi identificado localmente. Continue atento."
+            })
+    }
+
+    private fun processarResultadoMensagem(
+        pacote: String,
+        titulo: String,
+        textoOriginal: String,
+        resultado: JSONObject,
+    ) {
+        val risco = resultado.optInt("risco", 0).coerceIn(0, 100)
+        val classificacaoRecebida = resultado.optString("classificacao", "")
+        val classificacao = when (classificacaoRecebida.trim().lowercase(Locale("pt", "BR"))) {
+            "alto", "alta", "high", "malicioso" -> "Alto"
+            "médio", "medio", "média", "media", "medium", "suspeito" -> "Médio"
+            "baixo", "baixa", "low", "confiável", "confiavel" -> "Baixo"
+            else -> when {
+                risco >= 70 -> "Alto"
+                risco >= 30 -> "Médio"
+                else -> "Baixo"
+            }
+        }
+        val recomendacao = resultado.optString(
+            "recomendacao",
+            "Confirme a mensagem por outro meio antes de responder.",
+        )
+
+        val local = resultado.optString("origem") == "local"
+        if (classificacao == "Alto" || (classificacao == "Médio" && !local)) {
+            mostrarNotificacaoAlerta(classificacao, pacote,
+                if (local) "Não foi possível consultar a IA. Por precaução, confirme por outro meio antes de agir."
+                else recomendacao)
         }
 
         val intent = Intent("com.example.acolle1.NOVA_NOTIFICACAO").apply {
             setPackage(packageName)
-            putExtra("pacote", packageName)
-            putExtra("titulo", "Verificação automática")
+            putExtra("pacote", pacote)
+            putExtra("titulo", titulo)
             putExtra("texto", textoOriginal)
             putExtra("classificacao", classificacao)
             putExtra("risco", risco)
@@ -270,24 +366,39 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
         )
     }
 
-    private fun mostrarNotificacaoAlerta(classificacao: String, risco: Int, recomendacao: String) {
-        val emoji = if (classificacao == "Alto") "🚨" else "⚠️"
-        val intentAbrirApp = packageManager.getLaunchIntentForPackage(packageName)
+    @Synchronized
+    private fun mostrarNotificacaoAlerta(classificacao: String, pacote: String, recomendacao: String) {
+        val agora = System.currentTimeMillis()
+        val prefs = getSharedPreferences("acolle_alerta_intervalo", Context.MODE_PRIVATE)
+        val nivel = if (classificacao == "Alto") 2 else 1
+        // Evita rajadas de avisos; permite escalada de Médio para Alto.
+        if (agora - prefs.getLong("ultimo", 0) < 60_000 &&
+            nivel <= prefs.getInt("nivel", 0)) return
+        prefs.edit().putLong("ultimo", agora).putInt("nivel", nivel).apply()
+        val origem = if (pacote.startsWith("com.whatsapp")) "WhatsApp" else "Mensagens SMS"
+        val intentAbrirApp = Intent(this, MessageAlertActivity::class.java).apply {
+            putExtra("recomendacao", recomendacao)
+            putExtra("origem", origem)
+            putExtra("alto", classificacao == "Alto")
+        }
         val pendingIntent = PendingIntent.getActivity(
             this, 0, intentAbrirApp,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         val notificacao = NotificationCompat.Builder(this, CANAL_ALERTA_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_alert)
-            .setContentTitle("$emoji Risco $classificacao detectado ($risco%)")
+            .setSmallIcon(R.drawable.ic_acolle_notification)
+            .setContentTitle(if (classificacao == "Alto") "Pare e confira: sinais de golpe" else "Confira esta mensagem com cuidado")
+            .setSubText("Acolle • $origem")
             .setContentText(recomendacao)
             .setStyle(NotificationCompat.BigTextStyle().bigText(recomendacao))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pendingIntent)
+            .addAction(0, "Ver orientação", pendingIntent)
             .setAutoCancel(true)
+            .setTimeoutAfter(120_000)
             .build()
         getSystemService(NotificationManager::class.java)
-            .notify(System.currentTimeMillis().toInt(), notificacao)
+            .notify(9100, notificacao)
     }
 
     override fun onDestroy() {

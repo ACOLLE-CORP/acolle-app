@@ -338,7 +338,7 @@ class _HistoricoChamadasPageState
             child: Column(
               children: [
                 Icon(
-                  Icons.hourglass_top,
+                  Icons.hourglass_top_rounded,
                   size: 72,
                   color: corDestaque,
                 ),
@@ -452,7 +452,7 @@ class _HistoricoChamadasPageState
           child: Column(
             children: [
               Icon(
-                Icons.call_received,
+                Icons.call_received_rounded,
                 size: 72,
                 color: corDestaque,
               ),
@@ -578,7 +578,7 @@ class _ItemChamada
               suspeito
                   ? Icons
                       .warning_amber_rounded
-                  : Icons.phone_missed,
+                  : Icons.phone_missed_rounded,
 
               color: corIcone,
 

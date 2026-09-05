@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/acessibilidade_service.dart';
 import '../shared/acolle_design.dart';
+import '../shared/acolle_icons.dart';
 import 'dicas_page.dart';
 
 class AprenderPage extends StatelessWidget {
@@ -75,7 +76,7 @@ class AprenderPage extends StatelessWidget {
 
               _Opcao(
                 icone:
-                    Icons.menu_book_outlined,
+                    AcolleIcons.aprender,
                 titulo:
                     'Dicas de segurança',
                 descricao:
@@ -205,7 +206,7 @@ class _Opcao extends StatelessWidget {
               ),
 
               Icon(
-                Icons.chevron_right,
+                AcolleIcons.avancar,
                 size: 30,
                 color:
                     AcolleDesign.corIcone(
