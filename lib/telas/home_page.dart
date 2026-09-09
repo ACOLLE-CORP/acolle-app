@@ -593,23 +593,17 @@ class _HomePageState extends State<HomePage> {
   Widget _buildCardsPrincipais(
     bool altoContraste,
   ) {
-    return GridView.count(
-      shrinkWrap: true,
+    final escala = acessibilidade.escalaTexto;
+  final aspectRatioDinamico = 0.95 / (escala);
 
-      physics:
-          const NeverScrollableScrollPhysics(),
-
-      crossAxisCount: 2,
-
-      mainAxisSpacing: 14,
-
-      crossAxisSpacing: 14,
-
-      // Antes era 1.12.
-      // Um valor menor deixa os cards mais altos.
-      childAspectRatio: 0.95,
-
-      children: [
+  return GridView.count(
+    shrinkWrap: true,
+    physics: const NeverScrollableScrollPhysics(),
+    crossAxisCount: 2,
+    mainAxisSpacing: 14,
+    crossAxisSpacing: 14,
+    childAspectRatio: aspectRatioDinamico, // <- era fixo em 0.95
+    children: [
         _buildCardPrincipal(
           icone:
               AcolleIcons.proteger,
@@ -771,7 +765,7 @@ class _HomePageState extends State<HomePage> {
                   textAlign:
                       TextAlign.center,
 
-                  maxLines: 1,
+                  maxLines: 2,
 
                   overflow:
                       TextOverflow.ellipsis,
@@ -789,7 +783,8 @@ class _HomePageState extends State<HomePage> {
                     color:
                         AcolleDesign.corTexto(
                       altoContraste,
-                    ),
+                        ),
+                    height: 1.1,
                   ),
                 ),
 
@@ -802,7 +797,7 @@ class _HomePageState extends State<HomePage> {
                     textAlign:
                         TextAlign.center,
 
-                    maxLines: 2,
+                    maxLines: 3,
 
                     overflow:
                         TextOverflow.ellipsis,
@@ -864,11 +859,10 @@ class _HomePageState extends State<HomePage> {
           ),
 
           child: Container(
-            height: 62,
-
-            padding:
-                const EdgeInsets.symmetric(
+            constraints: const BoxConstraints(minHeight: 62), // <- era height: 62
+            padding: const EdgeInsets.symmetric(
               horizontal: 20,
+              vertical: 10,
             ),
 
             child: Row(
