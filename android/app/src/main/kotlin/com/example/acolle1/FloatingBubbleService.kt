@@ -40,6 +40,7 @@ class FloatingBubbleService : Service() {
     private lateinit var windowManager: WindowManager
     private var bolinhaView: View? = null
     private var menuView: View? = null
+    private var menuParams: WindowManager.LayoutParams? = null
     private var menuAberto = false
 
     private val roxo = Color.parseColor("#6D59F4")
@@ -163,6 +164,11 @@ class FloatingBubbleService : Service() {
                         resources.displayMetrics.heightPixels - tamanho - dp(32),
                     )
                     windowManager.updateViewLayout(bolinha, params)
+
+                    if (menuAberto) {
+                        atualizarPosicaoMenu(params)
+                    }
+
                     true
                 }
                 MotionEvent.ACTION_UP -> {
@@ -177,6 +183,9 @@ class FloatingBubbleService : Service() {
                             resources.displayMetrics.widthPixels - tamanho - dp(12)
                         }
                         windowManager.updateViewLayout(bolinha, params)
+                        if (menuAberto) {
+                            atualizarPosicaoMenu(params)
+                        }
                     }
                     true
                 }
@@ -212,8 +221,20 @@ class FloatingBubbleService : Service() {
             elevation = dp(10).toFloat()
         }
 
-        menu.addView(itemMenu("Analisar mensagem", "💬") {
-            abrirTelaFlutter("analisar")
+        menu.addView(itemMenu("Analisar esta tela", "📷") {
+
+            val intent =
+                Intent(
+                    this,
+                    ScreenCapturePermissionActivity::class.java
+                ).apply {
+
+                    addFlags(
+                        Intent.FLAG_ACTIVITY_NEW_TASK
+                    )
+                }
+
+            startActivity(intent)
         })
         menu.addView(itemMenu("Verificar link", "🔗") {
             abrirTelaFlutter("verificar_link")
@@ -250,8 +271,53 @@ class FloatingBubbleService : Service() {
 
         windowManager.addView(menu, params)
         menuView = menu
+        menuParams = params
         menuAberto = true
     }
+
+    private fun atualizarPosicaoMenu(
+        paramsBolinha: WindowManager.LayoutParams
+    ) {
+        if (!menuAberto) return
+
+        val menu = menuView ?: return
+        val paramsMenu = menuParams ?: return
+
+        val density = resources.displayMetrics.density
+        fun dp(v: Int) = (v * density).toInt()
+
+        val larguraMenu = dp(280)
+        val alturaEstimada = dp(324)
+
+        val larguraTela = resources.displayMetrics.widthPixels
+        val alturaTela = resources.displayMetrics.heightPixels
+
+        paramsMenu.x = paramsBolinha.x.coerceIn(
+            dp(12),
+            larguraTela - larguraMenu - dp(12)
+        )
+
+        paramsMenu.y = if (paramsBolinha.y > alturaTela / 2) {
+
+            (paramsBolinha.y - alturaEstimada)
+                .coerceAtLeast(dp(32))
+
+        } else {
+
+            (paramsBolinha.y + dp(72))
+                .coerceAtMost(
+                    alturaTela - alturaEstimada - dp(24)
+                )
+        }
+
+        runCatching {
+            windowManager.updateViewLayout(
+                menu,
+                paramsMenu
+            )
+        }
+    }
+
 
     private fun itemMenu(texto: String, simbolo: String, acao: () -> Unit): View {
         val density = resources.displayMetrics.density
@@ -340,8 +406,14 @@ class FloatingBubbleService : Service() {
     }
 
     private fun fecharMenu() {
-        menuView?.let { runCatching { windowManager.removeView(it) } }
+        menuView?.let {
+            runCatching {
+                windowManager.removeView(it)
+            }
+        }
+
         menuView = null
+        menuParams = null
         menuAberto = false
     }
 
