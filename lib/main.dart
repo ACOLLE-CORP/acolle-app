@@ -27,13 +27,9 @@ final navegacaoInicialPronta = Completer<void>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  FirebaseMessaging.onBackgroundMessage(
-    notificacaoBackgroundMessageHandler,
-  );
+  FirebaseMessaging.onBackgroundMessage(notificacaoBackgroundMessageHandler);
 
   await NotificacaoService.inicializar();
 
@@ -88,19 +84,55 @@ class _AcolleAppState extends State<AcolleApp> {
 
   Future<void> _abrirRotaBotao(String rota) async {
     await navegacaoInicialPronta.future;
+
     if (!mounted) return;
-    final Widget? tela = switch (rota) {
-      'analisar' => const AnalisarMensagemPage(),
-      'verificar_link' => const VerificarLinkPage(),
-      'alertas' => const HistoricoPage(),
-      'ajuda' => const PedirAjudaPage(),
-      _ => null,
-    };
+
+    Widget? tela;
+
+    switch (rota) {
+      case 'analisar':
+        tela = const AnalisarMensagemPage();
+
+        break;
+
+      case 'analisar_tela':
+        final texto = await FloatingButtonService.textoTelaPendente();
+
+        if (!mounted) return;
+
+        if (texto == null || texto.trim().isEmpty) {
+          tela = const AnalisarMensagemPage();
+        } else {
+          tela = AnalisarMensagemPage(
+            textoInicial: texto,
+            analisarAutomaticamente: true,
+            origemCapturaTela: true,
+          );
+        }
+
+        break;
+
+      case 'verificar_link':
+        tela = const VerificarLinkPage();
+
+        break;
+
+      case 'alertas':
+        tela = const HistoricoPage();
+
+        break;
+
+      case 'ajuda':
+        tela = const PedirAjudaPage();
+
+        break;
+
+      default:
+        tela = null;
+    }
 
     if (tela != null) {
-      navigatorKey.currentState?.push(
-        MaterialPageRoute(builder: (_) => tela),
-      );
+      navigatorKey.currentState?.push(MaterialPageRoute(builder: (_) => tela!));
     }
   }
 
@@ -128,9 +160,7 @@ class _AcolleAppState extends State<AcolleApp> {
 
           locale: const Locale('pt', 'BR'),
 
-          supportedLocales: const [
-            Locale('pt', 'BR'),
-          ],
+          supportedLocales: const [Locale('pt', 'BR')],
 
           localizationsDelegates: const [
             GlobalMaterialLocalizations.delegate,
@@ -148,9 +178,7 @@ class _AcolleAppState extends State<AcolleApp> {
 
             return MediaQuery(
               data: mediaQuery.copyWith(
-                textScaler: TextScaler.linear(
-                  acessibilidade.escalaTexto,
-                ),
+                textScaler: TextScaler.linear(acessibilidade.escalaTexto),
               ),
               child: child!,
             );

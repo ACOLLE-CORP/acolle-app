@@ -168,6 +168,32 @@ class MainActivity : FlutterActivity() {
                         intent?.removeExtra(FloatingBubbleService.EXTRA_ROTA)
                         result.success(rota)
                     }
+
+
+                    "textoTelaPendente" -> {
+                        val prefs =
+                            getSharedPreferences(
+                                ScreenCaptureService.PREFS_CAPTURE,
+                                Context.MODE_PRIVATE
+                            )
+
+                        val texto =
+                            prefs.getString(
+                                ScreenCaptureService.KEY_TEXTO_PENDENTE,
+                                null
+                            )
+
+                        prefs
+                            .edit()
+                            .remove(
+                                ScreenCaptureService.KEY_TEXTO_PENDENTE
+                            )
+                            .apply()
+
+                        result.success(texto)
+                    }
+
+
                     else -> result.notImplemented()
                 }
             }

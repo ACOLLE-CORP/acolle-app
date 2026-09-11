@@ -40,4 +40,11 @@ class FloatingButtonService {
         .where((rota) => rota is String)
         .cast<String>();
   }
+
+  static Future<String?> textoTelaPendente() async {
+    return await _canal.invokeMethod<String>(
+      'textoTelaPendente',
+    );
+  }
+
 }

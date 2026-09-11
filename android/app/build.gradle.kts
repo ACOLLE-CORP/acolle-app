@@ -9,7 +9,7 @@ plugins {
 
 android {
     namespace = "com.example.acolle1"
-    compileSdk = 37
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
      compileOptions {
@@ -36,7 +36,9 @@ android {
 }
 
 dependencies {
-     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")   // <-- adicionar
+     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")   
+     implementation("com.google.mlkit:text-recognition:16.0.1")
+     // <-- adicionar
     // ... outras dependências que já existemf
 }
 

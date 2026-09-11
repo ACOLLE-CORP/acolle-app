@@ -257,19 +257,47 @@ class FloatingBubbleService : Service() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
                 WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
             else WindowManager.LayoutParams.TYPE_PHONE,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_DIM_BEHIND,
+
             PixelFormat.TRANSLUCENT,
         ).apply {
+
+            dimAmount = 0.60f
+
             gravity = Gravity.TOP or Gravity.START
-            x = paramsBolinha.x.coerceIn(dp(12), larguraTela - larguraMenu - dp(12))
+
+            x = paramsBolinha.x.coerceIn(
+                dp(12),
+                larguraTela - larguraMenu - dp(12)
+            )
+
             y = if (paramsBolinha.y > alturaTela / 2) {
-                (paramsBolinha.y - alturaEstimada).coerceAtLeast(dp(32))
+
+                (paramsBolinha.y - alturaEstimada)
+                    .coerceAtLeast(dp(32))
+
             } else {
-                (paramsBolinha.y + dp(72)).coerceAtMost(alturaTela - alturaEstimada - dp(24))
+
+                (paramsBolinha.y + dp(72))
+                    .coerceAtMost(
+                        alturaTela - alturaEstimada - dp(24)
+                    )
+            }
+        }
+
+       menu.setOnTouchListener { _, event ->
+            if (event.action == MotionEvent.ACTION_OUTSIDE) {
+                fecharMenu()
+                true
+            } else {
+                false
             }
         }
 
         windowManager.addView(menu, params)
+
         menuView = menu
         menuParams = params
         menuAberto = true

@@ -11,8 +11,15 @@ import '../services/acessibilidade_service.dart';
 import '../shared/acolle_design.dart';
 
 class AnalisarMensagemPage extends StatefulWidget {
+  final String? textoInicial;
+  final bool analisarAutomaticamente;
+  final bool origemCapturaTela;
+
   const AnalisarMensagemPage({
     super.key,
+    this.textoInicial,
+    this.analisarAutomaticamente = false,
+    this.origemCapturaTela = false,
   });
 
   @override
@@ -64,6 +71,35 @@ class _AnalisarMensagemPageState
     _inicializarSpeech();
 
     _verificarPermissaoNotificacao();
+
+    final textoInicial =
+    widget.textoInicial?.trim();
+
+    if (textoInicial != null &&
+        textoInicial.isNotEmpty) {
+
+      _controller.text = textoInicial;
+
+      _controller.selection =
+          TextSelection.fromPosition(
+        TextPosition(
+          offset: _controller.text.length,
+        ),
+      );
+
+      if (widget.analisarAutomaticamente) {
+
+        WidgetsBinding.instance
+            .addPostFrameCallback((_) {
+
+          if (!mounted) return;
+
+          _analisar();
+        });
+      }
+    }
+
+
   }
 
   // ============================================================
@@ -336,9 +372,13 @@ class _AnalisarMensagemPageState
             .add({
           'usuarioId': user.uid,
 
-          'tipo': 'mensagem',
+          'tipo': widget.origemCapturaTela
+              ? 'tela'
+              : 'mensagem',
 
-          'conteudo': mensagem,
+          'conteudo': widget.origemCapturaTela
+              ? '[Conteúdo extraído da tela]'
+              : mensagem,
 
           'risco':
               resposta['classificacao'] ??
