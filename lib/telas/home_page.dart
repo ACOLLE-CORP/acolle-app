@@ -314,20 +314,7 @@ class _HomePageState extends State<HomePage> {
                           },
                         ),
 
-                        const SizedBox(height: 16),
-
-                        Divider(
-                          color: AcolleDesign
-                              .corTextoSecundario(
-                            altoContraste,
-                          ),
-                        ),
-
-                        const SizedBox(height: 8),
-
-                        const BotaoFlutuanteCard(),
-
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 24),
 
                         FilledButton(
                           style: FilledButton.styleFrom(
@@ -408,16 +395,17 @@ class _HomePageState extends State<HomePage> {
         ),
         elevation: 0,
 
-        title: Text(
-          'Acolle',
-          style: TextStyle(
-            color:
-                AcolleDesign.corIcone(
-              altoContraste,
+        toolbarHeight: 64,
+
+        title: Semantics(
+          label: 'Acolle',
+          image: true,
+          child: ExcludeSemantics(
+            child: Image.asset(
+              'assets/images/logo_acolle.png',
+              height: 50,
+              fit: BoxFit.contain,
             ),
-            fontWeight:
-                FontWeight.bold,
-            fontSize: 28,
           ),
         ),
 
@@ -488,7 +476,12 @@ class _HomePageState extends State<HomePage> {
                 altoContraste,
               ),
 
-              const SizedBox(height: 26),
+              const SizedBox(height: 14),
+
+              // Ativar/desativar o botão flutuante de proteção rápida.
+              const BotaoFlutuanteCard(),
+
+              const SizedBox(height: 14),
 
               Text(
                 'Como podemos ajudar?',
@@ -535,9 +528,9 @@ class _HomePageState extends State<HomePage> {
       children: [
         ExcludeSemantics(
           child: Image.asset(
-            'assets/images/mascote.png',
-            height: 82,
-            width: 82,
+            'assets/images/mascote_home.png',
+            height: 100,
+            width: 100,
           ),
         ),
 

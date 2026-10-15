@@ -69,8 +69,20 @@ class _SplashPageState extends State<SplashPage> {
 
   @override
   Widget build(BuildContext context) {
-    final alturaTela = MediaQuery.of(context).size.height;
-    final alturaMascote = (alturaTela * 0.28).clamp(140.0, 250.0);
+    final tamanhoTela = MediaQuery.of(context).size;
+    final alturaTela = tamanhoTela.height;
+
+    // O mascote agora usa a imagem recortada (sem margens vazias), então
+    // a altura abaixo é a altura real da tartaruga na tela.
+    final alturaMascote = (alturaTela * 0.30).clamp(160.0, 280.0);
+
+    // Largura da logo: limitada pela largura e pela altura da tela, para
+    // não estourar em celulares pequenos. Proporção da imagem: 411 x 248.
+    final larguraLogo = [
+      tamanhoTela.width * 0.62,
+      alturaTela * 0.30,
+      280.0,
+    ].reduce((a, b) => a < b ? a : b);
 
     return Scaffold(
       body: Container(
@@ -104,20 +116,22 @@ class _SplashPageState extends State<SplashPage> {
                           Hero(
                             tag: "mascote",
                             child: Image.asset(
-                              'assets/images/mascote.png',
+                              'assets/images/mascote_home.png',
                               height: alturaMascote,
                             ),
                           ),
 
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 16),
 
-                          const Text(
-                            'Acolle',
-                            style: TextStyle(
-                              fontSize: 46,
-                              fontWeight: FontWeight.bold,
-                              color: roxoAcolle,
-                              letterSpacing: 1.5,
+                          Semantics(
+                            label: 'Acolle',
+                            image: true,
+                            child: ExcludeSemantics(
+                              child: Image.asset(
+                                'assets/images/logo_acolle.png',
+                                width: larguraLogo,
+                                fit: BoxFit.contain,
+                              ),
                             ),
                           ),
 
