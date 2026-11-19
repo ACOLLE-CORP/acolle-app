@@ -4,6 +4,7 @@ import '../services/acessibilidade_service.dart';
 import '../shared/acolle_design.dart';
 import '../shared/acolle_icons.dart';
 import 'dicas_page.dart';
+import 'tutorial_page.dart';
 
 class AprenderPage extends StatelessWidget {
   const AprenderPage({super.key});
@@ -87,6 +88,28 @@ class AprenderPage extends StatelessWidget {
                     MaterialPageRoute(
                       builder: (_) =>
                           const DicasPage(),
+                    ),
+                  );
+                },
+              ),
+
+              const SizedBox(
+                height: 16,
+              ),
+
+              _Opcao(
+                icone:
+                    Icons.play_circle_rounded,
+                titulo:
+                    'Ver tutorial',
+                descricao:
+                    'Veja de novo, passo a passo, como usar o Acolle.',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          const TutorialPage(),
                     ),
                   );
                 },

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../shared/acolle_design.dart';
-import 'redefinir_fluxo_page.dart';
+import 'link_redefinicao_enviado_page.dart';
 
 class EsqueciSenhaPage extends StatefulWidget {
   const EsqueciSenhaPage({super.key});
@@ -32,14 +32,14 @@ class _EsqueciSenhaPageState extends State<EsqueciSenhaPage> {
 
       AcolleDesign.snackbar(
         context,
-        'Enviamos um código de recuperação para seu e-mail.',
+        'Enviamos um link de recuperação para seu e-mail.',
         cor: AcolleDesign.verde,
       );
 
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => CodigoRedefinicaoPage(email: email),
+          builder: (context) => LinkRedefinicaoEnviadoPage(email: email),
         ),
       );
     } on FirebaseAuthException catch (e) {
@@ -78,7 +78,7 @@ class _EsqueciSenhaPageState extends State<EsqueciSenhaPage> {
               ),
               const SizedBox(height: 12),
               const Text(
-                'Digite seu e-mail cadastrado.\nVamos enviar um código para você criar uma nova senha.',
+                'Digite seu e-mail cadastrado.\nVamos enviar um link para você criar uma nova senha.',
                 textAlign: TextAlign.center,
                 selectionColor: AcolleDesign.card,
               ),
@@ -91,7 +91,7 @@ class _EsqueciSenhaPageState extends State<EsqueciSenhaPage> {
               ),
               const SizedBox(height: 28),
               AcolleDesign.botaoPrimario(
-                texto: 'Enviar código',
+                texto: 'Enviar link',
                 icone: Icons.send_rounded,
                 carregando: carregando,
                 onPressed: enviarEmail,

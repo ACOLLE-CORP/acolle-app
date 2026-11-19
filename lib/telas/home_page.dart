@@ -4,6 +4,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../services/acessibilidade_service.dart';
 import '../services/caller_id_service.dart';
+import '../services/tutorial_service.dart';
 import '../shared/acolle_design.dart';
 import '../shared/acolle_icons.dart';
 import 'aprender_page.dart';
@@ -14,6 +15,7 @@ import 'minha_rotina_page.dart';
 import 'pedir_ajuda_page.dart';
 import 'perfil_page.dart';
 import 'proteger_page.dart';
+import 'tutorial_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -37,6 +39,57 @@ class _HomePageState extends State<HomePage> {
     acessibilidade.carregar();
 
     _iniciarCallerId();
+
+    // O tutorial abre assim que a Home aparece, sem depender do pedido
+    // de permissão de chamadas.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _verificarTutorial();
+    });
+  }
+
+  // Evita abrir o tutorial mais de uma vez por usuário na mesma sessão.
+  static final Set<String> _tutorialTentadoPara = <String>{};
+
+  /// Abre o tutorial de primeiro acesso uma única vez por usuário.
+  Future<void> _verificarTutorial() async {
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) {
+        debugPrint('[Tutorial] sem usuário logado; não abre.');
+        return;
+      }
+
+      if (_tutorialTentadoPara.contains(uid)) return;
+
+      if (await TutorialService.jaConcluiu(uid)) {
+        debugPrint('[Tutorial] já concluído para este usuário.');
+        return;
+      }
+
+      if (!mounted) return;
+
+      // Se outra tela (ex.: alarme) estiver por cima, tenta de novo na
+      // próxima abertura, sem marcar como concluído.
+      if (ModalRoute.of(context)?.isCurrent == false) {
+        debugPrint('[Tutorial] outra tela está por cima; fica para depois.');
+        return;
+      }
+
+      _tutorialTentadoPara.add(uid);
+      debugPrint('[Tutorial] abrindo tutorial de primeiro acesso.');
+
+      await Navigator.push(
+        context,
+        MaterialPageRoute<void>(
+          fullscreenDialog: true,
+          builder: (_) => TutorialPage(
+            aoFinalizar: () => TutorialService.marcarConcluido(uid),
+          ),
+        ),
+      );
+    } catch (e) {
+      debugPrint('[Tutorial] erro ao abrir: $e');
+    }
   }
 
   void _onAcessibilidadeChanged() {
