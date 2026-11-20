@@ -31,10 +31,12 @@ class AcolleCallScreeningService : CallScreeningService() {
     override fun onScreenCall(callDetails: Call.Details) {
         // O Android exige uma resposta rápida. O Acolle nunca bloqueia nem
         // silencia a ligação: ele apenas classifica e avisa.
+        if (Build.VERSION.SDK_INT >= 29 && callDetails.callDirection != Call.Details.DIRECTION_INCOMING) return
         respondToCall(callDetails, CallResponse.Builder().build())
 
         val rawNumber = callDetails.handle?.schemeSpecificPart.orEmpty()
-        if (rawNumber.isBlank()) return
+        if (rawNumber.isBlank() || callDetails.handle?.scheme != "tel") return
+        if (contatoSalvo(rawNumber)) return
         val normalized = normalize(rawNumber)
         val suspectNumbers = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .getStringSet(NUMBERS_KEY, emptySet())
@@ -50,15 +52,12 @@ class AcolleCallScreeningService : CallScreeningService() {
             showAlert(rawNumber, true)
         } else {
             // Nunca apresenta "seguro" antes de a base externa responder.
-            CallerAlertOverlay.show(this, rawNumber, null)
             verifyWithOpenSpam(rawNumber)
         }
     }
 
     private fun verifyWithOpenSpam(number: String) {
         if (WORKER_URL.isBlank()) {
-            CallerAlertOverlay.hide(this)
-            showVerificationFailure(number)
             return
         }
         thread(name = "acolle-openspam-check") {
@@ -72,47 +71,20 @@ class AcolleCallScreeningService : CallScreeningService() {
                 connection.setRequestProperty("Content-Type", "application/json; charset=utf-8")
                 connection.doOutput = true
                 connection.outputStream.bufferedWriter(Charsets.UTF_8).use {
-                    it.write(JSONObject().put("numero", number).toString())
+                    it.write(JSONObject().put("numero", normalize(number)).toString())
                 }
                 if (connection.responseCode !in 200..299) {
                     throw IllegalStateException("Worker respondeu ${connection.responseCode}")
                 }
                 val payload = connection.inputStream.bufferedReader().use { it.readText() }
-                val suspect = JSONObject(payload).optBoolean("suspeito", false)
+                val suspect = JSONObject(payload).getBoolean("suspeito")
                 CallerAlertOverlay.show(this, number, suspect)
                 showAlert(number, suspect)
                 Log.i("AcolleCallerId", "OpenSpam respondeu; suspeito=$suspect")
             } catch (error: Exception) {
                 Log.e("AcolleCallerId", "Falha ao consultar OpenSpam", error)
-                CallerAlertOverlay.hide(this)
-                showVerificationFailure(number)
             }
         }
-    }
-
-    private fun showVerificationFailure(number: String) {
-        val manager = getSystemService(NotificationManager::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            manager.createNotificationChannel(
-                NotificationChannel(
-                    CHANNEL_ID,
-                    "Alertas de chamadas",
-                    NotificationManager.IMPORTANCE_HIGH,
-                ),
-            )
-        }
-        val warning = "Tenha cuidado: não informe senhas nem códigos por telefone."
-        manager.notify(
-            normalizedNotificationId(number),
-            NotificationCompat.Builder(this, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_acolle_notification)
-                .setContentTitle("Não foi possível verificar a chamada")
-                .setContentText(warning)
-                .setStyle(NotificationCompat.BigTextStyle().bigText(warning))
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setAutoCancel(true)
-                .build(),
-        )
     }
 
     private fun openAlertScreen(number: String, isSuspect: Boolean) {
@@ -203,7 +175,7 @@ class AcolleCallScreeningService : CallScreeningService() {
     private fun normalize(number: String): String {
         var digits = number.filter(Char::isDigit)
         if (digits.startsWith("00")) digits = digits.drop(2)
-        if ((digits.length == 10 || digits.length == 11) && !digits.startsWith("55")) {
+        if ((digits.length == 10 || digits.length == 11) && !number.trimStart().startsWith("+") && !number.trimStart().startsWith("00")) {
             digits = "55$digits"
         }
         return digits
@@ -211,4 +183,18 @@ class AcolleCallScreeningService : CallScreeningService() {
 
     private fun normalizedNotificationId(number: String): Int =
         normalize(number).hashCode() and 0x7fffffff
+}
+
+internal fun Context.contatoSalvo(numero: String): Boolean {
+    if (checkSelfPermission(android.Manifest.permission.READ_CONTACTS) !=
+        android.content.pm.PackageManager.PERMISSION_GRANTED) return false
+    val lookup = android.provider.ContactsContract.PhoneLookup
+        .CONTENT_FILTER_URI
+    val uri = android.net.Uri.withAppendedPath(lookup, android.net.Uri.encode(numero))
+    return try {
+        contentResolver.query(uri, arrayOf("_id"), null, null, null)
+            ?.use { it.moveToFirst() } == true
+    } catch (_: SecurityException) {
+        false
+    }
 }

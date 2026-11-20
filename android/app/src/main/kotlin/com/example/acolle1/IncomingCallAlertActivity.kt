@@ -82,7 +82,7 @@ class IncomingCallAlertActivity : Activity() {
                     throw IllegalStateException("Worker respondeu ${connection.responseCode}")
                 }
                 val payload = connection.inputStream.bufferedReader().use { it.readText() }
-                val suspect = JSONObject(payload).optBoolean("suspeito", false)
+                val suspect = JSONObject(payload).getBoolean("suspeito")
                 val remainingDisplayTime =
                     2_000L - (SystemClock.elapsedRealtime() - analysisStartedAt)
                 if (remainingDisplayTime > 0) Thread.sleep(remainingDisplayTime)

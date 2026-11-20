@@ -78,6 +78,17 @@ class MainActivity : FlutterActivity() {
                     "isOverlayPermissionEnabled" -> result.success(
                         Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(this),
                     )
+                    "isSavedContact" -> {
+                        val numero = call.argument<String>("numero").orEmpty()
+                        kotlin.concurrent.thread(name = "acolle-consulta-agenda") {
+                            try {
+                                val salvo = numero.isNotBlank() && applicationContext.contatoSalvo(numero)
+                                runOnUiThread { result.success(salvo) }
+                            } catch (erro: RuntimeException) {
+                                runOnUiThread { result.error("AGENDA", "Consulta indisponível", null) }
+                            }
+                        }
+                    }
                     "syncSuspectNumbers" -> {
                         val numbers = call.argument<List<String>>("numbers").orEmpty()
                         getSharedPreferences(PREFS, Context.MODE_PRIVATE)
