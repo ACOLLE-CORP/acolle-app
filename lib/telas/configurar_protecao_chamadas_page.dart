@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 import '../shared/acolle_design.dart';
 
@@ -23,7 +22,6 @@ class _ConfigurarProtecaoChamadasPageState
     with WidgetsBindingObserver {
   static const MethodChannel _canal = MethodChannel('acolle/caller_id');
 
-  bool _contatosAtivos = false;
   bool _identificacaoAtiva = false;
   bool _sobreposicaoAtiva = false;
   bool _verificando = true;
@@ -63,7 +61,6 @@ class _ConfigurarProtecaoChamadasPageState
       final resultados = await Future.wait([
         _canal.invokeMethod<bool>('isScreeningRoleEnabled'),
         _canal.invokeMethod<bool>('isOverlayPermissionEnabled'),
-        Permission.contacts.isGranted,
       ]);
 
       if (!mounted) return;
@@ -71,7 +68,6 @@ class _ConfigurarProtecaoChamadasPageState
       setState(() {
         _identificacaoAtiva = resultados[0] ?? false;
         _sobreposicaoAtiva = resultados[1] ?? false;
-        _contatosAtivos = resultados[2] ?? false;
         _verificando = false;
       });
     } on PlatformException {
@@ -133,21 +129,6 @@ class _ConfigurarProtecaoChamadasPageState
     }
   }
 
-  Future<void> _permitirContatos() async {
-    try {
-      if (await Permission.contacts.isPermanentlyDenied) {
-        await openAppSettings();
-      } else {
-        await Permission.contacts.request();
-      }
-      if (mounted) await _atualizarEstado();
-    } on PlatformException {
-      if (mounted) {
-        AcolleDesign.snackbar(context, 'Confira a permissão de contatos nas configurações do Acolle.');
-      }
-    }
-  }
-
   void _continuar() {
     Navigator.pushReplacement(
       context,
@@ -191,7 +172,7 @@ class _ConfigurarProtecaoChamadasPageState
               const SizedBox(height: 12),
 
               const Text(
-                'Configure a proteção abaixo. '
+                'Ative os dois passos abaixo. '
                 'Você só precisa fazer isso uma vez neste celular.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
@@ -233,17 +214,6 @@ class _ConfigurarProtecaoChamadasPageState
                   onPressed:
                       _identificacaoAtiva ? _ativarSobreposicao : null,
                 ),
-                if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) ...[
-                  const SizedBox(height: 16),
-                  _PassoPermissao(
-                    numero: '3',
-                    titulo: 'Reconhecer contatos salvos',
-                    explicacao: 'Permita que o Acolle consulte a agenda para reconhecer quem está ligando.',
-                    ativo: _contatosAtivos,
-                    textoBotao: 'Permitir acesso aos contatos',
-                    onPressed: _permitirContatos,
-                  ),
-                ],
               ],
 
               const SizedBox(height: 28),

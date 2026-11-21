@@ -88,21 +88,13 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
         val titulo = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString() ?: ""
         val texto = extrairTextoNotificacao(extras)
 
-        val chamada = sbn.notification
-        val whatsapp = sbn.packageName == "com.whatsapp" || sbn.packageName == "com.whatsapp.w4b"
-        val acoes = chamada.actions.orEmpty().map { it.title.toString().lowercase(Locale.ROOT).trim() }
-        val atender = acoes.any { it in setOf("atender", "aceitar", "answer", "accept") }
-        val tipo = if (Build.VERSION.SDK_INT >= 31)
-            extras.getInt(Notification.EXTRA_CALL_TYPE, 0) else 0
-        val ehChamada = chamada.category == Notification.CATEGORY_CALL || tipo != 0 ||
-            (chamada.category != Notification.CATEGORY_MESSAGE &&
-                (atender || palavrasChamada.any { it in texto.lowercase() }))
-        if (whatsapp && ehChamada) {
-            val recebida = if (tipo != 0 && Build.VERSION.SDK_INT >= 31)
-                tipo == Notification.CallStyle.CALL_TYPE_INCOMING else atender
-            if (!recebida) return
+        val ehChamadaWhatsApp = sbn.packageName in setOf("com.whatsapp", "com.whatsapp.w4b") &&
+            (sbn.notification.category == Notification.CATEGORY_CALL ||
+                palavrasChamada.any { it in titulo.lowercase() || it in texto.lowercase() })
+
+        if (ehChamadaWhatsApp) {
             if (eventoDuplicado(sbn.packageName, titulo, "chamada:$texto")) return
-            tratarChamadaWhatsApp(titulo)
+            tratarChamadaWhatsApp(titulo, texto)
             return
         }
 
@@ -164,14 +156,13 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
     // NOVO: detecção de chamada de voz/vídeo do WhatsApp
     // ============================================================
 
-    private fun tratarChamadaWhatsApp(titulo: String) {
+    private fun tratarChamadaWhatsApp(titulo: String, texto: String) {
         // O número só aparece quando o remetente NÃO está salvo como
         // contato — que é justamente o caso mais comum de golpe.
-        val numero = regexNumero.matchEntire(titulo.trim())?.value ?: return
+        val numero = regexNumero.find("$titulo $texto")?.value ?: return
         val normalizado = normalizarNumero(numero)
 
         executor.submit {
-            if (contatoSalvo(numero)) return@submit
             val suspeito = verificarNumeroSuspeito(normalizado)
             if (suspeito == true) {
                 CallerAlertOverlay.show(this, numero, true)
@@ -198,7 +189,7 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
             }
             if (conexao.responseCode !in 200..299) return null
             val payload = conexao.inputStream.bufferedReader().use { it.readText() }
-            JSONObject(payload).getBoolean("suspeito")
+            JSONObject(payload).optBoolean("suspeito", false)
         } catch (e: Exception) {
             null // falha de rede: não alerta, mas também não afirma segurança
         }
@@ -207,7 +198,7 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
     private fun normalizarNumero(numero: String): String {
         var digitos = numero.filter(Char::isDigit)
         if (digitos.startsWith("00")) digitos = digitos.drop(2)
-        if ((digitos.length == 10 || digitos.length == 11) && !numero.trimStart().startsWith("+") && !numero.trimStart().startsWith("00")) {
+        if ((digitos.length == 10 || digitos.length == 11) && !digitos.startsWith("55")) {
             digitos = "55$digitos"
         }
         return digitos
