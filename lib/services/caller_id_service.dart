@@ -22,7 +22,8 @@ class CallerIdService {
     _subscription = PhoneState.stream.listen((event) async {
       if (event.status == PhoneStateStatus.CALL_INCOMING &&
           event.number != null) {
-        final numero = event.number!;
+        final numero = event.number!.trim();
+        if (normalizarNumero(numero).isEmpty) return;
         final suspeito = await _verificarNumero(numero);
 
         try {
@@ -80,6 +81,13 @@ class CallerIdService {
 
   static Future<bool> _verificarNumero(String numero) async {
     try {
+      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+        final salvo = await _canalNativo.invokeMethod<bool>(
+          'isSavedContact',
+          {'numero': numero},
+        );
+        if (salvo == true) return false;
+      }
       final resultado = await FirebaseFirestore.instance
           .collection('numeros_suspeitos')
           .get();
@@ -99,7 +107,8 @@ class CallerIdService {
     var digitos = numero.replaceAll(RegExp(r'\D'), '');
     if (digitos.startsWith('00')) digitos = digitos.substring(2);
     if ((digitos.length == 10 || digitos.length == 11) &&
-        !digitos.startsWith('55')) {
+        !numero.trimLeft().startsWith('+') &&
+        !numero.trimLeft().startsWith('00')) {
       digitos = '55$digitos';
     }
     return digitos;
