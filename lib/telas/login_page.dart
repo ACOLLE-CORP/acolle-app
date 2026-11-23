@@ -4,8 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'cadastro_page.dart';
 import 'esqueci_senha_page.dart';
 import 'home_page.dart';
+import '../shared/acolle_design.dart';
 
-const Color roxoAcolle = Color(0xFF773FD1);
 const Color fundoAcolle = Color(0xFFFAF7FC);
 const Color laranjaAcolle = Color(0xFFF47A07);
 
@@ -19,9 +19,27 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final emailController = TextEditingController();
   final senhaController = TextEditingController();
+  final _emailFocus = FocusNode();
+  final _senhaFocus = FocusNode();
 
   bool carregando = false;
   bool mostrarSenha = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailFocus.addListener(() => setState(() {}));
+    _senhaFocus.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    senhaController.dispose();
+    _emailFocus.dispose();
+    _senhaFocus.dispose();
+    super.dispose();
+  }
 
   Future<void> entrar() async {
     setState(() => carregando = true);
@@ -55,6 +73,8 @@ class _LoginPageState extends State<LoginPage> {
         mensagem = 'E-mail ou senha incorretos.';
       }
 
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(mensagem)),
       );
@@ -71,7 +91,7 @@ class _LoginPageState extends State<LoginPage> {
     // min/max) em vez de valor fixo (250), reduzindo rolagem desnecessária
     // em telas pequenas.
     final alturaTela = MediaQuery.of(context).size.height;
-    final alturaMascote = (alturaTela * 0.28).clamp(140.0, 250.0);
+    final alturaMascote = (alturaTela * 0.34).clamp(170.0, 320.0);
 
     return Scaffold(
       backgroundColor: fundoAcolle,
@@ -92,60 +112,69 @@ class _LoginPageState extends State<LoginPage> {
                   'Bem-vindo ao Acolle',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 32,
+                    fontSize: 34,
                     fontWeight: FontWeight.bold,
-                    color: roxoAcolle,
+                    color: AcolleDesign.roxo,
                   ),
-                ),
-
-                const SizedBox(height: 8),
-
-                const Text(
-                  'Sua segurança começa aqui.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 17, color: Colors.black87),
                 ),
 
                 const SizedBox(height: 34),
 
-                TextField(
-                  controller: emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                    labelText: 'E-mail',
-                    prefixIcon: const Icon(Icons.alternate_email_rounded),
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(18),
+                // O Semantics mantém o nome do campo para o leitor de tela
+                // quando a dica visual some ao tocar no campo.
+                Semantics(
+                  label: 'E-mail',
+                  textField: true,
+                  child: TextField(
+                    controller: emailController,
+                    focusNode: _emailFocus,
+                    keyboardType: TextInputType.emailAddress,
+                    autofillHints: const [AutofillHints.email],
+                    style: const TextStyle(fontSize: 19),
+                    decoration: InputDecoration(
+                      hintText: _emailFocus.hasFocus ? null : 'Seu e-mail',
+                      hintStyle: const TextStyle(fontSize: 19),
+                      prefixIcon: const Icon(Icons.alternate_email_rounded),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
                     ),
                   ),
                 ),
 
                 const SizedBox(height: 18),
 
-                TextField(
-                  controller: senhaController,
-                  obscureText: !mostrarSenha,
-                  decoration: InputDecoration(
-                    labelText: 'Senha',
-                    prefixIcon: const Icon(Icons.lock_rounded),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        mostrarSenha
-                            ? Icons.visibility_off_rounded
-                            : Icons.visibility_rounded,
+                Semantics(
+                  label: 'Senha',
+                  textField: true,
+                  child: TextField(
+                    controller: senhaController,
+                    focusNode: _senhaFocus,
+                    obscureText: !mostrarSenha,
+                    style: const TextStyle(fontSize: 19),
+                    decoration: InputDecoration(
+                      hintText: _senhaFocus.hasFocus ? null : 'Sua senha',
+                      hintStyle: const TextStyle(fontSize: 19),
+                      prefixIcon: const Icon(Icons.lock_rounded),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          mostrarSenha
+                              ? Icons.visibility_off_rounded
+                              : Icons.visibility_rounded,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            mostrarSenha = !mostrarSenha;
+                          });
+                        },
                       ),
-                      onPressed: () {
-                        setState(() {
-                          mostrarSenha = !mostrarSenha;
-                        });
-                      },
-                    ),
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(18),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
                     ),
                   ),
                 ),
@@ -160,7 +189,7 @@ class _LoginPageState extends State<LoginPage> {
                   constraints: const BoxConstraints(minHeight: 58, minWidth: double.infinity),
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: roxoAcolle,
+                      backgroundColor: AcolleDesign.roxo,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(22),
@@ -172,7 +201,7 @@ class _LoginPageState extends State<LoginPage> {
                         : const Text(
                             'Entrar',
                             style: TextStyle(
-                              fontSize: 21,
+                              fontSize: 22,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -191,8 +220,8 @@ class _LoginPageState extends State<LoginPage> {
                     );
                   },
                   child: const Text(
-                    'Esqueci minha senha',
-                    style: TextStyle(color: roxoAcolle, fontSize: 16),
+                    'Recuperar senha',
+                    style: TextStyle(color: AcolleDesign.roxo, fontSize: 18),
                   ),
                 ),
 
@@ -206,10 +235,10 @@ class _LoginPageState extends State<LoginPage> {
                     );
                   },
                   child: const Text(
-                    'Ainda não tenho conta',
+                    'Criar conta',
                     style: TextStyle(
                       color: laranjaAcolle,
-                      fontSize: 17,
+                      fontSize: 19,
                       fontWeight: FontWeight.bold,
                     ),
                   ),

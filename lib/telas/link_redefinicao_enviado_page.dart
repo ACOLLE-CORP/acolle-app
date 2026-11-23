@@ -74,7 +74,7 @@ class _LinkRedefinicaoEnviadoPageState
                 style: AcolleDesign.texto(
                   tamanho: 19,
                   cor: AcolleDesign.corTexto(altoContraste),
-                  altura: 1.3,
+                  altura: 1.5,
                 ),
               ),
             ),
@@ -124,7 +124,7 @@ class _LinkRedefinicaoEnviadoPageState
                     style: AcolleDesign.texto(
                       tamanho: 19,
                       cor: AcolleDesign.corTexto(altoContraste),
-                      altura: 1.3,
+                      altura: 1.5,
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -158,7 +158,7 @@ class _LinkRedefinicaoEnviadoPageState
                               tamanho: 17,
                               peso: FontWeight.w600,
                               cor: AcolleDesign.corTexto(altoContraste),
-                              altura: 1.3,
+                              altura: 1.5,
                             ),
                           ),
                         ),

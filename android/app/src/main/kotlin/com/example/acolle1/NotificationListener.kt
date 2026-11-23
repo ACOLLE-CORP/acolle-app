@@ -10,6 +10,7 @@ import android.os.Build
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.speech.tts.TextToSpeech
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import org.json.JSONObject
 import java.net.HttpURLConnection
@@ -26,17 +27,10 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
 
     companion object {
         private const val BASE_URL = "https://acolle-ia.acolle-corp.workers.dev/analisar"
-        private const val WORKER_URL =
-            "https://acolle-spam-check.acolle-corp.workers.dev/verificar"
         private const val CANAL_ALERTA_ID = "acolle_alertas"
         private const val CONNECT_TIMEOUT_MS = 5_000
         private const val READ_TIMEOUT_MS = 30_000
         private const val DEDUP_WINDOW_MS = 24 * 60 * 60 * 1000L
-
-        // Mesmas chaves usadas pelo AcolleCallScreeningService, para
-        // compartilhar o cache de números suspeitos.
-        private const val PREFS = "acolle_caller_id"
-        private const val NUMBERS_KEY = "suspect_numbers"
 
         private val pacotesMonitorados = setOf(
             "com.whatsapp",
@@ -107,7 +101,7 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
             if (!chamadasAtivas.add(sbn.key)) return
             val id = sbn.key.hashCode() or Int.MIN_VALUE
             avisarChamada(id, "Chamada recebida pelo WhatsApp", titulo.ifBlank { "WhatsApp" })
-            tratarChamadaWhatsApp(titulo, id)
+            tratarChamadaWhatsApp(titulo, id, sbn.key)
             return
         }
 
@@ -174,54 +168,31 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
         super.onNotificationRemoved(sbn)
     }
 
-    private fun tratarChamadaWhatsApp(titulo: String, id: Int) {
+    private fun tratarChamadaWhatsApp(titulo: String, id: Int, chave: String) {
         // O número só aparece quando o remetente NÃO está salvo como
         // contato — que é justamente o caso mais comum de golpe.
         val numero = regexNumero.matchEntire(titulo.trim())?.value ?: return
-        val normalizado = normalizarNumero(numero)
-
         executor.submit {
-            if (contatoSalvo(numero)) return@submit
-            val suspeito = verificarNumeroSuspeito(normalizado)
-            if (suspeito == true) {
+            if (chave !in chamadasAtivas || contatoSalvo(numero)) return@submit
+            avisarChamada(id, "Verificando número do WhatsApp…", numero)
+            val suspeito = try {
+                numeroSuspeitoNoCache(numero) || PhoneReputation.check(numero)
+            } catch (error: Exception) {
+                Log.w(CALL_ALERT_TAG, "Falha ao verificar número do WhatsApp", error)
+                if (chave in chamadasAtivas) {
+                    avisarChamada(id, "Consulta de número indisponível", numero)
+                }
+                return@submit
+            }
+            if (chave !in chamadasAtivas) return@submit
+            if (suspeito) {
                 avisarChamada(id, "Possível chamada de golpe", "$numero consta na lista de denúncias.")
-                CallerAlertOverlay.show(this, numero, true)
+                CallerAlertOverlay.show(this, numero, CallAlertStatus.SUSPECT)
                 falarAlerta("Atenção! Chamada de vídeo ou voz suspeita de golpe no WhatsApp.")
+            } else {
+                avisarChamada(id, "Chamada verificada pelo Acolle", "Nenhuma denúncia encontrada para $numero.")
             }
         }
-    }
-
-    private fun verificarNumeroSuspeito(numeroNormalizado: String): Boolean? {
-        val cacheLocal = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getStringSet(NUMBERS_KEY, emptySet())
-            .orEmpty()
-        if (cacheLocal.contains(numeroNormalizado)) return true
-
-        return try {
-            val conexao = URI(WORKER_URL).toURL().openConnection() as HttpURLConnection
-            conexao.requestMethod = "POST"
-            conexao.connectTimeout = 4_000
-            conexao.readTimeout = 6_000
-            conexao.setRequestProperty("Content-Type", "application/json; charset=utf-8")
-            conexao.doOutput = true
-            conexao.outputStream.bufferedWriter(Charsets.UTF_8).use {
-                it.write(JSONObject().put("numero", numeroNormalizado).toString())
-            }
-            if (conexao.responseCode !in 200..299) return null
-            val payload = conexao.inputStream.bufferedReader().use { it.readText() }
-            JSONObject(payload).getBoolean("suspeito")
-        } catch (e: Exception) {
-            null // falha de rede: não alerta, mas também não afirma segurança
-        }
-    }
-
-    private fun normalizarNumero(numero: String): String {
-        var digitos = numero.filter(Char::isDigit)
-        if (digitos.startsWith("00")) digitos = digitos.drop(2)
-        if ((digitos.length == 10 || digitos.length == 11) && !numero.trimStart().startsWith("+") && !numero.trimStart().startsWith("00")) {
-            digitos = "55$digitos"
-        }
-        return digitos
     }
 
     private fun falarAlerta(mensagem: String) {

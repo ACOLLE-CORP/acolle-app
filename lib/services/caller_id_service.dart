@@ -17,7 +17,6 @@ class CallerIdService {
   static Future<void> iniciarMonitoramento(
     Function(String numero) onNumeroSuspeito,
   ) async {
-    await _prepararIdentificadorNativo();
     await _subscription?.cancel();
     _subscription = PhoneState.stream.listen((event) async {
       if (event.status == PhoneStateStatus.CALL_INCOMING &&
@@ -45,16 +44,10 @@ class CallerIdService {
     });
   }
 
-  static Future<void> _prepararIdentificadorNativo() async {
+  static Future<void> sincronizarNumerosSuspeitos() async {
     if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
 
     try {
-      final papelAtivo =
-          await _canalNativo.invokeMethod<bool>('requestScreeningRole') ??
-          false;
-      if (papelAtivo) {
-        await _canalNativo.invokeMethod<bool>('requestOverlayPermission');
-      }
       await _suspeitosSubscription?.cancel();
       _suspeitosSubscription = FirebaseFirestore.instance
           .collection('numeros_suspeitos')
@@ -73,6 +66,8 @@ class CallerIdService {
             } on PlatformException catch (e) {
               debugPrint('Falha ao sincronizar números suspeitos: $e');
             }
+          }, onError: (Object erro) {
+            debugPrint('Falha ao consultar a lista de números suspeitos: $erro');
           });
     } on PlatformException catch (e) {
       debugPrint('Identificação nativa de chamadas indisponível: $e');

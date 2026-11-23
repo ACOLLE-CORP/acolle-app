@@ -4,10 +4,9 @@ import 'login_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'home_page.dart';
 import '../main.dart' show navegacaoInicialPronta;
+import '../shared/acolle_design.dart';
 
-const Color roxoAcolle = Color(0xFF773FD1);
 const Color fundoAcolle = Color(0xFFFAF7FC);
-const Color laranjaAcolle = Color(0xFFF47A07);
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -20,7 +19,6 @@ class _SplashPageState extends State<SplashPage> {
   Timer? _progressTimer;
   double progresso = 0;
   int porcentagem = 0;
-  String mensagem = 'Inicializando...';
 
   @override
   void initState() {
@@ -46,16 +44,6 @@ class _SplashPageState extends State<SplashPage> {
         setState(() {
           porcentagem++;
           progresso = porcentagem / 100;
-
-          if (porcentagem < 25) {
-            mensagem = 'Inicializando...';
-          } else if (porcentagem < 50) {
-            mensagem = 'Verificando segurança...';
-          } else if (porcentagem < 75) {
-            mensagem = 'Analisando ambiente...';
-          } else {
-            mensagem = 'Preparando proteção...';
-          }
         });
       }
     });
@@ -77,25 +65,19 @@ class _SplashPageState extends State<SplashPage> {
     final alturaMascote = (alturaTela * 0.30).clamp(160.0, 280.0);
 
     // Largura da logo: limitada pela largura e pela altura da tela, para
-    // não estourar em celulares pequenos. Proporção da imagem: 411 x 248.
+    // não estourar em celulares pequenos. A nova logo é bem mais larga
+    // (proporção aproximada de 4,5 : 1).
     final larguraLogo = [
-      tamanhoTela.width * 0.62,
-      alturaTela * 0.30,
-      280.0,
+      tamanhoTela.width * 0.72,
+      alturaTela * 0.60,
+      320.0,
     ].reduce((a, b) => a < b ? a : b);
 
     return Scaffold(
       body: Container(
         width: double.infinity,
-        height:
-            double.infinity, // FIX: garante que o gradiente cubra 100% da tela
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFFF8F5FF), Color(0xFFEDE4FF)],
-          ),
-        ),
+        height: double.infinity, // garante que a cor cubra 100% da tela
+        color: fundoAcolle,
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(32),
@@ -128,7 +110,7 @@ class _SplashPageState extends State<SplashPage> {
                             image: true,
                             child: ExcludeSemantics(
                               child: Image.asset(
-                                'assets/images/logo_acolle.png',
+                                'assets/images/logo_acolle_nova.png',
                                 width: larguraLogo,
                                 fit: BoxFit.contain,
                               ),
@@ -138,58 +120,44 @@ class _SplashPageState extends State<SplashPage> {
                           const SizedBox(height: 8),
 
                           const Text(
-                            'Sempre um passo à frente,\nsem pressa.',
+                            'Sempre um passo à frente\nsem pressa.',
                             textAlign: TextAlign.center,
                             style: TextStyle(
-                              fontSize: 18,
+                              fontSize: 21,
                               color: Colors.black87,
                               height: 1.5,
                             ),
                           ),
 
-                          const SizedBox(height: 50),
-
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(30),
-                            child: LinearProgressIndicator(
-                              value: progresso,
-                              minHeight: 14,
-                              backgroundColor: Colors.white,
-                              valueColor: const AlwaysStoppedAnimation<Color>(
-                                roxoAcolle,
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 18),
-
-                          Text(
-                            '$porcentagem%',
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: roxoAcolle,
-                            ),
-                          ),
-
-                          const SizedBox(height: 10),
-
-                          Text(
-                            mensagem,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              color: Colors.black54,
-                            ),
-                          ),
-
                           const SizedBox(height: 40),
 
-                          Container(
-                            width: 110,
-                            height: 6,
-                            decoration: BoxDecoration(
-                              color: laranjaAcolle,
+                          SizedBox(
+                            height: 36,
+                            child: ClipRRect(
                               borderRadius: BorderRadius.circular(30),
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  Positioned.fill(
+                                    child: LinearProgressIndicator(
+                                      value: progresso,
+                                      backgroundColor: AcolleDesign.roxoEscuro,
+                                      valueColor:
+                                          const AlwaysStoppedAnimation<Color>(
+                                        AcolleDesign.roxo,
+                                      ),
+                                    ),
+                                  ),
+                                  Text(
+                                    'Carregando $porcentagem%',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ],

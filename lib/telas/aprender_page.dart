@@ -24,7 +24,7 @@ class AprenderPage extends StatelessWidget {
       ),
       appBar:
           AcolleDesign.appBarPadrao(
-        'Aprender',
+        'DICAS',
         centralizado: true,
       ),
       body: SafeArea(
@@ -67,7 +67,7 @@ class AprenderPage extends StatelessWidget {
                       AcolleDesign.corTextoSecundario(
                     altoContraste,
                   ),
-                  altura: 1.3,
+                  altura: 1.5,
                 ),
               ),
 

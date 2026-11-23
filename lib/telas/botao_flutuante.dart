@@ -337,7 +337,7 @@ class _BotaoFlutuanteCardState
               color:
                   corTextoSecundario,
 
-              height: 1.4,
+              height: 1.5,
             ),
           ),
         ],

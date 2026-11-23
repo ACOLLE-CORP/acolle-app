@@ -6,6 +6,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart' show Color;
 import 'package:flutter/foundation.dart';
 
+import '../shared/acolle_design.dart';
+
 class NotificacaoService {
   NotificacaoService._();
 
@@ -180,7 +182,7 @@ class NotificacaoService {
         title: 'Hora do remédio 💊',
         body: 'Está na hora de tomar: $nome',
         stopButton: 'Já tomei',
-        iconColor: const Color(0xFF773FD1),
+        iconColor: AcolleDesign.roxo,
       ),
     );
 

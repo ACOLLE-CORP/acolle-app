@@ -17,6 +17,10 @@ class AcolleDesign {
 
   static const Color laranja = Color(0xFFFF9129);
 
+  // Laranja mais escuro, usado quando o texto/ícone precisa de contraste
+  // com branco (o laranja claro dá apenas 2,25:1; este dá 4,65:1).
+  static const Color laranjaEscuro = Color(0xFFBF5500);
+
   static const Color vermelho = Color(0xFFE53935);
 
   static const Color verde = Color(0xFF2E7D32);
@@ -46,6 +50,17 @@ class AcolleDesign {
 
     return ThemeData(
       useMaterial3: true,
+      fontFamily: 'Inter',
+      textTheme: const TextTheme(
+        bodyLarge: TextStyle(height: 1.5),
+        bodyMedium: TextStyle(height: 1.5),
+        bodySmall: TextStyle(height: 1.5),
+        titleLarge: TextStyle(height: 1.5),
+        titleMedium: TextStyle(height: 1.5),
+        titleSmall: TextStyle(height: 1.5),
+        labelLarge: TextStyle(height: 1.5),
+        labelMedium: TextStyle(height: 1.5),
+      ),
       colorScheme: esquema,
       scaffoldBackgroundColor: fundo,
       visualDensity: VisualDensity.standard,
@@ -85,6 +100,17 @@ class AcolleDesign {
             fontSize: 17,
             fontWeight: FontWeight.w700,
           ),
+        ).copyWith(
+          overlayColor: WidgetStateProperty.resolveWith((estados) {
+            if (estados.contains(WidgetState.pressed)) {
+              return Colors.black.withValues(alpha: 0.18);
+            }
+            if (estados.contains(WidgetState.focused) ||
+                estados.contains(WidgetState.hovered)) {
+              return Colors.black.withValues(alpha: 0.08);
+            }
+            return null;
+          }),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -94,6 +120,17 @@ class AcolleDesign {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
+        ).copyWith(
+          overlayColor: WidgetStateProperty.resolveWith((estados) {
+            if (estados.contains(WidgetState.pressed)) {
+              return Colors.black.withValues(alpha: 0.18);
+            }
+            if (estados.contains(WidgetState.focused) ||
+                estados.contains(WidgetState.hovered)) {
+              return Colors.black.withValues(alpha: 0.08);
+            }
+            return null;
+          }),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -350,7 +387,7 @@ class AcolleDesign {
 
       fontWeight: peso,
 
-      height: altura,
+      height: altura ?? 1.5,
     );
   }
 

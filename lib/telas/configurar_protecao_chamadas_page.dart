@@ -26,6 +26,7 @@ class _ConfigurarProtecaoChamadasPageState
   bool _contatosAtivos = false;
   bool _identificacaoAtiva = false;
   bool _sobreposicaoAtiva = false;
+  bool _notificacoesAtivas = false;
   bool _verificando = true;
 
   @override
@@ -64,6 +65,7 @@ class _ConfigurarProtecaoChamadasPageState
         _canal.invokeMethod<bool>('isScreeningRoleEnabled'),
         _canal.invokeMethod<bool>('isOverlayPermissionEnabled'),
         Permission.contacts.isGranted,
+        _canal.invokeMethod<bool>('areCallNotificationsEnabled'),
       ]);
 
       if (!mounted) return;
@@ -72,6 +74,7 @@ class _ConfigurarProtecaoChamadasPageState
         _identificacaoAtiva = resultados[0] ?? false;
         _sobreposicaoAtiva = resultados[1] ?? false;
         _contatosAtivos = resultados[2] ?? false;
+        _notificacoesAtivas = resultados[3] ?? false;
         _verificando = false;
       });
     } on PlatformException {
@@ -148,6 +151,28 @@ class _ConfigurarProtecaoChamadasPageState
     }
   }
 
+  Future<void> _ativarNotificacoes() async {
+    try {
+      final status = await Permission.notification.status;
+      final usaPermissao =
+          await _canal.invokeMethod<bool>('usesNotificationRuntimePermission') ??
+          false;
+      if (usaPermissao && status.isDenied) {
+        await Permission.notification.request();
+      } else {
+        await _canal.invokeMethod<void>('openCallNotificationSettings');
+      }
+      if (mounted) await _atualizarEstado();
+    } on PlatformException {
+      if (mounted) {
+        AcolleDesign.snackbar(
+          context,
+          'Confira as notificações nas configurações do Acolle.',
+        );
+      }
+    }
+  }
+
   void _continuar() {
     Navigator.pushReplacement(
       context,
@@ -160,7 +185,7 @@ class _ConfigurarProtecaoChamadasPageState
   @override
   Widget build(BuildContext context) {
     final bool tudoPronto =
-        _identificacaoAtiva && _sobreposicaoAtiva;
+        _identificacaoAtiva && _notificacoesAtivas;
 
     return Scaffold(
       backgroundColor: AcolleDesign.fundo,
@@ -173,7 +198,7 @@ class _ConfigurarProtecaoChamadasPageState
               const Icon(
                 Icons.phone_in_talk_rounded,
                 size: 76,
-                color: Color(0xFF773FD1),
+                color: AcolleDesign.roxo,
               ),
 
               const SizedBox(height: 18),
@@ -184,7 +209,7 @@ class _ConfigurarProtecaoChamadasPageState
                 style: TextStyle(
                   fontSize: 27,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF773FD1),
+                  color: AcolleDesign.roxo,
                 ),
               ),
 
@@ -197,7 +222,7 @@ class _ConfigurarProtecaoChamadasPageState
                 style: TextStyle(
                   fontSize: 16,
                   color: Colors.black87,
-                  height: 1.4,
+                  height: 1.5,
                 ),
               ),
 
@@ -225,6 +250,18 @@ class _ConfigurarProtecaoChamadasPageState
 
                 _PassoPermissao(
                   numero: '2',
+                  titulo: 'Ativar notificações de chamadas',
+                  explicacao:
+                      'Permita as notificações do Acolle e o canal Alertas de chamadas.',
+                  ativo: _notificacoesAtivas,
+                  textoBotao: 'Ativar notificações',
+                  onPressed: _ativarNotificacoes,
+                ),
+
+                const SizedBox(height: 16),
+
+                _PassoPermissao(
+                  numero: '3',
                   titulo: 'Mostrar o aviso grande',
                   explicacao:
                       'Ative a chave "Permitir exibição sobre outros apps".',
@@ -236,7 +273,7 @@ class _ConfigurarProtecaoChamadasPageState
                 if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) ...[
                   const SizedBox(height: 16),
                   _PassoPermissao(
-                    numero: '3',
+                    numero: '4',
                     titulo: 'Reconhecer contatos salvos',
                     explicacao: 'Permita que o Acolle consulte a agenda para reconhecer quem está ligando.',
                     ativo: _contatosAtivos,
@@ -365,7 +402,7 @@ class _PassoPermissao extends StatelessWidget {
             explicacao,
             style: const TextStyle(
               fontSize: 16,
-              height: 1.4,
+              height: 1.5,
             ),
           ),
 

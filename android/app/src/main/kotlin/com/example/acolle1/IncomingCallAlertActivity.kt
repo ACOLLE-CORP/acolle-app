@@ -15,9 +15,6 @@ import android.widget.LinearLayout
 import android.widget.Space
 import android.widget.TextView
 import android.widget.Toast
-import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URI
 import kotlin.concurrent.thread
 
 class IncomingCallAlertActivity : Activity() {
@@ -25,8 +22,6 @@ class IncomingCallAlertActivity : Activity() {
         const val EXTRA_NUMBER = "number"
         const val EXTRA_SUSPECT = "suspect"
         const val EXTRA_ANALYZE = "analyze"
-        private const val WORKER_URL =
-            "https://acolle-spam-check.acolle-corp.workers.dev/verificar"
         private const val PURPLE = 0xFF302268.toInt()
         private const val ACCENT = 0xFF6C4CE6.toInt()
         private const val ORANGE = 0xFFFF981F.toInt()
@@ -57,38 +52,23 @@ class IncomingCallAlertActivity : Activity() {
         val number = source.getStringExtra(EXTRA_NUMBER).orEmpty().ifBlank { "Número oculto" }
         if (source.getBooleanExtra(EXTRA_ANALYZE, false)) {
             render(number, null)
-            analyzeNumber(number)
+            analyzeNumber(number, source)
         } else {
             render(number, source.getBooleanExtra(EXTRA_SUSPECT, false))
         }
     }
 
-    private fun analyzeNumber(number: String) {
+    private fun analyzeNumber(number: String, source: Intent) {
         thread(name = "acolle-debug-spam-check") {
             val analysisStartedAt = SystemClock.elapsedRealtime()
             try {
-                val connection = URI(WORKER_URL).toURL()
-                    .openConnection() as HttpURLConnection
-                connection.requestMethod = "POST"
-                connection.connectTimeout = 4_000
-                connection.readTimeout = 6_000
-                connection.setRequestProperty("Accept", "application/json")
-                connection.setRequestProperty("Content-Type", "application/json; charset=utf-8")
-                connection.doOutput = true
-                connection.outputStream.bufferedWriter(Charsets.UTF_8).use {
-                    it.write(JSONObject().put("numero", number).toString())
-                }
-                if (connection.responseCode !in 200..299) {
-                    throw IllegalStateException("Worker respondeu ${connection.responseCode}")
-                }
-                val payload = connection.inputStream.bufferedReader().use { it.readText() }
-                val suspect = JSONObject(payload).getBoolean("suspeito")
+                val suspect = PhoneReputation.check(number)
                 val remainingDisplayTime =
                     2_000L - (SystemClock.elapsedRealtime() - analysisStartedAt)
                 if (remainingDisplayTime > 0) Thread.sleep(remainingDisplayTime)
-                runOnUiThread { if (!isFinishing) render(number, suspect) }
+                runOnUiThread { if (!isFinishing && !isDestroyed && intent === source) render(number, suspect) }
             } catch (_: Exception) {
-                runOnUiThread { if (!isFinishing) renderError(number) }
+                runOnUiThread { if (!isFinishing && !isDestroyed && intent === source) renderError(number) }
             }
         }
     }

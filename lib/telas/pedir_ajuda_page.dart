@@ -191,7 +191,7 @@ class _PedirAjudaPageState
       ),
       appBar:
           AcolleDesign.appBarPadrao(
-        'Pedir Ajuda',
+        'AJUDA',
         centralizado: true,
       ),
       body: SafeArea(
@@ -234,7 +234,7 @@ class _PedirAjudaPageState
                       AcolleDesign.corTextoSecundario(
                     altoContraste,
                   ),
-                  altura: 1.3,
+                  altura: 1.5,
                 ),
               ),
 

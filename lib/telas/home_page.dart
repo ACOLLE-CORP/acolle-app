@@ -8,12 +8,9 @@ import '../services/tutorial_service.dart';
 import '../shared/acolle_design.dart';
 import '../shared/acolle_icons.dart';
 import 'aprender_page.dart';
-import 'botao_flutuante.dart';
-import 'login_page.dart';
 import 'mais_opcoes_page.dart';
 import 'minha_rotina_page.dart';
 import 'pedir_ajuda_page.dart';
-import 'perfil_page.dart';
 import 'proteger_page.dart';
 import 'tutorial_page.dart';
 
@@ -99,10 +96,12 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _iniciarCallerId() async {
+    await CallerIdService.sincronizarNumerosSuspeitos();
+    if (!mounted) return;
     final status = await Permission.phone.request();
 
-    if (status.isGranted) {
-      CallerIdService.iniciarMonitoramento(
+    if (mounted && status.isGranted) {
+      await CallerIdService.iniciarMonitoramento(
         _mostrarAlertaNumero,
       );
     }
@@ -153,263 +152,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Future<void> _confirmarSaida() async {
-    final sair = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) {
-        final altoContraste =
-            acessibilidade.altoContraste;
-
-        return AlertDialog(
-          backgroundColor:
-              AcolleDesign.corCard(
-            altoContraste,
-          ),
-          title: Text(
-            'Sair da conta',
-            style: AcolleDesign.tituloDialogo,
-          ),
-          content: Text(
-            'Deseja realmente sair da sua conta?',
-            style: AcolleDesign.textoDialogo,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(
-                  dialogContext,
-                  false,
-                );
-              },
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor:
-                    AcolleDesign.vermelho,
-              ),
-              onPressed: () {
-                Navigator.pop(
-                  dialogContext,
-                  true,
-                );
-              },
-              child: const Text('Sair'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (sair != true) return;
-
-    await FirebaseAuth.instance.signOut();
-
-    if (!mounted) return;
-
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const LoginPage(),
-      ),
-      (route) => false,
-    );
-  }
-
-  void _abrirAcessibilidade() {
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            final altoContraste =
-                acessibilidade.altoContraste;
-
-            return Material(
-              color: AcolleDesign.corFundo(
-                altoContraste,
-              ),
-              borderRadius:
-                  const BorderRadius.vertical(
-                top: Radius.circular(28),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    24,
-                    8,
-                    24,
-                    32,
-                  ),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment:
-                          CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          'Acessibilidade',
-                          style: TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.bold,
-                            color:
-                                AcolleDesign.corTexto(
-                              altoContraste,
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 8),
-
-                        Text(
-                          'Ajuste a leitura para ficar mais confortável.',
-                          style: TextStyle(
-                            fontSize: 17,
-                            color: AcolleDesign
-                                .corTextoSecundario(
-                              altoContraste,
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.text_decrease_rounded,
-                              size: 30,
-                              color:
-                                  AcolleDesign.corIcone(
-                                altoContraste,
-                              ),
-                            ),
-
-                            Expanded(
-                              child: Slider(
-                                value: acessibilidade
-                                    .escalaTexto,
-                                min: 0.9,
-                                max: 1.4,
-                                divisions: 5,
-                                activeColor:
-                                    AcolleDesign
-                                        .corIcone(
-                                  altoContraste,
-                                ),
-                                label:
-                                    '${(acessibilidade.escalaTexto * 100).round()}%',
-                                onChanged: (valor) {
-                                  acessibilidade
-                                      .alterarEscalaTexto(
-                                    valor,
-                                  );
-
-                                  setModalState(
-                                    () {},
-                                  );
-                                },
-                              ),
-                            ),
-
-                            Icon(
-                              Icons.text_increase_rounded,
-                              size: 30,
-                              color:
-                                  AcolleDesign.corIcone(
-                                altoContraste,
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        SwitchListTile.adaptive(
-                          contentPadding:
-                              EdgeInsets.zero,
-                          title: Text(
-                            'Alto contraste',
-                            style: TextStyle(
-                              fontSize: 19,
-                              fontWeight:
-                                  FontWeight.bold,
-                              color: AcolleDesign
-                                  .corTexto(
-                                altoContraste,
-                              ),
-                            ),
-                          ),
-                          subtitle: Text(
-                            'Aumenta a diferença entre as cores.',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: AcolleDesign
-                                  .corTextoSecundario(
-                                altoContraste,
-                              ),
-                            ),
-                          ),
-                          value: altoContraste,
-                          activeColor:
-                              AcolleDesign.laranja,
-                          onChanged: (valor) {
-                            acessibilidade
-                                .alterarAltoContraste(
-                              valor,
-                            );
-
-                            setModalState(
-                              () {},
-                            );
-                          },
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        FilledButton(
-                          style: FilledButton.styleFrom(
-                            backgroundColor:
-                                AcolleDesign.corIcone(
-                              altoContraste,
-                            ),
-                            foregroundColor:
-                                altoContraste
-                                    ? Colors.black
-                                    : Colors.white,
-                            minimumSize:
-                                const Size.fromHeight(
-                              54,
-                            ),
-                          ),
-                          onPressed: () {
-                            Navigator.pop(
-                              sheetContext,
-                            );
-                          },
-                          child: const Text(
-                            'Concluir',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight:
-                                  FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
   void _abrirPagina(Widget pagina) {
     Navigator.push(
       context,
@@ -421,213 +163,117 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final usuario =
-        FirebaseAuth.instance.currentUser;
-
-    final nome =
-        usuario?.displayName?.trim();
-
-    final saudacao =
-        nome?.isNotEmpty == true
-            ? 'Olá, ${nome!.split(' ').first}!'
-            : 'Olá!';
-
-    final altoContraste =
-        acessibilidade.altoContraste;
+    final altoContraste = acessibilidade.altoContraste;
 
     return Scaffold(
-      backgroundColor:
-          AcolleDesign.corFundo(
-        altoContraste,
-      ),
-
+      backgroundColor: AcolleDesign.corFundo(altoContraste),
       appBar: AppBar(
-        backgroundColor:
-            AcolleDesign.corFundo(
-          altoContraste,
-        ),
+        backgroundColor: AcolleDesign.corFundo(altoContraste),
         elevation: 0,
-
         toolbarHeight: 64,
-
         title: Semantics(
           label: 'Acolle',
           image: true,
           child: ExcludeSemantics(
             child: Image.asset(
-              'assets/images/logo_acolle.png',
-              height: 50,
+              'assets/images/logo_acolle_nova.png',
+              height: 40,
               fit: BoxFit.contain,
             ),
           ),
         ),
-
         centerTitle: true,
-
-        actions: [
-          IconButton(
-            tooltip: 'Acessibilidade',
-            icon: Icon(
-              AcolleIcons.acessibilidade,
-              color:
-                  AcolleDesign.corIcone(
-                altoContraste,
-              ),
-            ),
-            onPressed:
-                _abrirAcessibilidade,
-          ),
-
-          IconButton(
-            tooltip: 'Meu perfil',
-            icon: Icon(
-              AcolleIcons.perfil,
-              color:
-                  AcolleDesign.corIcone(
-                altoContraste,
-              ),
-            ),
-            onPressed: () {
-              _abrirPagina(
-                const PerfilPage(),
-              );
-            },
-          ),
-
-          IconButton(
-            tooltip: 'Sair da conta',
-            icon: Icon(
-              AcolleIcons.sair,
-              color:
-                  AcolleDesign.corIcone(
-                altoContraste,
-              ),
-            ),
-            onPressed:
-                _confirmarSaida,
-          ),
-        ],
       ),
 
+      // Tela pensada para caber inteira, sem rolagem. Se o celular for
+      // pequeno ou o texto estiver muito grande, ela passa a rolar em vez
+      // de estourar (rede de segurança para acessibilidade).
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding:
-              const EdgeInsets.fromLTRB(
-            20,
-            12,
-            20,
-            28,
-          ),
-
-          child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.stretch,
-
-            children: [
-              _buildMascoteSaudacao(
-                saudacao,
-                altoContraste,
-              ),
-
-              const SizedBox(height: 14),
-
-              // Ativar/desativar o botão flutuante de proteção rápida.
-              const BotaoFlutuanteCard(),
-
-              const SizedBox(height: 14),
-
-              Text(
-                'Como podemos ajudar?',
-                style: TextStyle(
-                  fontSize:
-                      AcolleDesign.tamanhoTexto(
-                    23,
-                  ),
-                  fontWeight:
-                      FontWeight.bold,
-                  color:
-                      AcolleDesign.corTexto(
-                    altoContraste,
-                  ),
+        child: LayoutBuilder(
+          builder: (context, c) => SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: c.maxHeight - 32),
+              child: IntrinsicHeight(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildMascoteSaudacao(altoContraste),
+                    const SizedBox(height: 16),
+                    Expanded(child: _buildCardsPrincipais(altoContraste)),
+                    const SizedBox(height: 16),
+                    _buildMaisOpcoes(altoContraste),
+                  ],
                 ),
               ),
-
-              const SizedBox(height: 14),
-
-              _buildCardsPrincipais(
-                altoContraste,
-              ),
-
-              const SizedBox(height: 18),
-
-              _buildMaisOpcoes(
-                altoContraste,
-              ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildMascoteSaudacao(
-    String saudacao,
-    bool altoContraste,
-  ) {
+  Widget _buildMascoteSaudacao(bool altoContraste) {
     return Row(
-      crossAxisAlignment:
-          CrossAxisAlignment.end,
-
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         ExcludeSemantics(
           child: Image.asset(
             'assets/images/mascote_home.png',
-            height: 100,
-            width: 100,
+            height: 92,
+            width: 92,
           ),
         ),
 
-        const SizedBox(width: 14),
+        const SizedBox(width: 12),
 
         Expanded(
           child: Container(
-            padding:
-                const EdgeInsets.all(17),
-
-            margin:
-                const EdgeInsets.only(
-              bottom: 6,
-            ),
-
+            padding: const EdgeInsets.all(16),
+            margin: const EdgeInsets.only(bottom: 6),
             decoration: BoxDecoration(
-              color:
-                  AcolleDesign.corIcone(
-                altoContraste,
-              ),
-              borderRadius:
-                  BorderRadius.circular(
-                20,
+              color: AcolleDesign.corIcone(altoContraste),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              'Dúvidas sobre o app?\n'
+              'Posso te ajudar',
+              style: TextStyle(
+                color: altoContraste ? Colors.black : Colors.white,
+                fontSize: AcolleDesign.tamanhoTexto(19),
+                fontWeight: FontWeight.bold,
+                height: 1.5,
               ),
             ),
+          ),
+        ),
 
-            child: Text(
-              '$saudacao\n'
-              'Estou aqui para proteger você.',
+        const SizedBox(width: 10),
 
-              style: TextStyle(
-                color: altoContraste
-                    ? Colors.black
-                    : Colors.white,
-
-                fontSize:
-                    AcolleDesign.tamanhoTexto(
-                  19,
+        // Botão "?" que reabre o tutorial. TutorialPage() sem aoFinalizar é
+        // o mesmo que "Aprender > Ver tutorial" já faz.
+        Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Semantics(
+            button: true,
+            label: 'Abrir o tutorial',
+            child: Material(
+              color: AcolleDesign.corIcone(altoContraste),
+              shape: const CircleBorder(),
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                splashColor: Colors.white24,
+                highlightColor: Colors.black12,
+                onTap: () => _abrirPagina(const TutorialPage()),
+                child: SizedBox(
+                  width: 56,
+                  height: 56,
+                  child: Icon(
+                    Icons.help_rounded,
+                    size: 32,
+                    color: altoContraste ? Colors.black : Colors.white,
+                  ),
                 ),
-
-                fontWeight:
-                    FontWeight.bold,
-
-                height: 1.25,
               ),
             ),
           ),
@@ -636,231 +282,124 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildCardsPrincipais(
-    bool altoContraste,
-  ) {
-    final escala = acessibilidade.escalaTexto;
-  final aspectRatioDinamico = 0.95 / (escala);
-
-  return GridView.count(
-    shrinkWrap: true,
-    physics: const NeverScrollableScrollPhysics(),
-    crossAxisCount: 2,
-    mainAxisSpacing: 14,
-    crossAxisSpacing: 14,
-    childAspectRatio: aspectRatioDinamico, // <- era fixo em 0.95
-    children: [
-        _buildCardPrincipal(
-          icone:
-              AcolleIcons.proteger,
-
-          titulo: 'Proteger',
-
-          descricao:
-              'Verifique mensagens, links e chamadas.',
-
-          altoContraste:
-              altoContraste,
-
-          cor: AcolleDesign.roxo,
-
-          onTap: () {
-            _abrirPagina(
-              const ProtegerPage(),
-            );
-          },
+  Widget _buildCardsPrincipais(bool altoContraste) {
+    return Column(
+      children: [
+        Expanded(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: _buildCardPrincipal(
+                  icone: AcolleIcons.proteger,
+                  titulo: 'PROTEÇÃO',
+                  descricaoParaLeitor:
+                      'Verifique mensagens, links e chamadas.',
+                  altoContraste: altoContraste,
+                  cor: AcolleDesign.roxo,
+                  onTap: () => _abrirPagina(const ProtegerPage()),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: _buildCardPrincipal(
+                  icone: AcolleIcons.rotina,
+                  titulo: 'AGENDA',
+                  descricaoParaLeitor:
+                      'Organize seus lembretes e horários.',
+                  altoContraste: altoContraste,
+                  cor: AcolleDesign.azul,
+                  onTap: () => _abrirPagina(const MinhaRotinaPage()),
+                ),
+              ),
+            ],
+          ),
         ),
-
-        _buildCardPrincipal(
-          icone:
-              AcolleIcons.rotina,
-
-          titulo: 'Minha Rotina',
-
-          descricao:
-              'Organize seus lembretes e horários.',
-
-          altoContraste:
-              altoContraste,
-
-          cor: AcolleDesign.azul,
-
-          onTap: () {
-            _abrirPagina(
-              const MinhaRotinaPage(),
-            );
-          },
-        ),
-
-        _buildCardPrincipal(
-          icone:
-              AcolleIcons.pedirAjuda,
-
-          titulo: 'Pedir Ajuda',
-
-          descricao:
-              'Fale rapidamente com alguém de confiança.',
-
-          altoContraste:
-              altoContraste,
-
-          cor: AcolleDesign.verde,
-
-          onTap: () {
-            _abrirPagina(
-              const PedirAjudaPage(),
-            );
-          },
-        ),
-
-        _buildCardPrincipal(
-          icone:
-              AcolleIcons.aprender,
-
-          titulo: 'Aprender',
-
-          descricao:
-              'Veja dicas para evitar golpes.',
-
-          altoContraste:
-              altoContraste,
-
-          cor: AcolleDesign.laranja,
-
-          onTap: () {
-            _abrirPagina(
-              const AprenderPage(),
-            );
-          },
+        const SizedBox(height: 14),
+        Expanded(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: _buildCardPrincipal(
+                  icone: AcolleIcons.pedirAjuda,
+                  titulo: 'AJUDA',
+                  descricaoParaLeitor:
+                      'Fale rapidamente com alguém de confiança.',
+                  altoContraste: altoContraste,
+                  cor: AcolleDesign.verde,
+                  onTap: () => _abrirPagina(const PedirAjudaPage()),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: _buildCardPrincipal(
+                  icone: AcolleIcons.aprender,
+                  titulo: 'DICAS',
+                  descricaoParaLeitor: 'Veja dicas para evitar golpes.',
+                  altoContraste: altoContraste,
+                  // Laranja mais escuro para o texto branco ter contraste.
+                  cor: AcolleDesign.laranjaEscuro,
+                  onTap: () => _abrirPagina(const AprenderPage()),
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
   }
 
+  /// Cartão sólido na cor do botão, com o ícone dentro de um quadrado
+  /// branco. A descrição não aparece na tela, mas o leitor de tela lê.
   Widget _buildCardPrincipal({
     required IconData icone,
     required String titulo,
-    required String descricao,
+    required String descricaoParaLeitor,
     required bool altoContraste,
     required Color cor,
     required VoidCallback onTap,
   }) {
     return Semantics(
       button: true,
-
-      label:
-          '$titulo. $descricao',
-
+      label: '$titulo. $descricaoParaLeitor',
       child: Material(
-        color:
-            AcolleDesign.corCard(
-          altoContraste,
-        ),
-
-        borderRadius:
-            BorderRadius.circular(
-          20,
-        ),
-
+        color: altoContraste ? Colors.black : cor,
+        borderRadius: BorderRadius.circular(20),
+        clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
-
-          borderRadius:
-              BorderRadius.circular(
-            20,
-          ),
-
+          splashColor: Colors.white24,
+          highlightColor: Colors.black12,
           child: Padding(
-            padding:
-                const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 14,
-            ),
-
+            padding: const EdgeInsets.all(12),
             child: Column(
-              mainAxisAlignment:
-                  MainAxisAlignment.center,
-
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  width: 58,
-                  height: 58,
+                  width: 64,
+                  height: 64,
                   decoration: BoxDecoration(
-                    color: altoContraste
-                        ? Colors.black
-                        : cor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: altoContraste
-                          ? Colors.white
-                          : cor.withValues(alpha: 0.18),
-                    ),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
                   ),
                   child: Icon(
                     icone,
-                    size: 34,
-                    color: altoContraste ? AcolleDesign.laranja : cor,
+                    size: 38,
+                    color: altoContraste ? Colors.black : cor,
                   ),
                 ),
-
-                const SizedBox(height: 8),
-
-                Text(
-                  titulo,
-
-                  textAlign:
-                      TextAlign.center,
-
-                  maxLines: 2,
-
-                  overflow:
-                      TextOverflow.ellipsis,
-
-                  style: TextStyle(
-                    fontSize:
-                        AcolleDesign
-                            .tamanhoTexto(
-                      18,
-                    ),
-
-                    fontWeight:
-                        FontWeight.bold,
-
-                    color:
-                        AcolleDesign.corTexto(
-                      altoContraste,
-                        ),
-                    height: 1.1,
-                  ),
-                ),
-
-                const SizedBox(height: 4),
-
-                Flexible(
+                const SizedBox(height: 10),
+                // O título é uma palavra só em maiúsculas: em vez de
+                // quebrar linha, ele encolhe só se não couber.
+                FittedBox(
+                  fit: BoxFit.scaleDown,
                   child: Text(
-                    descricao,
-
-                    textAlign:
-                        TextAlign.center,
-
-                    maxLines: 3,
-
-                    overflow:
-                        TextOverflow.ellipsis,
-
+                    titulo,
                     style: TextStyle(
-                      fontSize:
-                          AcolleDesign
-                              .tamanhoTexto(
-                        13,
-                      ),
-
-                      height: 1.15,
-
-                      color: AcolleDesign
-                          .corTextoSecundario(
-                        altoContraste,
-                      ),
+                      fontSize: AcolleDesign.tamanhoTexto(22),
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
                 ),
@@ -872,91 +411,46 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildMaisOpcoes(
-    bool altoContraste,
-  ) {
+  Widget _buildMaisOpcoes(bool altoContraste) {
     return Semantics(
       button: true,
-
-      label:
-          'Mais opções. Acesse outros recursos do Acolle.',
-
+      label: 'Mais opções. Acesse outros recursos do Acolle.',
       child: Material(
-        color:
-            AcolleDesign.corCard(
-          altoContraste,
-        ),
-
-        borderRadius:
-            BorderRadius.circular(
-          18,
-        ),
-
+        color: altoContraste ? Colors.black : const Color(0xFF616161),
+        borderRadius: BorderRadius.circular(18),
+        clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: () {
-            _abrirPagina(
-              const MaisOpcoesPage(),
-            );
-          },
-
-          borderRadius:
-              BorderRadius.circular(
-            18,
-          ),
-
+          onTap: () => _abrirPagina(const MaisOpcoesPage()),
+          splashColor: Colors.white24,
+          highlightColor: Colors.black12,
           child: Container(
-            constraints: const BoxConstraints(minHeight: 62), // <- era height: 62
+            constraints: const BoxConstraints(minHeight: 62),
             padding: const EdgeInsets.symmetric(
               horizontal: 20,
               vertical: 10,
             ),
-
             child: Row(
               children: [
-                Icon(
+                const Icon(
                   AcolleIcons.mais,
-
                   size: 32,
-
-                  color:
-                      AcolleDesign.corIcone(
-                    altoContraste,
-                  ),
+                  color: Colors.white,
                 ),
-
                 const SizedBox(width: 14),
-
                 Expanded(
                   child: Text(
                     'Mais opções',
-
                     style: TextStyle(
-                      fontSize:
-                          AcolleDesign
-                              .tamanhoTexto(
-                        18,
-                      ),
-
-                      fontWeight:
-                          FontWeight.bold,
-
-                      color:
-                          AcolleDesign.corTexto(
-                        altoContraste,
-                      ),
+                      fontSize: AcolleDesign.tamanhoTexto(20),
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
                 ),
-
-                Icon(
+                const Icon(
                   AcolleIcons.avancar,
-
                   size: 30,
-
-                  color:
-                      AcolleDesign.corIcone(
-                    altoContraste,
-                  ),
+                  color: Colors.white,
                 ),
               ],
             ),

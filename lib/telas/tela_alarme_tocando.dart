@@ -1,6 +1,8 @@
 import 'package:alarm/alarm.dart';
 import 'package:flutter/material.dart';
 
+import '../shared/acolle_design.dart';
+
 /// Tela de tela-cheia exibida automaticamente quando um alarme de remédio
 /// dispara. Cor, textos e tamanhos são livres pra customizar aqui.
 class TelaAlarmeTocando extends StatelessWidget {
@@ -19,7 +21,7 @@ class TelaAlarmeTocando extends StatelessWidget {
       canPop: false, // impede fechar na unha sem parar o alarme
       child: Scaffold(
         // Cor de fundo do alarme — troque aqui se quiser outra cor.
-        backgroundColor: const Color(0xFF773FD1),
+        backgroundColor: AcolleDesign.roxo,
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(32),
@@ -58,7 +60,7 @@ class TelaAlarmeTocando extends StatelessWidget {
                   child: FilledButton(
                     style: FilledButton.styleFrom(
                       backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFF773FD1),
+                      foregroundColor: AcolleDesign.roxo,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                       ),

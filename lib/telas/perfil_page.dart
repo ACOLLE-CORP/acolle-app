@@ -23,7 +23,6 @@ class _PerfilPageState extends State<PerfilPage> {
 
   final _nomeController = TextEditingController();
   final _telefoneController = TextEditingController();
-  final _cidadeController = TextEditingController();
 
   @override
   void initState() {
@@ -53,9 +52,6 @@ class _PerfilPageState extends State<PerfilPage> {
         _telefoneController.text =
             _dados?['telefone'] as String? ?? '';
 
-        _cidadeController.text =
-            _dados?['cidade'] as String? ?? '';
-
         _carregando = false;
       });
     } catch (e) {
@@ -78,7 +74,6 @@ class _PerfilPageState extends State<PerfilPage> {
   Future<void> _salvarAlteracoes() async {
     final nome = _nomeController.text.trim();
     final telefone = _telefoneController.text.trim();
-    final cidade = _cidadeController.text.trim();
 
     if (nome.isEmpty) {
       AcolleDesign.snackbar(
@@ -98,7 +93,6 @@ class _PerfilPageState extends State<PerfilPage> {
           'nome': nome,
           'email': _user.email,
           'telefone': telefone,
-          'cidade': cidade,
           'ultimaAtualizacao': DateTime.now(),
         },
         SetOptions(merge: true),
@@ -164,7 +158,6 @@ class _PerfilPageState extends State<PerfilPage> {
   void dispose() {
     _nomeController.dispose();
     _telefoneController.dispose();
-    _cidadeController.dispose();
 
     super.dispose();
   }
@@ -211,10 +204,6 @@ class _PerfilPageState extends State<PerfilPage> {
 
               const SizedBox(height: 24),
 
-              _buildSecaoSeguranca(),
-
-              const SizedBox(height: 24),
-
               if (!_editando)
                 _buildBotaoEditar()
               else
@@ -235,60 +224,13 @@ class _PerfilPageState extends State<PerfilPage> {
   Widget _buildFotoPerfilArea() {
     final contraste = AcolleDesign.altoContraste;
 
-    return Center(
-      child: Column(
-        children: [
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: contraste
-                  ? Colors.white
-                  : AcolleDesign.roxo,
-              border: contraste
-                  ? Border.all(
-                      color: Colors.white,
-                      width: 3,
-                    )
-                  : null,
-            ),
-            child: Center(
-              child: Icon(
-                Icons.person_rounded,
-                size: 60,
-                color: contraste
-                    ? Colors.black
-                    : Colors.white,
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          Text(
-            _nomeController.text.isNotEmpty
-                ? _nomeController.text
-                : 'Usuário',
-            textAlign: TextAlign.center,
-            style: AcolleDesign.texto(
-              tamanho: 24,
-              cor: AcolleDesign.corIcone(contraste),
-              peso: FontWeight.bold,
-            ),
-          ),
-
-          const SizedBox(height: 8),
-
-          Text(
-            _user.email ?? '',
-            textAlign: TextAlign.center,
-            style: AcolleDesign.texto(
-              tamanho: 16,
-              cor: AcolleDesign.corTextoSecundario(contraste),
-            ),
-          ),
-        ],
+    return Text(
+      'Aqui ficam suas informações de acordo com seu cadastro. '
+      'Elas são importantes para utilizar funcionalidades do aplicativo.',
+      style: AcolleDesign.texto(
+        tamanho: 18,
+        cor: AcolleDesign.corTextoSecundario(contraste),
+        altura: 1.5,
       ),
     );
   }
@@ -335,21 +277,35 @@ class _PerfilPageState extends State<PerfilPage> {
           const SizedBox(height: 16),
 
           _buildCampoInfo(
-            label: 'Cidade',
-            controller: _cidadeController,
-            icone: Icons.location_city_rounded,
-            editavel: true,
-          ),
-
-          const SizedBox(height: 16),
-
-          _buildCampoInfo(
             label: 'Email',
             controller: TextEditingController(
               text: _user.email ?? '',
             ),
             icone: Icons.email_rounded,
             editavel: false,
+          ),
+
+          const SizedBox(height: 8),
+
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(
+              Icons.lock_rounded,
+              color: AcolleDesign.corIcone(contraste),
+              size: 28,
+            ),
+            title: Text(
+              'Alterar senha',
+              style: AcolleDesign.texto(
+                tamanho: 18,
+                peso: FontWeight.w600,
+              ),
+            ),
+            trailing: Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: AcolleDesign.corTextoSecundario(contraste),
+            ),
+            onTap: _mudarSenha,
           ),
         ],
       ),
@@ -371,17 +327,6 @@ class _PerfilPageState extends State<PerfilPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: AcolleDesign.texto(
-            tamanho: 14,
-            cor: AcolleDesign.corTextoSecundario(contraste),
-            peso: FontWeight.w600,
-          ),
-        ),
-
-        const SizedBox(height: 6),
-
         TextField(
           controller: controller,
 
@@ -399,109 +344,6 @@ class _PerfilPageState extends State<PerfilPage> {
           ),
         ),
       ],
-    );
-  }
-
-  // ============================================================
-  // SEGURANÇA
-  // ============================================================
-
-  Widget _buildSecaoSeguranca() {
-    final contraste = AcolleDesign.altoContraste;
-
-    return AcolleDesign.cartao(
-      padding: const EdgeInsets.all(20),
-      filho: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Segurança',
-            style: AcolleDesign.texto(
-              tamanho: 20,
-              cor: AcolleDesign.corIcone(contraste),
-              peso: FontWeight.bold,
-            ),
-          ),
-
-          const SizedBox(height: 16),
-
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-
-            leading: Icon(
-              Icons.lock_rounded,
-              color: AcolleDesign.corIcone(contraste),
-              size: 28,
-            ),
-
-            title: Text(
-              'Alterar Senha',
-              style: AcolleDesign.texto(
-                tamanho: 18,
-                peso: FontWeight.w600,
-              ),
-            ),
-
-            subtitle: Text(
-              'Atualize sua senha regularmente',
-              style: AcolleDesign.texto(
-                tamanho: 14,
-                cor: AcolleDesign.corTextoSecundario(contraste),
-              ),
-            ),
-
-            trailing: Icon(
-              Icons.arrow_forward_ios_rounded,
-              color: AcolleDesign.corTextoSecundario(contraste),
-            ),
-
-            onTap: _mudarSenha,
-          ),
-
-          Divider(
-            color: AcolleDesign.corBorda(contraste),
-            height: 20,
-          ),
-
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-
-            leading: Icon(
-              Icons.verified_user_rounded,
-              color: AcolleDesign.corIcone(contraste),
-              size: 28,
-            ),
-
-            title: Text(
-              'Verificação em Duas Etapas',
-              style: AcolleDesign.texto(
-                tamanho: 18,
-                peso: FontWeight.w600,
-              ),
-            ),
-
-            subtitle: Text(
-              'Proteja sua conta com segurança extra',
-              style: AcolleDesign.texto(
-                tamanho: 14,
-                cor: AcolleDesign.corTextoSecundario(contraste),
-              ),
-            ),
-
-            trailing: Icon(
-              Icons.arrow_forward_ios_rounded,
-              color: AcolleDesign.corTextoSecundario(contraste),
-            ),
-
-            onTap: () {
-              AcolleDesign.snackbar(
-                context,
-                'Recurso em desenvolvimento.',
-              );
-            },
-          ),
-        ],
-      ),
     );
   }
 

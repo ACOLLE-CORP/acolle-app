@@ -521,7 +521,7 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
                   16 * _escalaTexto,
               color:
                   _textoSecundario,
-              height: 1.4,
+              height: 1.5,
             ),
           ),
 

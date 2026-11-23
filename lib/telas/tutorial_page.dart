@@ -67,19 +67,19 @@ const List<_Passo> _passos = [
     cor: AcolleDesign.azul,
     titulo: 'A tela inicial',
     texto:
-        'Na tela inicial há quatro botões grandes: Proteger, Minha Rotina, '
-        'Pedir Ajuda e Aprender. Toque no que você precisar.',
+        'Na tela inicial há quatro botões grandes: PROTEÇÃO, AGENDA, '
+        'AJUDA e DICAS. Toque no que você precisar.',
     destaque:
-        'No topo ficam os botões de acessibilidade, perfil e sair da conta.',
+        'Acessibilidade, perfil e sair da conta ficam em Mais opções.',
   ),
   _Passo(
     icone: AcolleIcons.proteger,
     cor: AcolleDesign.roxo,
-    titulo: 'Proteger',
+    titulo: 'Proteção',
     texto:
         'Aqui você verifica mensagens, links e chamadas que parecem '
         'suspeitas.',
-    destaque: 'Toque em Proteger e escolha o que quer verificar.',
+    destaque: 'Toque em PROTEÇÃO e escolha o que quer verificar.',
   ),
   _Passo(
     icone: AcolleIcons.mensagem,
@@ -107,7 +107,7 @@ const List<_Passo> _passos = [
         'Se o número que está ligando estiver na lista de números '
         'suspeitos, o Acolle mostra o aviso "Atenção!". '
         'Tenha cuidado ao atender.',
-    destaque: 'Configure em Proteger > Proteção de chamadas.',
+    destaque: 'Configure em Mais opções > Proteção de chamadas.',
   ),
   _Passo(
     icone: Icons.phone_in_talk_rounded,
@@ -126,7 +126,7 @@ const List<_Passo> _passos = [
     cor: AcolleDesign.roxo,
     titulo: 'Proteção rápida',
     texto:
-        'Ative a Proteção rápida na tela inicial. O Collin fica na lateral '
+        'Ative a Proteção rápida na tela PROTEÇÃO. O Collin fica na lateral '
         'da tela: toque nele para analisar uma mensagem, verificar um link, '
         'ver alertas ou pedir ajuda.',
     destaque:
@@ -136,27 +136,27 @@ const List<_Passo> _passos = [
   _Passo(
     icone: AcolleIcons.rotina,
     cor: AcolleDesign.azul,
-    titulo: 'Minha Rotina',
+    titulo: 'Agenda',
     texto:
         'Cadastre seus remédios e horários. O Acolle avisa na hora certa.',
-    destaque: 'Toque em Minha Rotina > Lembretes de remédios.',
+    destaque: 'Toque em AGENDA > Lembretes de remédios.',
   ),
   _Passo(
     icone: AcolleIcons.pedirAjuda,
     cor: AcolleDesign.verde,
-    titulo: 'Pedir Ajuda',
+    titulo: 'Ajuda',
     texto:
-        'Precisa de alguém de confiança? Toque em Pedir Ajuda para ligar '
+        'Precisa de alguém de confiança? Toque em AJUDA para ligar '
         'para o seu contato principal.',
     destaque: 'Você também pode adicionar ou remover contatos ali.',
   ),
   _Passo(
     icone: AcolleIcons.aprender,
     cor: AcolleDesign.laranja,
-    titulo: 'Aprender e acessibilidade',
+    titulo: 'Dicas e acessibilidade',
     texto:
-        'Em Aprender você encontra dicas para evitar golpes. '
-        'No botão de acessibilidade, no topo da tela inicial, você pode '
+        'Em DICAS você encontra dicas para evitar golpes. '
+        'Em Mais opções > Acessibilidade, você pode '
         'aumentar as letras e usar alto contraste.',
   ),
   _Passo(
@@ -175,7 +175,7 @@ const List<_Passo> _passos = [
     titulo: 'Tudo certo!',
     texto:
         'Agora você já sabe usar o Acolle. Para ver este tutorial de novo, '
-        'abra Aprender e toque em "Ver tutorial".',
+        'toque no ? na tela inicial.',
     mascote: true,
   ),
 ];
@@ -360,7 +360,7 @@ class _TutorialPageState extends State<TutorialPage> {
           style: AcolleDesign.texto(
             tamanho: 21,
             cor: AcolleDesign.corTexto(altoContraste),
-            altura: 1.35,
+            altura: 1.5,
           ),
         ),
         if (passo.grupo != null) ...[
@@ -388,7 +388,7 @@ class _TutorialPageState extends State<TutorialPage> {
                       tamanho: 18,
                       peso: FontWeight.w600,
                       cor: AcolleDesign.corTexto(altoContraste),
-                      altura: 1.3,
+                      altura: 1.5,
                     ),
                   ),
                 ),
@@ -654,7 +654,7 @@ class _ListaPermissoesState extends State<_ListaPermissoes>
                   style: AcolleDesign.texto(
                     tamanho: 17,
                     cor: AcolleDesign.corTextoSecundario(altoContraste),
-                    altura: 1.3,
+                    altura: 1.5,
                   ),
                 ),
                 const SizedBox(height: 10),

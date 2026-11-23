@@ -9,33 +9,36 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
+import android.util.Log
 import android.view.Gravity
 import android.view.WindowManager
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
 
-object CallerAlertOverlay {
+internal enum class CallAlertStatus { CHECKING, SUSPECT, CLEAR, UNAVAILABLE }
+
+internal object CallerAlertOverlay {
     private var currentView: LinearLayout? = null
     private val handler = Handler(Looper.getMainLooper())
 
-    fun show(context: Context, number: String, suspect: Boolean?): Boolean {
+    fun show(context: Context, number: String, status: CallAlertStatus) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
-            !Settings.canDrawOverlays(context)) return false
+            !Settings.canDrawOverlays(context)) return
 
         handler.post {
             val manager = context.getSystemService(WindowManager::class.java)
-            currentView?.let { runCatching { manager.removeView(it) } }
+            currentView?.let { hide(it) }
 
             val density = context.resources.displayMetrics.density
             fun dp(value: Int) = (value * density).toInt()
             fun rounded(color: Int, radius: Float) = GradientDrawable().apply {
                 setColor(color)
                 cornerRadius = radius * density
-                setStroke(dp(2), when (suspect) {
-                    true -> 0xFFFF981F.toInt()
-                    false -> 0xFF5A49D6.toInt()
-                    null -> 0xFF1976D2.toInt()
+                setStroke(dp(2), when (status) {
+                    CallAlertStatus.SUSPECT -> 0xFFFF981F.toInt()
+                    CallAlertStatus.CLEAR -> 0xFF5A49D6.toInt()
+                    CallAlertStatus.CHECKING, CallAlertStatus.UNAVAILABLE -> 0xFF1976D2.toInt()
                 })
             }
 
@@ -51,16 +54,17 @@ object CallerAlertOverlay {
                 gravity = Gravity.CENTER_VERTICAL
             }
             val title = TextView(context).apply {
-                text = when (suspect) {
-                    true -> "⚠ POSSÍVEL GOLPE"
-                    false -> "✓ SEM DENÚNCIAS ENCONTRADAS"
-                    null -> "⌛ VERIFICANDO NÚMERO..."
+                text = when (status) {
+                    CallAlertStatus.SUSPECT -> "⚠ POSSÍVEL GOLPE"
+                    CallAlertStatus.CLEAR -> "✓ SEM DENÚNCIAS ENCONTRADAS"
+                    CallAlertStatus.CHECKING -> "⌛ VERIFICANDO NÚMERO..."
+                    CallAlertStatus.UNAVAILABLE -> "CONSULTA INDISPONÍVEL"
                 }
                 textSize = 20f
-                setTextColor(when (suspect) {
-                    true -> 0xFFD35400.toInt()
-                    false -> 0xFF2E7D32.toInt()
-                    null -> 0xFF1565C0.toInt()
+                setTextColor(when (status) {
+                    CallAlertStatus.SUSPECT -> 0xFFD35400.toInt()
+                    CallAlertStatus.CLEAR -> 0xFF2E7D32.toInt()
+                    CallAlertStatus.CHECKING, CallAlertStatus.UNAVAILABLE -> 0xFF1565C0.toInt()
                 })
                 setTypeface(typeface, Typeface.BOLD)
             }
@@ -71,7 +75,7 @@ object CallerAlertOverlay {
                 background = rounded(0xFFF1EEFF.toInt(), 24f)
                 setPadding(dp(12), dp(12), dp(12), dp(12))
                 contentDescription = "Fechar alerta"
-                setOnClickListener { hide(context) }
+                setOnClickListener { hide(card) }
             }
             header.addView(close, LinearLayout.LayoutParams(dp(48), dp(48)))
             card.addView(header)
@@ -83,10 +87,11 @@ object CallerAlertOverlay {
                 setTypeface(typeface, Typeface.BOLD)
             })
             card.addView(TextView(context).apply {
-                text = when (suspect) {
-                    true -> "Número denunciado por outros usuários. Não informe senhas ou códigos."
-                    false -> "Nenhuma denúncia encontrada. Isso não garante que a chamada seja segura."
-                    null -> "Aguarde um instante enquanto o Acolle consulta a base de denúncias."
+                text = when (status) {
+                    CallAlertStatus.SUSPECT -> "Número denunciado por outros usuários. Não informe senhas ou códigos."
+                    CallAlertStatus.CLEAR -> "Nenhuma denúncia encontrada. Isso não garante que a chamada seja segura."
+                    CallAlertStatus.CHECKING -> "Aguarde um instante enquanto o Acolle consulta a base de denúncias."
+                    CallAlertStatus.UNAVAILABLE -> "Não foi possível verificar este número."
                 }
                 textSize = 15f
                 setTextColor(0xFF55505F.toInt())
@@ -116,17 +121,17 @@ object CallerAlertOverlay {
             runCatching {
                 manager.addView(card, params)
                 currentView = card
-                handler.postDelayed({ hide(context) }, 30_000)
+                handler.postDelayed({ hide(card) }, 30_000)
+            }.onFailure {
+                Log.w(CALL_ALERT_TAG, "Android bloqueou a sobreposição da chamada", it)
             }
         }
-        return true
     }
 
-    fun hide(context: Context) {
-        handler.post {
-            val manager = context.getSystemService(WindowManager::class.java)
-            currentView?.let { runCatching { manager.removeView(it) } }
-            currentView = null
-        }
+    private fun hide(view: LinearLayout) {
+        if (currentView !== view) return
+        val manager = view.context.getSystemService(WindowManager::class.java)
+        runCatching { manager.removeView(view) }
+        currentView = null
     }
 }

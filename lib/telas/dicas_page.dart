@@ -74,7 +74,7 @@ class _DicasPageState extends State<DicasPage> {
                   cor: AcolleDesign.corTextoSecundario(
                     contraste,
                   ),
-                  altura: 1.3,
+                  altura: 1.5,
                 ),
               ),
 
@@ -120,11 +120,7 @@ class _DicasPageState extends State<DicasPage> {
                     'desconfie. Não forneça seus dados.',
               ),
 
-              const SizedBox(height: 10),
-
-              _buildCardPrincipal(),
-
-              const SizedBox(height: 30),
+              const SizedBox(height: 20),
 
               _buildNumerosEmergencia(),
 
@@ -196,7 +192,7 @@ class _DicasPageState extends State<DicasPage> {
                     tamanho: 18,
                     cor: AcolleDesign.corTexto(contraste),
                     peso: FontWeight.bold,
-                    altura: 1.2,
+                    altura: 1.5,
                   ),
                 ),
 
@@ -213,70 +209,6 @@ class _DicasPageState extends State<DicasPage> {
                   ),
                 ),
               ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ============================================================
-  // CARD PRINCIPAL
-  // ============================================================
-
-  Widget _buildCardPrincipal() {
-    final contraste = AcolleDesign.altoContraste;
-
-    return Container(
-      width: double.infinity,
-
-      padding: const EdgeInsets.all(24),
-
-      decoration: BoxDecoration(
-        color: AcolleDesign.laranja,
-
-        borderRadius: BorderRadius.circular(20),
-
-        border: contraste
-            ? Border.all(
-                color: Colors.white,
-                width: 2,
-              )
-            : null,
-      ),
-
-      child: Column(
-        children: [
-          Icon(
-            Icons.shield_rounded,
-            color: Colors.black,
-            size: 60,
-          ),
-
-          const SizedBox(height: 15),
-
-          Text(
-            'Em caso de dúvida,\nnão responda imediatamente.',
-            textAlign: TextAlign.center,
-
-            style: AcolleDesign.texto(
-              tamanho: 22,
-              cor: Colors.black,
-              peso: FontWeight.bold,
-              altura: 1.25,
-            ),
-          ),
-
-          const SizedBox(height: 10),
-
-          Text(
-            'Peça ajuda para um familiar ou pessoa de confiança.',
-            textAlign: TextAlign.center,
-
-            style: AcolleDesign.texto(
-              tamanho: 18,
-              cor: Colors.black,
-              altura: 1.3,
             ),
           ),
         ],

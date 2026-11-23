@@ -4,8 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
 import 'termos_page.dart';
+import '../shared/acolle_design.dart';
 
-const Color roxoAcolle = Color(0xFF773FD1);
 const Color fundoAcolle = Color(0xFFFAF7FC);
 const Color laranjaAcolle = Color(0xFFF47A07);
 
@@ -195,7 +195,7 @@ class _CadastroPageState extends State<CadastroPage> {
       appBar: AppBar(
         backgroundColor: fundoAcolle,
         elevation: 0,
-        foregroundColor: roxoAcolle,
+        foregroundColor: AcolleDesign.roxo,
         title: const Text(
           'Criar conta',
           style: TextStyle(fontWeight: FontWeight.bold),
@@ -205,7 +205,7 @@ class _CadastroPageState extends State<CadastroPage> {
         padding: const EdgeInsets.all(24),
         child: Column(
           children: [
-            const Icon(Icons.person_add_alt_1_rounded, size: 64, color: roxoAcolle),
+            const Icon(Icons.person_add_alt_1_rounded, size: 64, color: AcolleDesign.roxo),
             const SizedBox(height: 10),
             const Text(
               'Vamos criar sua conta',
@@ -213,7 +213,7 @@ class _CadastroPageState extends State<CadastroPage> {
               style: TextStyle(
                 fontSize: 29,
                 fontWeight: FontWeight.bold,
-                color: roxoAcolle,
+                color: AcolleDesign.roxo,
               ),
             ),
             const SizedBox(height: 6),
@@ -301,7 +301,7 @@ class _CadastroPageState extends State<CadastroPage> {
               constraints: const BoxConstraints(minHeight: 62, minWidth: double.infinity),
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: roxoAcolle,
+                  backgroundColor: AcolleDesign.roxo,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(22),

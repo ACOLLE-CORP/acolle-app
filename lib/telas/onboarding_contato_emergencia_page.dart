@@ -208,7 +208,7 @@ class _OnboardingContatoEmergenciaPageState
                 style: AcolleDesign.texto(
                   tamanho: 17,
                   cor: corSecundaria,
-                  altura: 1.4,
+                  altura: 1.5,
                 ),
               ),
 

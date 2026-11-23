@@ -8,6 +8,7 @@ import android.content.IntentFilter
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -17,8 +18,6 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
     companion object {
         private const val CHANNEL = "acolle/caller_id"
-        private const val PREFS = "acolle_caller_id"
-        private const val NUMBERS_KEY = "suspect_numbers"
         private const val ROLE_REQUEST_CODE = 7412
 
         private const val CHANNEL_NOTIF_METODOS = "com.example.acolle1/notification_settings"
@@ -75,6 +74,33 @@ class MainActivity : FlutterActivity() {
                     "requestScreeningRole" -> requestScreeningRole(result)
                     "requestOverlayPermission" -> requestOverlayPermission(result)
                     "isScreeningRoleEnabled" -> result.success(isScreeningRoleEnabled())
+                    "areCallNotificationsEnabled" -> result.success(notificacoesDeChamadasAtivas())
+                    "usesNotificationRuntimePermission" -> result.success(
+                        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU,
+                    )
+                    "openCallNotificationSettings" -> {
+                        criarCanalDeChamadas()
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            val appNotificationsEnabled =
+                                NotificationManagerCompat.from(this).areNotificationsEnabled()
+                            val action = if (appNotificationsEnabled) {
+                                Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS
+                            } else {
+                                Settings.ACTION_APP_NOTIFICATION_SETTINGS
+                            }
+                            startActivity(Intent(action).apply {
+                                putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                                if (appNotificationsEnabled) {
+                                    putExtra(Settings.EXTRA_CHANNEL_ID, CALL_ALERT_CHANNEL)
+                                }
+                            })
+                        } else {
+                            startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                data = Uri.fromParts("package", packageName, null)
+                            })
+                        }
+                        result.success(null)
+                    }
                     "isOverlayPermissionEnabled" -> result.success(
                         Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(this),
                     )
@@ -91,9 +117,9 @@ class MainActivity : FlutterActivity() {
                     }
                     "syncSuspectNumbers" -> {
                         val numbers = call.argument<List<String>>("numbers").orEmpty()
-                        getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                        getSharedPreferences(CALLER_ID_PREFS, Context.MODE_PRIVATE)
                             .edit()
-                            .putStringSet(NUMBERS_KEY, numbers.toSet())
+                            .putStringSet(SUSPECT_NUMBERS_KEY, numbers.toSet())
                             .apply()
                         result.success(true)
                     }

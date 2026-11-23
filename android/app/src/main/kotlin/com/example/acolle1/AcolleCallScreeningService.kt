@@ -5,198 +5,91 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.graphics.Color
 import android.os.Build
 import android.telecom.Call
 import android.telecom.CallScreeningService
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URI
+import androidx.core.app.NotificationManagerCompat
 import kotlin.concurrent.thread
 
-class AcolleCallScreeningService : CallScreeningService() {
-    companion object {
-        private const val PREFS = "acolle_caller_id"
-        private const val NUMBERS_KEY = "suspect_numbers"
-        // v2 cria um canal novo: propriedades como bypass do Não Perturbe são
-        // imutáveis depois que um canal já foi criado pelo Android/MIUI.
-        private const val CHANNEL_ID = "acolle_call_alerts_v2"
-        // Substituido automaticamente pelo endereco retornado no primeiro deploy.
-        private const val WORKER_URL =
-            "https://acolle-spam-check.acolle-corp.workers.dev/verificar"
-    }
+internal const val CALL_ALERT_CHANNEL = "acolle_call_alerts_v2"
+internal const val CALL_ALERT_TAG = "AcolleCallerId"
+internal const val CALLER_ID_PREFS = "acolle_caller_id"
+internal const val SUSPECT_NUMBERS_KEY = "suspect_numbers"
 
+class AcolleCallScreeningService : CallScreeningService() {
     override fun onScreenCall(callDetails: Call.Details) {
-        // O Android exige uma resposta rápida. O Acolle nunca bloqueia nem
-        // silencia a ligação: ele apenas classifica e avisa.
         if (Build.VERSION.SDK_INT >= 29 && callDetails.callDirection != Call.Details.DIRECTION_INCOMING) return
+        // A consulta é informativa. Libere a chamada dentro do prazo do Android.
         respondToCall(callDetails, CallResponse.Builder().build())
 
-        val rawNumber = callDetails.handle?.schemeSpecificPart.orEmpty()
-        if (rawNumber.isBlank() || callDetails.handle?.scheme != "tel") return
-        if (contatoSalvo(rawNumber)) {
-            avisarChamada(normalizedNotificationId(rawNumber), "Contato salvo", rawNumber)
-            return
-        }
-        val normalized = normalize(rawNumber)
-        val suspectNumbers = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getStringSet(NUMBERS_KEY, emptySet())
-            .orEmpty()
-        val isSuspect = suspectNumbers.contains(normalized)
-        Log.i(
-            "AcolleCallerId",
-            "Chamada recebida; numero=$normalized suspeito=$isSuspect cache=${suspectNumbers.size}",
-        )
-        if (isSuspect) {
-            val overlayShown = CallerAlertOverlay.show(this, rawNumber, true)
-            if (!overlayShown) openAlertScreen(rawNumber, true)
-            showAlert(rawNumber, true)
-        } else {
-            // Nunca apresenta "seguro" antes de a base externa responder.
-            avisarChamada(normalizedNotificationId(rawNumber), "Chamada recebida", "Verificando $rawNumber…")
-            CallerAlertOverlay.show(this, rawNumber, null)
-            verifyWithOpenSpam(rawNumber)
-        }
+        val handle = callDetails.handle
+        val number = handle?.schemeSpecificPart.orEmpty()
+        if (handle?.scheme != "tel" || PhoneReputation.normalize(number).isEmpty()) return
+        Log.i(CALL_ALERT_TAG, "Chamada telefônica recebida")
+        thread(name = "acolle-verificar-chamada") { verifyCall(number) }
     }
 
-    private fun verifyWithOpenSpam(number: String) {
-        if (WORKER_URL.isBlank()) {
+    private fun verifyCall(number: String) {
+        val id = PhoneReputation.normalize(number).hashCode() and Int.MAX_VALUE
+        if (contatoSalvo(number)) {
+            avisarChamada(id, "Contato salvo", number)
             return
         }
-        thread(name = "acolle-openspam-check") {
-            try {
-                val connection = URI(WORKER_URL).toURL()
-                    .openConnection() as HttpURLConnection
-                connection.requestMethod = "POST"
-                connection.connectTimeout = 4_000
-                connection.readTimeout = 6_000
-                connection.setRequestProperty("Accept", "application/json")
-                connection.setRequestProperty("Content-Type", "application/json; charset=utf-8")
-                connection.doOutput = true
-                connection.outputStream.bufferedWriter(Charsets.UTF_8).use {
-                    it.write(JSONObject().put("numero", normalize(number)).toString())
-                }
-                if (connection.responseCode !in 200..299) {
-                    throw IllegalStateException("Worker respondeu ${connection.responseCode}")
-                }
-                val payload = connection.inputStream.bufferedReader().use { it.readText() }
-                val suspect = JSONObject(payload).getBoolean("suspeito")
-                CallerAlertOverlay.show(this, number, suspect)
-                showAlert(number, suspect)
-                Log.i("AcolleCallerId", "OpenSpam respondeu; suspeito=$suspect")
-            } catch (error: Exception) {
-                Log.e("AcolleCallerId", "Falha ao consultar OpenSpam", error)
-                CallerAlertOverlay.hide(this)
-                avisarChamada(normalizedNotificationId(number), "Consulta indisponível", number)
-            }
+        if (numeroSuspeitoNoCache(number)) {
+            showResult(id, number, true)
+            return
         }
-    }
 
-    private fun openAlertScreen(number: String, isSuspect: Boolean) {
-        try {
-            startActivity(
-                Intent(this, IncomingCallAlertActivity::class.java).apply {
-                    putExtra(IncomingCallAlertActivity.EXTRA_NUMBER, number)
-                    putExtra(IncomingCallAlertActivity.EXTRA_SUSPECT, isSuspect)
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-                        Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                        Intent.FLAG_ACTIVITY_SINGLE_TOP
-                },
-            )
-            Log.i("AcolleCallerId", "Tela de alerta solicitada diretamente")
+        CallerAlertOverlay.show(this, number, CallAlertStatus.CHECKING)
+        avisarChamada(id, "Verificando número…", number)
+        val suspect = try {
+            PhoneReputation.check(number)
         } catch (error: Exception) {
-            // Alguns fabricantes proíbem Activity em segundo plano. Nesses
-            // casos, a notificação de tela cheia abaixo permanece disponível.
-            Log.e("AcolleCallerId", "Fabricante bloqueou a tela direta", error)
+            Log.w(CALL_ALERT_TAG, "Falha ao consultar OpenSpam", error)
+            CallerAlertOverlay.show(this, number, CallAlertStatus.UNAVAILABLE)
+            avisarChamada(id, "Consulta de número indisponível", number)
+            return
         }
+        showResult(id, number, suspect)
     }
 
-    private fun showAlert(number: String, isSuspect: Boolean) {
-        val manager = getSystemService(NotificationManager::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            manager.createNotificationChannel(
-                NotificationChannel(
-                    CHANNEL_ID,
-                    "Alertas de chamadas",
-                    NotificationManager.IMPORTANCE_HIGH,
-                ).apply {
-                    description = "Avisa se uma chamada pode estar associada a golpes"
-                    enableVibration(true)
-                    // O aparelho pode estar em Não Perturbe justamente durante
-                    // uma chamada. Como o usuário já autorizou o acesso à
-                    // política de notificações, este alerta de segurança não
-                    // deve ser escondido pelo filtro do sistema.
-                    setBypassDnd(true)
-                },
-            )
-        }
+    private fun showResult(id: Int, number: String, suspect: Boolean) {
+        val status = if (suspect) CallAlertStatus.SUSPECT else CallAlertStatus.CLEAR
+        CallerAlertOverlay.show(this, number, status)
 
-        val notificationId = normalizedNotificationId(number)
-        val showAlert = PendingIntent.getActivity(
+        val details = PendingIntent.getActivity(
             this,
-            notificationId,
+            id,
             Intent(this, IncomingCallAlertActivity::class.java).apply {
                 putExtra(IncomingCallAlertActivity.EXTRA_NUMBER, number)
-                putExtra(IncomingCallAlertActivity.EXTRA_SUSPECT, isSuspect)
+                putExtra(IncomingCallAlertActivity.EXTRA_SUSPECT, suspect)
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                    Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-
-        val title = if (isSuspect) "⚠️ Possível chamada de golpe" else "Chamada verificada pelo Acolle"
-        val message = if (isSuspect) {
-            "$number está na lista de números denunciados. Não informe senhas ou códigos."
+        val title = if (suspect) "Possível chamada de golpe" else "Chamada verificada pelo Acolle"
+        val message = if (suspect) {
+            "$number consta na lista de denúncias. Não informe senhas ou códigos."
         } else {
             "Nenhuma denúncia encontrada para $number. Isso não garante que a ligação seja segura."
         }
-        val color = if (isSuspect) Color.RED else Color.rgb(46, 125, 50)
-
-        manager.notify(
-            notificationId,
-            NotificationCompat.Builder(this, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_acolle_notification)
-                .setContentTitle(title)
-                .setContentText(message)
-                .setStyle(NotificationCompat.BigTextStyle().bigText(message))
-                .setColor(color)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                // CATEGORY_CALL faz o Android/MIUI submeter este aviso ao
-                // filtro de ligações do modo Não Perturbe e pode ocultá-lo.
-                // Este é um alerta informativo, não a própria chamada.
-                .setCategory(NotificationCompat.CATEGORY_STATUS)
-                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                .setAutoCancel(true)
-                .setContentIntent(showAlert)
-                // Exibe o cartão mesmo sobre o discador ou com o Acolle fechado.
-                // Se o fabricante impedir tela cheia, a mesma informação ainda
-                // aparece como notificação heads-up de alta prioridade.
-                .setFullScreenIntent(showAlert, true)
-                .build(),
-        )
+        avisarChamada(id, title, message, details)
     }
-
-    private fun normalize(number: String): String {
-        var digits = number.filter(Char::isDigit)
-        if (digits.startsWith("00")) digits = digits.drop(2)
-        if ((digits.length == 10 || digits.length == 11) && !number.trimStart().startsWith("+") && !number.trimStart().startsWith("00")) {
-            digits = "55$digits"
-        }
-        return digits
-    }
-
-    private fun normalizedNotificationId(number: String): Int =
-        normalize(number).hashCode() and 0x7fffffff
 }
+
+internal fun Context.numeroSuspeitoNoCache(numero: String): Boolean =
+    getSharedPreferences(CALLER_ID_PREFS, Context.MODE_PRIVATE)
+        .getStringSet(SUSPECT_NUMBERS_KEY, emptySet())
+        .orEmpty()
+        .contains(PhoneReputation.normalize(numero))
 
 internal fun Context.contatoSalvo(numero: String): Boolean {
     if (checkSelfPermission(android.Manifest.permission.READ_CONTACTS) !=
         android.content.pm.PackageManager.PERMISSION_GRANTED) return false
-    val lookup = android.provider.ContactsContract.PhoneLookup
-        .CONTENT_FILTER_URI
+    val lookup = android.provider.ContactsContract.PhoneLookup.CONTENT_FILTER_URI
     val uri = android.net.Uri.withAppendedPath(lookup, android.net.Uri.encode(numero))
     return try {
         contentResolver.query(uri, arrayOf("_id"), null, null, null)
@@ -206,20 +99,55 @@ internal fun Context.contatoSalvo(numero: String): Boolean {
     }
 }
 
-internal fun Context.avisarChamada(id: Int, titulo: String, texto: String) {
-    val canal = "acolle_call_alerts_v2"
-    val manager = getSystemService(NotificationManager::class.java)
+internal fun Context.criarCanalDeChamadas() {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-        manager.createNotificationChannel(NotificationChannel(canal, "Alertas de chamadas", NotificationManager.IMPORTANCE_HIGH))
+        getSystemService(NotificationManager::class.java).createNotificationChannel(
+            NotificationChannel(
+                CALL_ALERT_CHANNEL,
+                "Alertas de chamadas",
+                NotificationManager.IMPORTANCE_HIGH,
+            ).apply {
+                description = "Avisa sobre a verificação de números em chamadas recebidas"
+                enableVibration(true)
+            },
+        )
     }
-    val aviso = NotificationCompat.Builder(this, canal)
+}
+
+internal fun Context.notificacoesDeChamadasAtivas(): Boolean {
+    if (!NotificationManagerCompat.from(this).areNotificationsEnabled()) return false
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return true
+    val canal = getSystemService(NotificationManager::class.java)
+        .getNotificationChannel(CALL_ALERT_CHANNEL)
+    return canal?.importance != NotificationManager.IMPORTANCE_NONE
+}
+
+internal fun Context.avisarChamada(
+    id: Int,
+    titulo: String,
+    texto: String,
+    detalhes: PendingIntent? = null,
+) {
+    criarCanalDeChamadas()
+    if (!notificacoesDeChamadasAtivas()) {
+        Log.w(CALL_ALERT_TAG, "Notificações do Acolle ou canal de chamadas desativado")
+        return
+    }
+    val aviso = NotificationCompat.Builder(this, CALL_ALERT_CHANNEL)
         .setSmallIcon(R.drawable.ic_acolle_notification)
         .setContentTitle(titulo)
         .setContentText(texto)
+        .setStyle(NotificationCompat.BigTextStyle().bigText(texto))
         .setPriority(NotificationCompat.PRIORITY_HIGH)
-        .setOnlyAlertOnce(true)
+        .setCategory(NotificationCompat.CATEGORY_STATUS)
+        .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
         .setAutoCancel(true)
-        .setTimeoutAfter(60_000)
+        .setTimeoutAfter(if (detalhes == null) 60_000 else 0)
+        .setContentIntent(detalhes)
         .build()
-    manager.notify(id, aviso)
+    try {
+        getSystemService(NotificationManager::class.java).notify(id, aviso)
+    } catch (error: SecurityException) {
+        Log.w(CALL_ALERT_TAG, "Android bloqueou a notificação de chamada", error)
+    }
 }

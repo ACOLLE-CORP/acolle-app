@@ -66,9 +66,18 @@ class _AdicionarLembretePageState extends State<AdicionarLembretePage> {
     final horario = await showTimePicker(
       context: context,
       initialTime: _horario ?? agora,
+      // Só os campos digitais (hora : minuto), sem o relógio analógico.
+      initialEntryMode: TimePickerEntryMode.inputOnly,
       helpText: 'Escolha o horário do remédio',
+      hourLabelText: 'Hora',
+      minuteLabelText: 'Minutos',
+      errorInvalidText: 'Digite um horário válido',
       cancelText: 'Cancelar',
       confirmText: 'Confirmar',
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+        child: child!,
+      ),
     );
 
     if (horario == null) return;

@@ -18,7 +18,7 @@ class MinhaRotinaPage extends StatelessWidget {
         altoContraste,
       ),
       appBar: AcolleDesign.appBarPadrao(
-        'Minha Rotina',
+        'AGENDA',
         centralizado: true,
       ),
       body: SafeArea(
@@ -53,7 +53,7 @@ class MinhaRotinaPage extends StatelessWidget {
                   cor: AcolleDesign.corTextoSecundario(
                     altoContraste,
                   ),
-                  altura: 1.3,
+                  altura: 1.5,
                 ),
               ),
 

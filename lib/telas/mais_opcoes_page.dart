@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../services/acessibilidade_service.dart';
+import '../shared/acoes_conta.dart';
 import '../shared/acolle_design.dart';
 import '../shared/acolle_icons.dart';
+import 'configurar_protecao_chamadas_page.dart';
 import 'historico_chamadas_page.dart';
 import 'historico_page.dart';
 import 'perfil_page.dart';
@@ -68,12 +70,37 @@ class MaisOpcoesPage extends StatelessWidget {
                       AcolleDesign.corTextoSecundario(
                     altoContraste,
                   ),
-                  altura: 1.3,
+                  altura: 1.5,
                 ),
               ),
 
               const SizedBox(
                 height: 24,
+              ),
+
+              _Opcao(
+                icone:
+                    AcolleIcons.chamada,
+                titulo:
+                    'Proteção de chamadas',
+                descricao:
+                    'Configure a identificação de chamadas suspeitas.',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          ConfigurarProtecaoChamadasPage(
+                        proxima: (_) =>
+                            const HistoricoChamadasPage(),
+                      ),
+                    ),
+                  );
+                },
+              ),
+
+              const SizedBox(
+                height: 12,
               ),
 
               _Opcao(
@@ -136,6 +163,36 @@ class MaisOpcoesPage extends StatelessWidget {
                     ),
                   );
                 },
+              ),
+
+              const SizedBox(
+                height: 12,
+              ),
+
+              _Opcao(
+                icone:
+                    AcolleIcons.acessibilidade,
+                titulo:
+                    'Acessibilidade',
+                descricao:
+                    'Tamanho das letras e alto contraste.',
+                onTap: () =>
+                    abrirAcessibilidade(context),
+              ),
+
+              const SizedBox(
+                height: 12,
+              ),
+
+              _Opcao(
+                icone:
+                    AcolleIcons.sair,
+                titulo:
+                    'Sair da conta',
+                descricao:
+                    'Encerrar a sessão neste aparelho.',
+                onTap: () =>
+                    confirmarSaida(context),
               ),
             ],
           ),

@@ -4,9 +4,7 @@ import '../services/acessibilidade_service.dart';
 import '../shared/acolle_design.dart';
 import '../shared/acolle_icons.dart';
 import 'analisar_mensagem_page.dart';
-import 'configurar_protecao_chamadas_page.dart';
-import 'historico_chamadas_page.dart';
-import 'historico_page.dart';
+import 'botao_flutuante.dart';
 import 'verificar_link_page.dart';
 
 class ProtegerPage extends StatelessWidget {
@@ -20,7 +18,7 @@ class ProtegerPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: AcolleDesign.corFundo(altoContraste),
       appBar: AcolleDesign.appBarPadrao(
-        'Proteger',
+        'PROTEÇÃO',
         centralizado: true,
       ),
       body: SafeArea(
@@ -48,13 +46,13 @@ class ProtegerPage extends StatelessWidget {
               const SizedBox(height: 8),
 
               Text(
-                'Use as ferramentas do Acolle para verificar situações suspeitas.',
+                'Os botões a seguir são para o senhor(a) descobrir se a mensagem, link ou ligação que recebeu pode ser golpe.',
                 style: AcolleDesign.texto(
                   tamanho: 17,
                   cor: AcolleDesign.corTextoSecundario(
                     altoContraste,
                   ),
-                  altura: 1.3,
+                  altura: 1.5,
                 ),
               ),
 
@@ -96,60 +94,9 @@ class ProtegerPage extends StatelessWidget {
 
               const SizedBox(height: 12),
 
-              _Opcao(
-                icone: AcolleIcons.chamada,
-                titulo: 'Proteção de chamadas',
-                descricao:
-                    'Configure a identificação de chamadas suspeitas.',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          ConfigurarProtecaoChamadasPage(
-                        proxima: (_) =>
-                            const HistoricoChamadasPage(),
-                      ),
-                    ),
-                  );
-                },
-              ),
-
-              const SizedBox(height: 12),
-
-              _Opcao(
-                icone: AcolleIcons.chamadasRecebidas,
-                titulo: 'Histórico de chamadas',
-                descricao:
-                    'Veja as chamadas identificadas pelo Acolle.',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          const HistoricoChamadasPage(),
-                    ),
-                  );
-                },
-              ),
-
-              const SizedBox(height: 12),
-
-              _Opcao(
-                icone: AcolleIcons.historico,
-                titulo: 'Histórico de verificações',
-                descricao:
-                    'Consulte suas verificações anteriores.',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          const HistoricoPage(),
-                    ),
-                  );
-                },
-              ),
+              // Proteção rápida (botão flutuante que continua fora do app).
+              // Antes ficava na Home.
+              const BotaoFlutuanteCard(),
             ],
           ),
         ),
