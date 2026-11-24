@@ -3,6 +3,18 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('normalizarNumero', () {
+    test('corrige o zero antes do DDD em fixos e celulares', () {
+      for (final numero in ['011 3456-7890', '+55 011 3456-7890']) {
+        expect(CallerIdService.normalizarNumero(numero), '551134567890');
+      }
+      expect(CallerIdService.normalizarNumero('+011 98765-4321'), '5511987654321');
+    });
+
+    test('distingue DDD 55 de prefixos internacionais', () {
+      expect(CallerIdService.normalizarNumero('(55) 98765-4321'), '5555987654321');
+      expect(CallerIdService.normalizarNumero('+1 202 555 0123'), '12025550123');
+    });
+
     test('normaliza telefone brasileiro com máscara', () {
       expect(
         CallerIdService.normalizarNumero('(11) 98765-4321'),

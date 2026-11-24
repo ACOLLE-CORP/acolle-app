@@ -99,14 +99,16 @@ class CallerIdService {
 
   @visibleForTesting
   static String normalizarNumero(String numero) {
-    var digitos = numero.replaceAll(RegExp(r'\D'), '');
-    if (digitos.startsWith('00')) digitos = digitos.substring(2);
-    if ((digitos.length == 10 || digitos.length == 11) &&
-        !numero.trimLeft().startsWith('+') &&
-        !numero.trimLeft().startsWith('00')) {
-      digitos = '55$digitos';
+    final digitos = numero.replaceAll(RegExp(r'\D'), '');
+    final internacional =
+        numero.trimLeft().startsWith('+') || digitos.startsWith('00');
+    final telefone = digitos.startsWith('00') ? digitos.substring(2) : digitos;
+    final tronco = RegExp(r'^(?:55)?0([1-9]\d{9,10})$').firstMatch(telefone);
+    if (tronco != null) return '55${tronco[1]}';
+    if (!internacional && RegExp(r'^[1-9]\d{9,10}$').hasMatch(telefone)) {
+      return '55$telefone';
     }
-    return digitos;
+    return telefone;
   }
 
   static void pararMonitoramento() {

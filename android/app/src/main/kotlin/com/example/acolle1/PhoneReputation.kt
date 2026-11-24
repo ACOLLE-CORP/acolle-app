@@ -8,12 +8,7 @@ internal object PhoneReputation {
     private const val WORKER_URL =
         "https://acolle-spam-check.acolle-corp.workers.dev/verificar"
 
-    fun normalize(number: String): String {
-        val input = number.trim()
-        val digits = input.filter { it in '0'..'9' }
-        if (input.startsWith("00")) return digits.drop(2)
-        return if (!input.startsWith("+") && digits.length in 10..11) "55$digits" else digits
-    }
+    fun normalize(number: String): String = normalizeCallerNumber(number)
 
     fun check(number: String): Boolean {
         val normalized = normalize(number)

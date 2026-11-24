@@ -2,13 +2,14 @@ const OPENSPAM_BASE_URL = "https://api.openspam.es/api/number/";
 const CACHE_SECONDS = 24 * 60 * 60;
 
 function normalizePhone(value) {
-  const input = String(value ?? "").trim();
-  let digits = input.replace(/\D/g, "");
-  if (input.startsWith("00")) return digits.slice(2);
-  if (!input.startsWith("+") && (digits.length === 10 || digits.length === 11)) {
-    digits = `55${digits}`;
-  }
-  return digits;
+  const raw = String(value || "").trim();
+  const digits = raw.replace(/\D/g, "");
+  const international = raw.startsWith("+") || digits.startsWith("00");
+  const phone = digits.startsWith("00") ? digits.slice(2) : digits;
+  const trunk = /^(?:55)?0([1-9]\d{9,10})$/.exec(phone);
+  if (trunk) return `55${trunk[1]}`;
+  if (!international && /^[1-9]\d{9,10}$/.test(phone)) return `55${phone}`;
+  return phone;
 }
 
 function json(data, status = 200) {
