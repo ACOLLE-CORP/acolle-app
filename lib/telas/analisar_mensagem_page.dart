@@ -327,6 +327,101 @@ class _AnalisarMensagemPageState
   }
 
   // ============================================================
+  // LINKS ENCONTRADOS NO TEXTO
+  // ============================================================
+
+  static final RegExp _regexLinks = RegExp(
+    r'(?:https?:\/\/|www\.)[^\s<>"]+|'
+    r'\b[a-z0-9][a-z0-9\-]*(?:\.[a-z0-9\-]+)*\.'
+    r'(?:com|net|org|br|io|xyz|tk|top|online|site|club|info|link|app|me|co|ly|gl|cc|ru|cn|click|shop|store|live|vip)'
+    r'(?:\/[^\s<>"]*)?',
+    caseSensitive: false,
+  );
+
+  List<String> _extrairLinks(String texto) {
+    final encontrados = <String>[];
+
+    for (final m in _regexLinks.allMatches(texto)) {
+      // Ignora endereços de e-mail (ex.: nome@gmail.com).
+      if (m.start > 0 && texto[m.start - 1] == '@') continue;
+
+      var link = m.group(0)!.replaceAll(
+            RegExp(r'[.,;:!?)\]]+$'),
+            '',
+          );
+      if (link.length < 4) continue;
+
+      if (!link.toLowerCase().startsWith('http')) {
+        link = 'https://$link';
+      }
+
+      if (!encontrados.contains(link)) encontrados.add(link);
+      if (encontrados.length >= 3) break;
+    }
+
+    return encontrados;
+  }
+
+  Future<void> _incorporarAnaliseDeLinks(
+    String texto,
+    Map<String, dynamic> resultado,
+  ) async {
+    final links = _extrairLinks(texto);
+    if (links.isEmpty) return;
+
+    final analises = await Future.wait(
+      links.map((link) async {
+        try {
+          return await AcolleApi.analisarLink(link);
+        } catch (_) {
+          return null;
+        }
+      }),
+    );
+
+    var riscoFinal =
+        (resultado['risco'] as num?)?.toInt() ?? 0;
+    final motivos = List<dynamic>.from(
+      (resultado['motivos'] as List?) ?? const [],
+    );
+    var linkPerigoso = false;
+
+    for (var i = 0; i < links.length; i++) {
+      final a = analises[i];
+      if (a == null) continue;
+
+      final risco = (a['risco'] as num?)?.toInt() ?? 0;
+      final host = Uri.tryParse(links[i])?.host ?? links[i];
+      final motivosLink = (a['motivos'] as List?) ?? const [];
+      final detalhe =
+          motivosLink.isNotEmpty ? ' — ${motivosLink.first}' : '';
+
+      if (risco >= 30) {
+        motivos.add('Link suspeito ($host): risco $risco%$detalhe');
+        if (risco >= 70) linkPerigoso = true;
+      } else {
+        motivos.add('Link verificado ($host): sem sinais claros de golpe.');
+      }
+
+      if (risco > riscoFinal) riscoFinal = risco;
+    }
+
+    resultado['risco'] = riscoFinal;
+    resultado['motivos'] = motivos;
+    resultado['classificacao'] = riscoFinal >= 70
+        ? 'Alto'
+        : riscoFinal >= 30
+            ? 'Médio'
+            : 'Baixo';
+
+    if (linkPerigoso) {
+      resultado['recomendacao'] =
+          'Não toque nos links desta mensagem. '
+          '${resultado['recomendacao'] ?? ''}'.trim();
+    }
+  }
+
+  // ============================================================
   // ANALISAR
   // ============================================================
 
@@ -355,6 +450,13 @@ class _AnalisarMensagemPageState
       final resposta =
           await AcolleApi.analisarConversa(
         mensagem,
+      );
+
+      // Verifica também cada link encontrado no texto e incorpora
+      // o resultado (risco, motivos e recomendação) à análise.
+      await _incorporarAnaliseDeLinks(
+        mensagem,
+        resposta,
       );
 
       if (!mounted) return;

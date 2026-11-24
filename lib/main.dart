@@ -174,8 +174,21 @@ class _AcolleAppState extends State<AcolleApp> {
 
         break;
 
+      case 'verificar_link_tela':
+        final textoTela = await FloatingButtonService.textoTelaPendente();
+
+        if (!mounted) return;
+
+        tela = VerificarLinkPage(
+          textoDaTela: textoTela ?? '',
+        );
+
+        break;
+
       case 'verificar_link':
-        tela = const VerificarLinkPage();
+        tela = const VerificarLinkPage(
+          usarAreaDeTransferencia: true,
+        );
 
         break;
 

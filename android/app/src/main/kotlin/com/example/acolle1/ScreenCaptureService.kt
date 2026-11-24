@@ -8,6 +8,8 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.PixelFormat
 import android.hardware.display.DisplayManager
 import android.hardware.display.VirtualDisplay
@@ -36,7 +38,15 @@ class ScreenCaptureService : Service() {
 
         const val PREFS_CAPTURE = "acolle_screen_capture"
         const val KEY_TEXTO_PENDENTE = "texto_pendente"
+
+        // O primeiro frame do VirtualDisplay costuma vir preto/transparente.
+        private const val MAX_TENTATIVAS_FRAME = 8
+        private const val TIMEOUT_CAPTURA_MS = 7000L
     }
+
+    private var tentativasFrame = 0
+    private var capturaConcluida = false
+    private var modoLink = false
 
     private val handler = Handler(Looper.getMainLooper())
 
@@ -69,6 +79,11 @@ class ScreenCaptureService : Service() {
 
         criarCanalNotificacao()
         iniciarForeground()
+
+        modoLink =
+            intent?.getStringExtra(
+                ScreenCapturePermissionActivity.EXTRA_MODO
+            ) == ScreenCapturePermissionActivity.MODO_LINK
 
         val resultCode =
             intent?.getIntExtra(
@@ -120,7 +135,7 @@ class ScreenCaptureService : Service() {
             {
                 capturarTela()
             },
-            500
+            800
         )
 
         return START_NOT_STICKY
@@ -210,6 +225,8 @@ class ScreenCaptureService : Service() {
                     reader.acquireLatestImage()
                         ?: return@setOnImageAvailableListener
 
+                var concluido = false
+
                 try {
 
                     val plane = image.planes[0]
@@ -233,29 +250,74 @@ class ScreenCaptureService : Service() {
 
                     bitmap.copyPixelsFromBuffer(buffer)
 
+                    // Alguns aparelhos entregam o canal alpha zerado; nesse caso
+                    // a imagem inteira fica "invisível" para o OCR. Forçamos alpha
+                    // opaco em todos os pixels e recortamos o padding de linha.
+                    val pixels = IntArray(bitmapWidth * height)
+                    bitmap.getPixels(pixels, 0, bitmapWidth, 0, 0, bitmapWidth, height)
+                    bitmap.recycle()
                     val bitmapFinal =
                         Bitmap.createBitmap(
-                            bitmap,
-                            0,
-                            0,
                             width,
-                            height
+                            height,
+                            Bitmap.Config.ARGB_8888
+                        )
+                    val linha = IntArray(width)
+                    for (y in 0 until height) {
+                        val base = y * bitmapWidth
+                        for (x in 0 until width) {
+                            linha[x] = pixels[base + x] or 0xFF000000.toInt()
+                        }
+                        bitmapFinal.setPixels(linha, 0, width, 0, y, width, 1)
+                    }
+
+                    if (quadroEmBranco(bitmapFinal)) {
+
+                        tentativasFrame++
+
+                        Log.w(
+                            "AcolleCapture",
+                            "Frame em branco ($tentativasFrame/$MAX_TENTATIVAS_FRAME)"
                         )
 
-                    val arquivo =
-                        salvarCaptura(bitmapFinal)
+                        bitmapFinal.recycle()
+
+                        if (tentativasFrame < MAX_TENTATIVAS_FRAME) {
+                            // Tela estática não gera frame novo sozinha:
+                            // força um redesenho mudando a densidade em 1 dpi.
+                            val dens =
+                                density + (tentativasFrame % 2)
+                            handler.postDelayed({
+                                runCatching {
+                                    virtualDisplay?.resize(
+                                        width,
+                                        height,
+                                        dens
+                                    )
+                                }
+                            }, 300)
+                            return@setOnImageAvailableListener
+                        }
+
+                        concluido = true
+                        Toast.makeText(
+                            this,
+                            "Esta tela não pode ser capturada " +
+                                "(aparece em branco para o Acolle).",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        finalizarTudo()
+                        return@setOnImageAvailableListener
+                    }
+
+                    concluido = true
+                    capturaConcluida = true
 
                     processandoOcr = true
 
                     analisarTextoDaImagem(
-                        arquivo
+                        bitmapFinal
                     )
-
-                    bitmap.recycle()
-
-                    if (bitmapFinal !== bitmap) {
-                        bitmapFinal.recycle()
-                    }
 
                 } catch (e: Exception) {
 
@@ -264,6 +326,8 @@ class ScreenCaptureService : Service() {
                         "Erro ao capturar tela",
                         e
                     )
+
+                    concluido = true
 
                     Toast.makeText(
                         this,
@@ -277,12 +341,27 @@ class ScreenCaptureService : Service() {
 
                     image.close()
 
-                    encerrarSessaoCaptura()
+                    if (concluido) {
+                        encerrarSessaoCaptura()
+                    }
                 }
 
             },
             handler
         )
+
+        // Se nenhum frame útil chegar, não deixa o serviço preso.
+        handler.postDelayed({
+            if (!capturaConcluida && !encerrado) {
+                Log.w("AcolleCapture", "Timeout sem frame útil")
+                Toast.makeText(
+                    this,
+                    "Não consegui capturar a tela. Tente de novo.",
+                    Toast.LENGTH_LONG
+                ).show()
+                finalizarTudo()
+            }
+        }, TIMEOUT_CAPTURA_MS)
 
         virtualDisplay =
             mediaProjection?.createVirtualDisplay(
@@ -296,6 +375,28 @@ class ScreenCaptureService : Service() {
                 null,
                 handler
             )
+    }
+
+    /** True se a imagem é (quase) uma cor única: preta, branca ou vazia. */
+    private fun quadroEmBranco(bitmap: Bitmap): Boolean {
+        var min = 255
+        var max = 0
+        val passosX = 24
+        val passosY = 48
+        for (i in 0 until passosX) {
+            for (j in 0 until passosY) {
+                val px = bitmap.getPixel(
+                    (i * (bitmap.width - 1)) / (passosX - 1),
+                    (j * (bitmap.height - 1)) / (passosY - 1)
+                )
+                val lum =
+                    (Color.red(px) * 3 + Color.green(px) * 6 +
+                        Color.blue(px)) / 10
+                if (lum < min) min = lum
+                if (lum > max) max = lum
+            }
+        }
+        return (max - min) < 6
     }
 
     private fun salvarCaptura(
@@ -328,7 +429,7 @@ class ScreenCaptureService : Service() {
     }
 
     private fun analisarTextoDaImagem(
-        arquivo: File
+        bitmap: Bitmap
     ) {
 
         val recognizer =
@@ -337,36 +438,12 @@ class ScreenCaptureService : Service() {
             )
 
         val inputImage =
-            try {
+            InputImage.fromBitmap(bitmap, 0)
 
-                InputImage.fromFilePath(
-                    this,
-                    Uri.fromFile(arquivo)
-                )
-
-            } catch (e: Exception) {
-
-                Log.e(
-                    "AcolleOCR",
-                    "Erro ao preparar imagem",
-                    e
-                )
-
-                arquivo.delete()
-
-                recognizer.close()
-
-                Toast.makeText(
-                    this,
-                    "Não foi possível ler a imagem.",
-                    Toast.LENGTH_LONG
-                ).show()
-
-                processandoOcr = false
-                finalizarServico()
-
-                return
-            }
+        Log.i(
+            "AcolleOCR",
+            "Analisando imagem ${bitmap.width}x${bitmap.height}"
+        )
 
         recognizer
             .process(inputImage)
@@ -377,9 +454,15 @@ class ScreenCaptureService : Service() {
 
                 if (texto.isBlank()) {
 
+                    Log.w(
+                        "AcolleOCR",
+                        "OCR sem texto em ${bitmap.width}x${bitmap.height}"
+                    )
+
                     Toast.makeText(
                         this,
-                        "Não encontrei texto nesta tela.",
+                        "Não encontrei texto nesta tela " +
+                            "(imagem ${bitmap.width}x${bitmap.height}).",
                         Toast.LENGTH_LONG
                     ).show()
 
@@ -414,15 +497,15 @@ class ScreenCaptureService : Service() {
 
                 Toast.makeText(
                     this,
-                    "Não foi possível ler o texto desta tela.",
+                    "Erro ao ler o texto: ${e.javaClass.simpleName}",
                     Toast.LENGTH_LONG
                 ).show()
             }
             .addOnCompleteListener {
 
-                arquivo.delete()
-
                 recognizer.close()
+
+                if (!bitmap.isRecycled) bitmap.recycle()
 
                 processandoOcr = false
 
@@ -440,7 +523,7 @@ class ScreenCaptureService : Service() {
 
                 putExtra(
                     FloatingBubbleService.EXTRA_ROTA,
-                    "analisar_tela"
+                    if (modoLink) "verificar_link_tela" else "analisar_tela"
                 )
 
                 flags =

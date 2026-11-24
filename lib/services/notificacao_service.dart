@@ -23,7 +23,15 @@ class NotificacaoService {
           defaultTargetPlatform == TargetPlatform.iOS);
 
   static Future<void> inicializar() async {
-    if (_suportaAlarmes) await Alarm.init();
+    if (!_suportaAlarmes) return;
+    await Alarm.init();
+    // Aviso mostrado quando o app é fechado: troca o texto padrão em inglês
+    // ("Your alarms may not ring") por uma mensagem simples em português.
+    await Alarm.setWarningNotificationOnKill(
+      'Abra o Acolle novamente',
+      'O app foi fechado. Toque aqui para abrir e garantir que '
+          'seus lembretes de remédio toquem.',
+    );
   }
 
   static Future<void> _serializar(Future<void> Function() tarefa) {

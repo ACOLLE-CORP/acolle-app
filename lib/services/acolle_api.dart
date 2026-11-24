@@ -188,7 +188,25 @@ Avalie o risco de 0 a 100.
 ''';
 
     try {
-      return await analisarConversa(prompt);
+      final ia = await analisarConversa(prompt);
+
+      /// Se a análise local enxergou mais risco que a IA
+      /// (domínio suspeito conhecido, IP, TLD estranho...), vale a mais cautelosa.
+      final riscoIa = (ia['risco'] as num?)?.toInt() ?? 0;
+      final riscoLocal = (analiseLocal['risco'] as num?)?.toInt() ?? 0;
+
+      if (riscoLocal > riscoIa && riscoLocal >= 40) {
+        return {
+          ...analiseLocal,
+          'motivos': <String>[
+            ...List<String>.from(analiseLocal['motivos'] as List),
+            ..._normalizarMotivos(ia['motivos']),
+          ],
+          'provedor': 'combinado',
+        };
+      }
+
+      return ia;
     } catch (_) {
       /// Continua funcionando mesmo sem internet/IA.
       return analiseLocal;

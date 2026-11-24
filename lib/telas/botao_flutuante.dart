@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -27,6 +29,7 @@ class _BotaoFlutuanteCardState
   bool _botaoAtivo = false;
   bool _carregando = true;
   bool _ativarAoRetornar = false;
+  Timer? _verificador;
 
   @override
   void initState() {
@@ -39,6 +42,26 @@ class _BotaoFlutuanteCardState
     );
 
     _atualizarEstado();
+
+    // O botão pode ser desligado de fora do app (pelo "X" ou pelo menu da
+    // bolinha). Confere o estado real do serviço a cada segundo para a chave
+    // não ficar mostrando "ligado" quando já foi desligado.
+    _verificador = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => _sincronizarEstado(),
+    );
+  }
+
+  Future<void> _sincronizarEstado() async {
+    if (!mounted || _carregando) return;
+    try {
+      final ativo = await FloatingButtonService.estaAtivo();
+      if (!mounted || _carregando) return;
+      final novo = _permissaoConcedida && ativo;
+      if (novo != _botaoAtivo) {
+        setState(() => _botaoAtivo = novo);
+      }
+    } catch (_) {}
   }
 
   @override
@@ -347,6 +370,7 @@ class _BotaoFlutuanteCardState
 
   @override
   void dispose() {
+    _verificador?.cancel();
     WidgetsBinding.instance.removeObserver(this);
 
     acessibilidade.removeListener(

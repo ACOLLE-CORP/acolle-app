@@ -12,6 +12,8 @@ class ScreenCapturePermissionActivity : Activity() {
     companion object {
         const val EXTRA_RESULT_CODE = "screen_capture_result_code"
         const val EXTRA_RESULT_DATA = "screen_capture_result_data"
+        const val EXTRA_MODO = "screen_capture_modo"
+        const val MODO_LINK = "link"
 
         private const val REQUEST_MEDIA_PROJECTION = 1001
     }
@@ -67,6 +69,12 @@ class ScreenCapturePermissionActivity : Activity() {
                     putExtra(
                         EXTRA_RESULT_DATA,
                         data
+                    )
+
+                    putExtra(
+                        EXTRA_MODO,
+                        this@ScreenCapturePermissionActivity.intent
+                            ?.getStringExtra(EXTRA_MODO)
                     )
                 }
 

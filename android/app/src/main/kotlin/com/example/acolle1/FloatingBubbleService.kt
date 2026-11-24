@@ -14,6 +14,10 @@ import android.os.IBinder
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
+import android.content.pm.ServiceInfo
+import android.provider.Settings
+import android.util.Log
 import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -42,6 +46,7 @@ class FloatingBubbleService : Service() {
     private var menuView: View? = null
     private var menuParams: WindowManager.LayoutParams? = null
     private var menuAberto = false
+    private var alvoView: TextView? = null
 
     private val roxo = Color.parseColor("#6D59F4")
     private val roxoEscuro = Color.parseColor("#2A1B5D")
@@ -54,7 +59,19 @@ class FloatingBubbleService : Service() {
         emExecucao = true
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         iniciarComoForegroundService()
-        criarBolinha()
+
+        if (!Settings.canDrawOverlays(this)) {
+            Log.w("AcolleBolinha", "Sem permissão de sobreposição; encerrando serviço")
+            stopSelf()
+            return
+        }
+        try {
+            criarBolinha()
+        } catch (e: Exception) {
+            Log.e("AcolleBolinha", "Falha ao criar a bolinha", e)
+            emExecucao = false
+            stopSelf()
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -96,7 +113,15 @@ class FloatingBubbleService : Service() {
             .setOngoing(true)
             .build()
 
-        startForeground(ID_NOTIFICACAO_SERVICO, notificacao)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(
+                ID_NOTIFICACAO_SERVICO,
+                notificacao,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
+            )
+        } else {
+            startForeground(ID_NOTIFICACAO_SERVICO, notificacao)
+        }
     }
 
     // ============================================================
@@ -140,6 +165,10 @@ class FloatingBubbleService : Service() {
         var xToqueInicial = 0f
         var yToqueInicial = 0f
         var houveArrasto = false
+        // Tolerância do sistema para um toque (em px, já considera a densidade).
+        // Antes eram 10px fixos: num celular real o dedo "escorrega" mais que isso
+        // e todo toque virava arrasto, então o menu nunca abria.
+        val tolerancia = ViewConfiguration.get(this).scaledTouchSlop * 2
 
         bolinha.setOnTouchListener { _, event ->
             when (event.action) {
@@ -154,7 +183,9 @@ class FloatingBubbleService : Service() {
                 MotionEvent.ACTION_MOVE -> {
                     val dx = (event.rawX - xToqueInicial).toInt()
                     val dy = (event.rawY - yToqueInicial).toInt()
-                    if (abs(dx) > 10 || abs(dy) > 10) houveArrasto = true
+                    if (abs(dx) > tolerancia || abs(dy) > tolerancia) houveArrasto = true
+                    if (!houveArrasto) return@setOnTouchListener true
+                    if (alvoView == null) mostrarAlvoDeFechar()
                     params.x = (xInicial + dx).coerceIn(
                         dp(8),
                         resources.displayMetrics.widthPixels - tamanho - dp(8),
@@ -169,9 +200,19 @@ class FloatingBubbleService : Service() {
                         atualizarPosicaoMenu(params)
                     }
 
+                    destacarAlvo(bolinhaSobreAlvo(params, tamanho))
+
                     true
                 }
                 MotionEvent.ACTION_UP -> {
+                    val soltouNoAlvo =
+                        houveArrasto && bolinhaSobreAlvo(params, tamanho)
+                    removerAlvoDeFechar()
+                    if (soltouNoAlvo) {
+                        fecharMenu()
+                        stopSelf()
+                        return@setOnTouchListener true
+                    }
                     if (!houveArrasto) {
                         alternarMenu(params)
                     } else {
@@ -189,12 +230,86 @@ class FloatingBubbleService : Service() {
                     }
                     true
                 }
+                MotionEvent.ACTION_CANCEL -> {
+                    removerAlvoDeFechar()
+                    true
+                }
                 else -> false
             }
         }
 
         windowManager.addView(bolinha, params)
         bolinhaView = bolinha
+    }
+
+
+    // ============================================================
+    // Alvo "X" para fechar: aparece embaixo ao arrastar a bolinha
+    // ============================================================
+
+    private fun tamanhoAlvo() = (72 * resources.displayMetrics.density).toInt()
+
+    private fun posicaoAlvo(): Pair<Int, Int> {
+        val d = resources.displayMetrics
+        val t = tamanhoAlvo()
+        return Pair((d.widthPixels - t) / 2, d.heightPixels - t - (64 * d.density).toInt())
+    }
+
+    private fun mostrarAlvoDeFechar() {
+        if (alvoView != null) return
+        val alvo = TextView(this).apply {
+            text = "✕"
+            textSize = 28f
+            gravity = Gravity.CENTER
+            setTextColor(Color.WHITE)
+            typeface = Typeface.DEFAULT_BOLD
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(Color.parseColor("#D64545"))
+            }
+            alpha = 0.85f
+        }
+        val (x, y) = posicaoAlvo()
+        val t = tamanhoAlvo()
+        val params = WindowManager.LayoutParams(
+            t, t,
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+                WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+            else WindowManager.LayoutParams.TYPE_PHONE,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+            PixelFormat.TRANSLUCENT,
+        ).apply {
+            gravity = Gravity.TOP or Gravity.START
+            this.x = x
+            this.y = y
+        }
+        runCatching {
+            windowManager.addView(alvo, params)
+            alvoView = alvo
+        }
+    }
+
+    private fun removerAlvoDeFechar() {
+        alvoView?.let { runCatching { windowManager.removeView(it) } }
+        alvoView = null
+    }
+
+    private fun bolinhaSobreAlvo(params: WindowManager.LayoutParams, tamanho: Int): Boolean {
+        val (ax, ay) = posicaoAlvo()
+        val t = tamanhoAlvo()
+        val dx = (params.x + tamanho / 2) - (ax + t / 2)
+        val dy = (params.y + tamanho / 2) - (ay + t / 2)
+        val raio = 90 * resources.displayMetrics.density
+        return dx * dx + dy * dy <= raio * raio
+    }
+
+    private fun destacarAlvo(sobre: Boolean) {
+        alvoView?.apply {
+            alpha = if (sobre) 1f else 0.85f
+            scaleX = if (sobre) 1.25f else 1f
+            scaleY = if (sobre) 1.25f else 1f
+        }
     }
 
     // ============================================================
@@ -237,7 +352,12 @@ class FloatingBubbleService : Service() {
             startActivity(intent)
         })
         menu.addView(itemMenu("Verificar link", "🔗") {
-            abrirTelaFlutter("verificar_link")
+            // Lê a tela, encontra o link e verifica (mesmo fluxo da análise de tela).
+            val intent = Intent(this, ScreenCapturePermissionActivity::class.java).apply {
+                putExtra(ScreenCapturePermissionActivity.EXTRA_MODO, ScreenCapturePermissionActivity.MODO_LINK)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(intent)
         })
         menu.addView(itemMenu("Meus alertas", "🔔") {
             abrirTelaFlutter("alertas")
@@ -245,10 +365,13 @@ class FloatingBubbleService : Service() {
         menu.addView(itemMenu("Pedir ajuda", "🤝") {
             abrirTelaFlutter("ajuda")
         })
+        menu.addView(itemMenu("Desligar botão", "✕") {
+            stopSelf()
+        })
         menu.addView(itemMenuFechar())
 
         val larguraMenu = dp(280)
-        val alturaEstimada = dp(324)
+        val alturaEstimada = dp(388)
         val larguraTela = resources.displayMetrics.widthPixels
         val alturaTela = resources.displayMetrics.heightPixels
         val params = WindowManager.LayoutParams(
@@ -259,6 +382,7 @@ class FloatingBubbleService : Service() {
             else WindowManager.LayoutParams.TYPE_PHONE,
 
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH or
                 WindowManager.LayoutParams.FLAG_DIM_BEHIND,
 
             PixelFormat.TRANSLUCENT,
@@ -315,7 +439,7 @@ class FloatingBubbleService : Service() {
         fun dp(v: Int) = (v * density).toInt()
 
         val larguraMenu = dp(280)
-        val alturaEstimada = dp(324)
+        val alturaEstimada = dp(388)
 
         val larguraTela = resources.displayMetrics.widthPixels
         val alturaTela = resources.displayMetrics.heightPixels
@@ -456,13 +580,18 @@ class FloatingBubbleService : Service() {
                 Intent.FLAG_ACTIVITY_CLEAR_TOP or
                 Intent.FLAG_ACTIVITY_SINGLE_TOP
         }
-        startActivity(intent)
+        try {
+            startActivity(intent)
+        } catch (e: Exception) {
+            Log.e("AcolleBolinha", "Não foi possível abrir o app", e)
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
         emExecucao = false
         bolinhaView?.let { runCatching { windowManager.removeView(it) } }
+        removerAlvoDeFechar()
         fecharMenu()
     }
 }

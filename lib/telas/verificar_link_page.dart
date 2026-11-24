@@ -3,14 +3,26 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../shared/acolle_design.dart';
+import '../shared/extrair_links.dart';
 import '../services/acolle_api.dart';
 import '../services/acessibilidade_service.dart';
 import '../services/notification_listener_service.dart';
 
 class VerificarLinkPage extends StatefulWidget {
-  const VerificarLinkPage({super.key});
+  /// Quando aberto pelo botão flutuante: pega o link copiado e já verifica.
+  final bool usarAreaDeTransferencia;
+
+  /// Texto lido da tela (OCR) pelo botão flutuante; null = abertura normal.
+  final String? textoDaTela;
+
+  const VerificarLinkPage({
+    super.key,
+    this.usarAreaDeTransferencia = false,
+    this.textoDaTela,
+  });
 
   @override
   State<VerificarLinkPage> createState() => _VerificarLinkPageState();
@@ -21,6 +33,7 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
       TextEditingController();
 
   bool _carregando = false;
+  List<String> _linksDaTela = const [];
   Map<String, dynamic>? _resultado;
   String? _erro;
 
@@ -78,6 +91,56 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
     AcessibilidadeService.instance.carregar();
 
     _verificarPermissaoNotificacao();
+
+    if (widget.textoDaTela != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _usarLinksDaTela(widget.textoDaTela!);
+      });
+    } else if (widget.usarAreaDeTransferencia) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _colarLinkCopiado();
+      });
+    }
+  }
+
+  Future<void> _usarLinksDaTela(String texto) async {
+    final links = extrairLinks(texto);
+
+    if (links.isEmpty) {
+      setState(() {
+        _erro = 'Não encontrei nenhum link nesta tela. '
+            'Copie o link, volte aqui e cole no campo abaixo.';
+      });
+      return;
+    }
+
+    setState(() => _linksDaTela = links);
+    _linkController.text = links.first;
+    await _analisarLink();
+  }
+
+  void _escolherLinkDaTela(String link) {
+    _linkController.text = link;
+    _analisarLink();
+  }
+
+  Future<void> _colarLinkCopiado() async {
+    try {
+      final dados = await Clipboard.getData(Clipboard.kTextPlain);
+      final texto = dados?.text?.trim() ?? '';
+      if (texto.isEmpty || !mounted) return;
+
+      final m = RegExp(
+        r'(?:https?:\/\/|www\.)[^\s<>"]+|\b[a-z0-9][a-z0-9\-]*(?:\.[a-z0-9\-]+)*\.[a-z]{2,}(?:\/[^\s<>"]*)?',
+        caseSensitive: false,
+      ).firstMatch(texto);
+      if (m == null) return;
+
+      _linkController.text = m.group(0)!;
+      await _analisarLink();
+    } catch (e) {
+      debugPrint('Erro ao colar link: $e');
+    }
   }
 
   void _onAcessibilidadeChanged() {
@@ -209,8 +272,17 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
   // ============================================================
 
   Future<void> _analisarLink() async {
-    final link =
+    var link =
         _linkController.text.trim();
+
+    // Aceita links sem http:// (ex.: bit.ly/abc, www.site.com).
+    if (link.isNotEmpty &&
+        !link.toLowerCase().startsWith('http') &&
+        !link.contains(' ') &&
+        link.contains('.')) {
+      link = 'https://$link';
+      _linkController.text = link;
+    }
 
     if (link.isEmpty) {
       setState(() {
@@ -377,7 +449,7 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
               const SizedBox(height: 8),
 
               Text(
-                'Cole o link completo para análise.',
+                'Cole o link completo para análise (pode ser sem http://).',
                 style: TextStyle(
                   fontSize:
                       15 * _escalaTexto,
@@ -387,6 +459,32 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
               ),
 
               const SizedBox(height: 24),
+
+              if (_linksDaTela.length > 1) ...[
+                Text(
+                  'Links encontrados na tela (toque para verificar):',
+                  style: TextStyle(
+                    fontSize: 15 * _escalaTexto,
+                    color: _textoSecundario,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final l in _linksDaTela)
+                      ActionChip(
+                        label: Text(
+                          l.replaceFirst(RegExp(r'^https?://'), ''),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        onPressed: () => _escolherLinkDaTela(l),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+              ],
 
               _buildCampoLink(),
 
