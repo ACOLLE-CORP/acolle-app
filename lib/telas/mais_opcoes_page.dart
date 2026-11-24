@@ -8,6 +8,7 @@ import 'configurar_protecao_chamadas_page.dart';
 import 'historico_chamadas_page.dart';
 import 'historico_page.dart';
 import 'perfil_page.dart';
+import 'termos_page.dart';
 
 class MaisOpcoesPage extends StatelessWidget {
   const MaisOpcoesPage({super.key});
@@ -193,6 +194,25 @@ class MaisOpcoesPage extends StatelessWidget {
                     'Encerrar a sessão neste aparelho.',
                 onTap: () =>
                     confirmarSaida(context),
+              ),
+              const SizedBox(height: 12),
+              _Opcao(
+                icone: Icons.privacy_tip_outlined,
+                titulo: 'Termos e privacidade',
+                descricao: 'Saiba como seus dados são usados.',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const TermosPage(onboarding: false),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              _Opcao(
+                icone: Icons.delete_forever_outlined,
+                titulo: 'Excluir conta',
+                descricao: 'Apague sua conta e seus dados do Acolle.',
+                onTap: () => confirmarExclusaoConta(context),
               ),
             ],
           ),

@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../services/acessibilidade_service.dart';
+import '../services/exclusao_conta_service.dart';
 import '../telas/login_page.dart';
 import 'acolle_design.dart';
 
@@ -64,6 +65,10 @@ Future<void> confirmarSaida(BuildContext context) async {
 
   if (!context.mounted) return;
 
+  _voltarParaLogin(context);
+}
+
+void _voltarParaLogin(BuildContext context) {
   Navigator.pushAndRemoveUntil(
     context,
     MaterialPageRoute(
@@ -71,6 +76,93 @@ Future<void> confirmarSaida(BuildContext context) async {
     ),
     (route) => false,
   );
+}
+
+Future<void> confirmarExclusaoConta(BuildContext context) async {
+  var senha = '';
+  var excluindo = false;
+  String? erro;
+  final excluida = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogContext) => StatefulBuilder(
+      builder: (context, atualizar) => PopScope(
+        canPop: !excluindo,
+        child: AlertDialog(
+          title: const Text('Excluir conta'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Esta ação é definitiva. Seu perfil, histórico, lembretes '
+                  'e contatos de emergência serão apagados.',
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  obscureText: true,
+                  enabled: !excluindo,
+                  decoration: InputDecoration(
+                    labelText: 'Confirme sua senha',
+                    errorText: erro,
+                    errorMaxLines: 4,
+                  ),
+                  onChanged: (valor) => atualizar(() {
+                    senha = valor;
+                    erro = null;
+                  }),
+                ),
+                if (excluindo) ...[
+                  const SizedBox(height: 16),
+                  const LinearProgressIndicator(semanticsLabel: 'Excluindo conta'),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: excluindo ? null : () => Navigator.pop(dialogContext),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: AcolleDesign.vermelho),
+              onPressed: excluindo || senha.isEmpty ? null : () async {
+                atualizar(() {
+                  excluindo = true;
+                  erro = null;
+                });
+                String? falha;
+                try {
+                  await ExclusaoContaService.excluir(senha);
+                } on FirebaseAuthException catch (e) {
+                  falha = switch (e.code) {
+                    'wrong-password' || 'invalid-credential' =>
+                      'Confira sua senha e tente novamente.',
+                    'too-many-requests' =>
+                      'Aguarde alguns minutos e tente novamente.',
+                    _ => 'Não foi possível concluir. Tente novamente.',
+                  };
+                } catch (_) {
+                  falha = 'Não foi possível concluir. Verifique a conexão e tente novamente.';
+                }
+                if (!dialogContext.mounted) return;
+                if (falha == null) {
+                  Navigator.pop(dialogContext, true);
+                } else {
+                  atualizar(() {
+                    excluindo = false;
+                    erro = falha;
+                  });
+                }
+              },
+              child: const Text('Excluir minha conta'),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+  if (excluida == true && context.mounted) _voltarParaLogin(context);
 }
 
 void abrirAcessibilidade(BuildContext context) {

@@ -1,4 +1,4 @@
-import 'package:acolle1/telas/link_redefinicao_enviado_page.dart';
+import 'package:acolle/telas/link_redefinicao_enviado_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 

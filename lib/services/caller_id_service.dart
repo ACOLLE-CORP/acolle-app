@@ -5,14 +5,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:phone_state/phone_state.dart';
 
-/// Monitora chamadas recebidas em tempo real e compara o número com a coleção
-/// `numeros_suspeitos` no Firestore. Dispara alerta visual e grava a chamada
-/// no histórico.
+/// Usa a lista de suspeitos sincronizada no Android e grava o histórico.
 class CallerIdService {
   static StreamSubscription? _subscription;
   static StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
   _suspeitosSubscription;
   static const _canalNativo = MethodChannel('acolle/caller_id');
+  static bool suspenderHistorico = false;
 
   static Future<void> iniciarMonitoramento(
     Function(String numero) onNumeroSuspeito,
@@ -23,18 +22,21 @@ class CallerIdService {
           event.number != null) {
         final numero = event.number!.trim();
         if (normalizarNumero(numero).isEmpty) return;
+        final uid = FirebaseAuth.instance.currentUser?.uid;
+        if (uid == null || suspenderHistorico) return;
         final suspeito = await _verificarNumero(numero);
+        if (suspenderHistorico ||
+            FirebaseAuth.instance.currentUser?.uid != uid) {
+          return;
+        }
 
         try {
-          final uid = FirebaseAuth.instance.currentUser?.uid;
-          if (uid != null) {
-            await FirebaseFirestore.instance.collection('chamadas').add({
-              'usuarioId': uid,
-              'numero': numero,
-              'suspeito': suspeito,
-              'data': FieldValue.serverTimestamp(),
-            });
-          }
+          await FirebaseFirestore.instance.collection('chamadas').add({
+            'usuarioId': uid,
+            'numero': numero,
+            'suspeito': suspeito,
+            'data': FieldValue.serverTimestamp(),
+          });
         } catch (_) {}
 
         if (suspeito) {
@@ -46,29 +48,38 @@ class CallerIdService {
 
   static Future<void> sincronizarNumerosSuspeitos() async {
     if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
+    if (_suspeitosSubscription != null) return;
 
     try {
-      await _suspeitosSubscription?.cancel();
       _suspeitosSubscription = FirebaseFirestore.instance
           .collection('numeros_suspeitos')
-          .snapshots()
-          .listen((snapshot) async {
-            final numeros = snapshot.docs
-                .map((doc) => doc.data()['numero']?.toString() ?? '')
-                .map(normalizarNumero)
-                .where((numero) => numero.isNotEmpty)
-                .toSet()
-                .toList();
-            try {
-              await _canalNativo.invokeMethod<bool>('syncSuspectNumbers', {
-                'numbers': numeros,
-              });
-            } on PlatformException catch (e) {
-              debugPrint('Falha ao sincronizar números suspeitos: $e');
-            }
-          }, onError: (Object erro) {
-            debugPrint('Falha ao consultar a lista de números suspeitos: $erro');
-          });
+          .snapshots(includeMetadataChanges: true)
+          .listen(
+            (snapshot) async {
+              // Um cache local vazio não invalida a última lista persistida.
+              if (snapshot.metadata.isFromCache && snapshot.docs.isEmpty) {
+                return;
+              }
+              final numeros = snapshot.docs
+                  .map((doc) => doc.data()['numero']?.toString() ?? '')
+                  .map(normalizarNumero)
+                  .where((numero) => numero.isNotEmpty)
+                  .toSet()
+                  .toList();
+              try {
+                await _canalNativo.invokeMethod<bool>('syncSuspectNumbers', {
+                  'numbers': numeros,
+                });
+              } on PlatformException catch (e) {
+                debugPrint('Falha ao sincronizar números suspeitos: $e');
+              }
+            },
+            onError: (Object erro) {
+              debugPrint(
+                'Falha ao consultar a lista de números suspeitos: $erro',
+              );
+            },
+          );
     } on PlatformException catch (e) {
       debugPrint('Identificação nativa de chamadas indisponível: $e');
     }
@@ -76,22 +87,20 @@ class CallerIdService {
 
   static Future<bool> _verificarNumero(String numero) async {
     try {
-      if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-        final salvo = await _canalNativo.invokeMethod<bool>(
-          'isSavedContact',
-          {'numero': numero},
-        );
-        if (salvo == true) return false;
+      if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
+        return false;
       }
-      final resultado = await FirebaseFirestore.instance
-          .collection('numeros_suspeitos')
-          .get();
-      final procurado = normalizarNumero(numero);
-      return resultado.docs.any(
-        (doc) =>
-            normalizarNumero(doc.data()['numero']?.toString() ?? '') ==
-            procurado,
+      final argumentos = {'numero': numero};
+      final salvo = await _canalNativo.invokeMethod<bool>(
+        'isSavedContact',
+        argumentos,
       );
+      if (salvo == true) return false;
+      return await _canalNativo.invokeMethod<bool>(
+            'isSuspectNumberCached',
+            argumentos,
+          ) ??
+          false;
     } catch (_) {
       return false;
     }
@@ -115,5 +124,11 @@ class CallerIdService {
     _subscription?.cancel();
     // A sincronização permanece ativa enquanto o usuário estiver autenticado,
     // mantendo o cache nativo atualizado mesmo ao sair da tela Home.
+  }
+
+  static void encerrarSessao() {
+    pararMonitoramento();
+    _suspeitosSubscription?.cancel();
+    _suspeitosSubscription = null;
   }
 }

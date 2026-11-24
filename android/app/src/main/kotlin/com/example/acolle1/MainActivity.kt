@@ -123,6 +123,10 @@ class MainActivity : FlutterActivity() {
                             .apply()
                         result.success(true)
                     }
+                    "isSuspectNumberCached" -> {
+                        val numero = call.argument<String>("numero").orEmpty()
+                        result.success(applicationContext.numeroSuspeitoNoCache(numero))
+                    }
                     else -> result.notImplemented()
                 }
             }

@@ -4,7 +4,7 @@
 
 - Notificações MessagingStyle: usa apenas a mensagem mais recente, sem concatenar o histórico com o texto e o texto expandido.
 - Ignora resumos de grupos, notificações contínuas de serviço e mensagens com timestamp mais antigo que dois minutos.
-- A mesma combinação de aplicativo, remetente e texto é processada uma vez em 24 horas. Só o hash e o horário são guardados nesse controle, inclusive após reiniciar o serviço.
+- A mesma combinação de aplicativo, remetente e texto é processada uma vez em 24 horas. O controle local de duplicidade guarda o hash e o horário, inclusive após reiniciar o serviço. O histórico da conta em `verificacoes` pode guardar o conteúdo da mensagem junto com o resultado.
 - Um intervalo de um minuto limita rajadas de alertas. Uma mudança de Médio para Alto pode interromper esse intervalo. Uma mensagem diferente pode gerar aviso após o intervalo.
 - Um único cartão de notificação substitui o anterior e expira em dois minutos.
 - A análise automática envia a mensagem completa sanitizada ao mesmo endpoint da análise manual. Não substitui mais o texto pelo link nem usa o score local antes da API. Timeout de leitura aumentado para 30 segundos.

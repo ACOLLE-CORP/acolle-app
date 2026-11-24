@@ -8,40 +8,37 @@ import '../shared/acolle_design.dart';
 
 /// Tela de Termos e Condições + Privacidade no onboarding do Acolle.
 class TermosPage extends StatelessWidget {
-  const TermosPage({super.key});
+  const TermosPage({super.key, this.onboarding = true});
+
+  final bool onboarding;
 
   static const String _conteudo = '''
 ACOLLE — TERMOS DE USO E POLÍTICA DE PRIVACIDADE
 
-Resumo para você:
-• O Acolle existe para proteger você de golpes digitais.
-• Tudo o que você analisar (mensagem, link ou chamada) fica salvo só para você ver depois.
-• Nunca enviaremos sua senha, dados bancários ou códigos de segurança por e-mail, SMS ou telefone.
-
 1. Quem somos
-O Acolle é um aplicativo gratuito (projeto acadêmico) que ajuda pessoas a identificarem mensagens, links e chamadas suspeitas.
+O Acolle é um projeto acadêmico gratuito que ajuda a identificar possíveis golpes em mensagens, links e chamadas.
 
-2. O que coletamos
-• Seu nome, e-mail, telefone e data de nascimento (para criar sua conta).
-• As mensagens e links que você colar para analisar.
-• O número das chamadas recebidas (somente para comparar com a lista de números suspeitos).
+2. O que guardamos
+• Nome, e-mail, telefone e data de nascimento para manter sua conta. Se você ativar notificações, podemos guardar o identificador usado para entregá-las.
+• Nome ou descrição do remédio, horário e frequência para agendar lembretes. Essas informações podem aparecer na notificação.
+• Nome e telefone dos contatos de emergência que você cadastrar para pedir ajuda.
+• Mensagens, endereços de links e resultados das verificações no histórico da conta. Dependendo da origem, o histórico pode incluir o texto integral. Nas análises de captura de tela, o histórico usa uma descrição da captura.
+• Números de chamadas recebidas, data e indicação de suspeita quando o monitoramento registra a chamada no histórico.
 
-3. Como usamos seus dados
-• Para identificar padrões de golpe usando nossa inteligência artificial.
-• Para avisar você em tempo real sobre chamadas suspeitas.
-• Para gerar um histórico que só você vê.
+3. Como as verificações funcionam
+Quando você pede uma análise, o conteúdo da mensagem ou o endereço do link é enviado ao serviço de análise hospedado na Cloudflare. A análise pode usar Cloudflare Workers AI ou Google Gemini, conforme o provedor disponível. Evite incluir senhas, códigos de segurança e dados bancários nas análises.
 
-4. Com quem compartilhamos
-Não vendemos nem compartilhamos seus dados com terceiros. Suas análises ficam protegidas no seu espaço pessoal.
+Com a proteção automática ativada, o Acolle pode ler notificações de aplicativos de mensagens e enviar trechos para análise. Nesse fluxo, o app tenta ocultar alguns dados, como CPF, cartão, código e e-mail. Para evitar alertas repetidos, o aparelho guarda um código gerado a partir da notificação e o horário. O histórico de verificações é armazenado separadamente.
 
-5. Segurança
-Salvamos seus dados com criptografia no Firebase. Pedimos senha a cada novo acesso.
+Na proteção de chamadas, o Acolle usa a lista de suspeitos no aparelho e verifica se o número está salvo nos contatos, quando essa permissão está ativa. Quando é necessária uma consulta externa de reputação, o número é enviado a um serviço na Cloudflare que pode consultá-lo no OpenSpam.
 
-6. Seus direitos
-Você pode apagar qualquer registro do seu histórico quando quiser. Para excluir a conta, fale com o suporte.
+4. Serviços usados
+O Google Firebase fornece autenticação, banco de dados e notificações. Cloudflare, Google Gemini e OpenSpam podem receber os dados descritos acima para realizar as verificações. Esses serviços podem processar dados fora do Brasil.
 
-7. Mudanças
-Este termo pode ser atualizado. Sempre que mudar algo importante, mostraremos este texto novamente.
+5. Seus dados e a LGPD
+Você pode consultar e corrigir dados do perfil no app e remover registros do histórico de verificações. Em Mais opções → Excluir conta, você pode confirmar com sua senha a exclusão da conta, do perfil, dos históricos, dos lembretes e dos contatos de emergência cadastrados. Esse fluxo apaga os registros da conta no Firebase. O processamento e a retenção dos serviços externos seguem suas próprias políticas.
+
+A Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018) prevê direitos como acesso, correção e eliminação dos dados nas hipóteses legais.
 ''';
 
   void _prosseguir(BuildContext context) {
@@ -111,9 +108,11 @@ Este termo pode ser atualizado. Sempre que mudar algo importante, mostraremos es
                       color: AcolleDesign.roxo,
                     ),
                     const SizedBox(height: 12),
-                    const Text(
-                      'Leia com calma antes de continuar',
-                      style: TextStyle(
+                    Text(
+                      onboarding
+                          ? 'Leia com calma antes de continuar'
+                          : 'Como usamos seus dados',
+                      style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: AcolleDesign.textoBase,
@@ -130,19 +129,20 @@ Este termo pode ser atualizado. Sempre que mudar algo importante, mostraremos es
                 ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  AcolleDesign.botaoPrimario(
-                    texto: 'Entendi',
-                    icone: Icons.check_circle_outline_rounded,
-                    onPressed: () => _prosseguir(context),
-                  ),
-                ],
+            if (onboarding)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    AcolleDesign.botaoPrimario(
+                      texto: 'Entendi',
+                      icone: Icons.check_circle_outline_rounded,
+                      onPressed: () => _prosseguir(context),
+                    ),
+                  ],
+                ),
               ),
-            ),
           ],
         ),
       ),

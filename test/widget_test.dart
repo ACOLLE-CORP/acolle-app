@@ -7,7 +7,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:acolle1/main.dart';
+import 'package:acolle/main.dart';
 
 void main() {
   testWidgets('Splash mostra a identidade do Acolle', (
@@ -15,6 +15,6 @@ void main() {
   ) async {
     await tester.pumpWidget(const AcolleApp());
 
-    expect(find.text('Acolle'), findsOneWidget);
+    expect(find.bySemanticsLabel('Acolle'), findsOneWidget);
   });
 }

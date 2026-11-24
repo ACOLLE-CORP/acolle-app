@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:alarm/alarm.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -9,6 +10,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'firebase_options.dart';
 import 'services/notificacao_service.dart';
 import 'services/acessibilidade_service.dart';
+import 'services/caller_id_service.dart';
 import 'services/floating_button_service.dart';
 import 'telas/splash_page.dart';
 import 'telas/tela_alarme_tocando.dart';
@@ -35,7 +37,53 @@ void main() async {
 
   await AcessibilidadeService.instance.carregar();
 
+  _SessaoLembretes().iniciar();
   runApp(const AcolleApp());
+}
+
+class _SessaoLembretes with WidgetsBindingObserver {
+  void iniciar() {
+    WidgetsBinding.instance.addObserver(this);
+    FirebaseAuth.instance.authStateChanges().listen((user) {
+      if (user != null) {
+        _renovarLembretes();
+      } else {
+        CallerIdService.encerrarSessao();
+        unawaited(_encerrarNotificacoes());
+      }
+    });
+    Timer.periodic(const Duration(hours: 6), (_) {
+      if (WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) {
+        _renovarLembretes();
+      }
+    });
+  }
+
+  Future<void> _encerrarNotificacoes() async {
+    try {
+      await Future.wait([
+        NotificacaoService.cancelarTodosLembretes(),
+        NotificacaoService.pararRegistroToken(),
+      ]);
+    } catch (erro) {
+      debugPrint('Falha ao encerrar notificações: ${erro.runtimeType}');
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _renovarLembretes();
+  }
+
+  Future<void> _renovarLembretes() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    try {
+      await NotificacaoService.sincronizarLembretes(uid);
+    } catch (erro) {
+      debugPrint('Falha ao renovar lembretes: ${erro.runtimeType}');
+    }
+  }
 }
 
 class AcolleApp extends StatefulWidget {
@@ -47,22 +95,16 @@ class AcolleApp extends StatefulWidget {
 
 class _AcolleAppState extends State<AcolleApp> {
   StreamSubscription<String>? _subscricaoRotasBotao;
+  StreamSubscription? _alarmesTocando;
+  final _alarmesExibidos = <int>{};
 
   @override
   void initState() {
     super.initState();
-
     // Sempre que um alarme começar a tocar, abre a tela dedicada
     // por cima de qualquer tela em que o usuário estiver.
-    Alarm.ringing.listen((alarmSet) {
-      for (final alarm in alarmSet.alarms) {
-        navigatorKey.currentState?.push(
-          MaterialPageRoute(
-            builder: (_) => TelaAlarmeTocando(alarm: alarm),
-            fullscreenDialog: true,
-          ),
-        );
-      }
+    _alarmesTocando = Alarm.ringing.listen((alarmSet) {
+      _mostrarAlarmes(alarmSet.alarms);
     });
 
     // Novo: se o app foi aberto por um toque no menu do botão
@@ -71,8 +113,28 @@ class _AcolleAppState extends State<AcolleApp> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _verificarAberturaPeloBotaoFlutuante();
     });
+    navegacaoInicialPronta.future.then((_) {
+      _mostrarAlarmes(Alarm.ringing.value.alarms);
+    });
 
     _subscricaoRotasBotao = FloatingButtonService.rotas.listen(_abrirRotaBotao);
+  }
+
+  void _mostrarAlarmes(Iterable<AlarmSettings> alarmes) {
+    final navigator = navigatorKey.currentState;
+    if (!mounted || navigator == null || !navegacaoInicialPronta.isCompleted) {
+      return;
+    }
+    _alarmesExibidos.retainAll(alarmes.map((alarme) => alarme.id));
+    for (final alarme in alarmes) {
+      if (!_alarmesExibidos.add(alarme.id)) continue;
+      navigator.push(
+        MaterialPageRoute(
+          builder: (_) => TelaAlarmeTocando(alarm: alarme),
+          fullscreenDialog: true,
+        ),
+      );
+    }
   }
 
   Future<void> _verificarAberturaPeloBotaoFlutuante() async {
@@ -138,6 +200,7 @@ class _AcolleAppState extends State<AcolleApp> {
 
   @override
   void dispose() {
+    _alarmesTocando?.cancel();
     _subscricaoRotasBotao?.cancel();
     super.dispose();
   }

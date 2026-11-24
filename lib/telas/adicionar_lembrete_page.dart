@@ -154,7 +154,7 @@ class _AdicionarLembretePageState extends State<AdicionarLembretePage> {
       // SALVAR NO FIRESTORE
       // ----------------------------------------------------------
 
-      final doc = await FirebaseFirestore.instance
+      await FirebaseFirestore.instance
           .collection('remedios')
           .add({
         'usuarioId': user.uid,
@@ -169,12 +169,12 @@ class _AdicionarLembretePageState extends State<AdicionarLembretePage> {
       // AGENDAR NOTIFICAÇÃO
       // ----------------------------------------------------------
 
-      await NotificacaoService.agendarLembrete(
-        docId: doc.id,
-        nome: nome,
-        horario: horarioFormatado,
-        frequencia: _frequencia,
-      );
+      var agendado = true;
+      try {
+        await NotificacaoService.sincronizarLembretes(user.uid);
+      } catch (_) {
+        agendado = false;
+      }
 
       if (!mounted) return;
 
@@ -186,8 +186,10 @@ class _AdicionarLembretePageState extends State<AdicionarLembretePage> {
 
       AcolleDesign.snackbar(
         context,
-        'Lembrete adicionado!',
-        cor: AcolleDesign.verde,
+        agendado
+            ? 'Lembrete adicionado!'
+            : 'Lembrete salvo. Abra o app novamente para tentar agendar o alarme.',
+        cor: agendado ? AcolleDesign.verde : AcolleDesign.vermelho,
       );
     } catch (e) {
       debugPrint(

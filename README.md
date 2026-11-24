@@ -138,15 +138,36 @@ flutter devices
 flutter run
 ```
 
-Para gerar um build de produção:
+Para testar no Android com a configuração Firebase deste projeto, use
+`flutter build apk --debug`. A variante release usa a chave de distribuição
+quando existe um arquivo local `android/key.properties` com os campos abaixo.
+Sem esse arquivo, o Android gera uma release sem assinatura.
 
-```bash
-# Android (APK)
-flutter build apk
-
-# iOS
-flutter build ios
+```properties
+storeFile=caminho/para/acolle-upload.jks
+storePassword=SENHA_DA_LOJA
+keyAlias=acolle
+keyPassword=SENHA_DA_CHAVE
 ```
+
+O caminho relativo da chave parte de `android/`. Para gerar o pacote de
+distribuição assinado, execute `flutter build appbundle --release`.
+
+O Firebase fornecido está registrado como `com.example.acolle1`. Para publicar
+com um identificador definitivo, registre o app Android correspondente no mesmo
+projeto Firebase, baixe o `google-services.json` para `android/app/` e defina
+`acolleApplicationId` no arquivo Gradle de propriedades do ambiente de build
+(por exemplo, pela variável `ORG_GRADLE_PROJECT_acolleApplicationId`).
+Atualize também a configuração FlutterFire de Android em
+`lib/firebase_options.dart` e `firebase.json`. Um identificador diferente
+instala um aplicativo separado no aparelho.
+
+### Lembretes de medicamentos
+
+Ao entrar ou voltar ao app com conexão, o Acolle estende a agenda local dos
+lembretes ativos. A janela é de 14 dias para frequências diárias e de 8
+ocorrências para a frequência semanal. Abra o app com conexão antes de a janela
+expirar para manter os alarmes programados.
 
 ---
 

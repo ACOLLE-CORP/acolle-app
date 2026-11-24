@@ -1,5 +1,5 @@
-import 'package:acolle1/services/tutorial_service.dart';
-import 'package:acolle1/telas/tutorial_page.dart';
+import 'package:acolle/services/tutorial_service.dart';
+import 'package:acolle/telas/tutorial_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';

@@ -410,10 +410,13 @@ class _ItemLembreteState
   // ====================================================================
 
   Future<void> _alternar(bool valor) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
     setState(() {
       _ativo = valor;
     });
 
+    var salvo = false;
     try {
       await FirebaseFirestore.instance
           .collection('remedios')
@@ -422,28 +425,22 @@ class _ItemLembreteState
         'ativo': valor,
       });
 
+      salvo = true;
       if (valor) {
-        await NotificacaoService.agendarLembrete(
-          docId: widget.id,
-          nome: widget.nome,
-          horario: widget.horario,
-          frequencia: widget.frequencia,
-        );
+        await NotificacaoService.sincronizarLembretes(uid);
       } else {
-        await NotificacaoService.cancelarLembrete(
-          widget.id,
-        );
+        await NotificacaoService.cancelarLembrete(uid, widget.id);
       }
     } catch (_) {
       if (!mounted) return;
 
-      setState(() {
-        _ativo = !valor;
-      });
+      if (!salvo) setState(() => _ativo = !valor);
 
       AcolleDesign.snackbar(
         context,
-        'Erro ao atualizar lembrete.',
+        salvo
+            ? 'Alteração salva. Abra o app novamente para sincronizar os alarmes.'
+            : 'Erro ao atualizar lembrete.',
       );
     }
   }
@@ -541,16 +538,17 @@ class _ItemLembreteState
       return;
     }
 
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    var removido = false;
     try {
-      await NotificacaoService
-          .cancelarLembrete(
-        widget.id,
-      );
-
       await FirebaseFirestore.instance
           .collection('remedios')
           .doc(widget.id)
           .delete();
+
+      removido = true;
+      await NotificacaoService.cancelarLembrete(uid, widget.id);
 
       if (!mounted) return;
 
@@ -563,7 +561,9 @@ class _ItemLembreteState
 
       AcolleDesign.snackbar(
         context,
-        'Não foi possível remover o lembrete.',
+        removido
+            ? 'Lembrete removido. Abra o app novamente para sincronizar os alarmes.'
+            : 'Não foi possível remover o lembrete.',
       );
     }
   }

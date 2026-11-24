@@ -1,11 +1,11 @@
 {
-    "name": "acolle1",
-    "short_name": "acolle1",
+    "name": "Acolle",
+    "short_name": "Acolle",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Segurança digital acessível e lembretes para pessoas idosas.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
