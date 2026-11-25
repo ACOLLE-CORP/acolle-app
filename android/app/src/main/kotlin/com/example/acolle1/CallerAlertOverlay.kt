@@ -16,7 +16,14 @@ import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
 
-internal enum class CallAlertStatus { CHECKING, SUSPECT, CLEAR, UNAVAILABLE }
+internal enum class CallAlertStatus(val chave: String, val titulo: String, val descricao: String) {
+    CHECKING("verificando", "Verificando número…", "Aguarde enquanto o Acolle consulta a base de denúncias."),
+    SUSPECT("suspeita", "Possível chamada de golpe", "Número denunciado. Não informe senhas ou códigos."),
+    CLEAR("sem_denuncias", "Nenhuma denúncia encontrada", "A ausência de denúncias não garante que a chamada seja segura."),
+    LOCAL_ONLY("sem_registro_local", "Sem registro na lista do Acolle", "A consulta externa está indisponível. Apenas a lista sincronizada do Acolle foi conferida."),
+    INCOMPLETE("numero_incompleto", "Número incompleto", "O telefone recebido não tem dígitos suficientes para uma consulta ou está em formato inválido."),
+    UNAVAILABLE("indisponivel", "Consulta indisponível", "Não foi possível consultar a base de denúncias neste momento.");
+}
 
 internal object CallerAlertOverlay {
     private var currentView: LinearLayout? = null
@@ -38,7 +45,7 @@ internal object CallerAlertOverlay {
                 setStroke(dp(2), when (status) {
                     CallAlertStatus.SUSPECT -> 0xFFFF981F.toInt()
                     CallAlertStatus.CLEAR -> 0xFF5A49D6.toInt()
-                    CallAlertStatus.CHECKING, CallAlertStatus.UNAVAILABLE -> 0xFF1976D2.toInt()
+                    else -> 0xFF1976D2.toInt()
                 })
             }
 
@@ -58,13 +65,13 @@ internal object CallerAlertOverlay {
                     CallAlertStatus.SUSPECT -> "⚠ POSSÍVEL GOLPE"
                     CallAlertStatus.CLEAR -> "✓ SEM DENÚNCIAS ENCONTRADAS"
                     CallAlertStatus.CHECKING -> "⌛ VERIFICANDO NÚMERO..."
-                    CallAlertStatus.UNAVAILABLE -> "CONSULTA INDISPONÍVEL"
+                    else -> status.titulo
                 }
                 textSize = 20f
                 setTextColor(when (status) {
                     CallAlertStatus.SUSPECT -> 0xFFD35400.toInt()
                     CallAlertStatus.CLEAR -> 0xFF2E7D32.toInt()
-                    CallAlertStatus.CHECKING, CallAlertStatus.UNAVAILABLE -> 0xFF1565C0.toInt()
+                    else -> 0xFF1565C0.toInt()
                 })
                 setTypeface(typeface, Typeface.BOLD)
             }
@@ -87,12 +94,7 @@ internal object CallerAlertOverlay {
                 setTypeface(typeface, Typeface.BOLD)
             })
             card.addView(TextView(context).apply {
-                text = when (status) {
-                    CallAlertStatus.SUSPECT -> "Número denunciado por outros usuários. Não informe senhas ou códigos."
-                    CallAlertStatus.CLEAR -> "Nenhuma denúncia encontrada. Isso não garante que a chamada seja segura."
-                    CallAlertStatus.CHECKING -> "Aguarde um instante enquanto o Acolle consulta a base de denúncias."
-                    CallAlertStatus.UNAVAILABLE -> "Não foi possível verificar este número."
-                }
+                text = status.descricao
                 textSize = 15f
                 setTextColor(0xFF55505F.toInt())
                 setPadding(0, dp(6), 0, 0)

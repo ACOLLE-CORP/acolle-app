@@ -1,3 +1,4 @@
+import '../services/agenda_service.dart';
 // ignore_for_file: use_build_context_synchronously
 
 import 'dart:async';
@@ -5,7 +6,6 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../shared/acolle_design.dart';
 import '../services/acessibilidade_service.dart';
@@ -957,28 +957,8 @@ class _AdicionarContatoEmergenciaPageState
   // ABRIR CONTATOS DO CELULAR
   // ==============================================================
 
-  Future<void> _abrirContatos() async {
-    final Uri uri =
-        Uri.parse(
-      'content://contacts/people',
-    );
-
-    try {
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri);
-      } else {
-        AcolleDesign.snackbar(
-          context,
-          'Conceda permissão de contatos nas Configurações.',
-        );
-      }
-    } catch (_) {
-      AcolleDesign.snackbar(
-        context,
-        'Não foi possível abrir os contatos.',
-      );
-    }
-  }
+  Future<void> _abrirContatos() => AgendaService.preencherContato(
+      context, _nomeController, _telefoneController);
 
   // ==============================================================
   // BUILD
@@ -1114,8 +1094,7 @@ class _AdicionarContatoEmergenciaPageState
 
                       child:
                           OutlinedButton(
-                        onPressed:
-                            _abrirContatos,
+                        onPressed: AgendaService.disponivel ? _abrirContatos : null,
 
                         style:
                             OutlinedButton

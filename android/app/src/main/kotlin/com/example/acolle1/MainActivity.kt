@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.net.Uri
 import android.os.Build
+import android.provider.ContactsContract.CommonDataKinds.Phone
 import android.provider.Settings
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -18,6 +19,7 @@ import io.flutter.plugin.common.MethodChannel
 class MainActivity : FlutterActivity() {
     companion object {
         private const val CHANNEL = "acolle/caller_id"
+        private const val CONTACT_REQUEST_CODE = 7413
         private const val ROLE_REQUEST_CODE = 7412
 
         private const val CHANNEL_NOTIF_METODOS = "com.example.acolle1/notification_settings"
@@ -28,6 +30,7 @@ class MainActivity : FlutterActivity() {
         private const val CHANNEL_ROTAS_BOTAO = "acolle/floating_button_routes"
     }
 
+    private var pendingContact: MethodChannel.Result? = null
     private var eventSink: EventChannel.EventSink? = null
     private var floatingRouteSink: EventChannel.EventSink? = null
     private var notificationReceiverRegistered = false
@@ -67,6 +70,21 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "acolle/contatos")
+            .setMethodCallHandler { call, result ->
+                if (call.method != "selecionarTelefone") result.notImplemented()
+                else if (pendingContact != null) result.error("OCUPADO", "Agenda já aberta.", null)
+                else {
+                    pendingContact = result
+                    try {
+                        startActivityForResult(Intent(Intent.ACTION_PICK, Phone.CONTENT_URI), CONTACT_REQUEST_CODE)
+                    } catch (error: RuntimeException) {
+                        pendingContact = null
+                        result.error("AGENDA", "Não foi possível abrir a agenda.", null)
+                    }
+                }
+            }
+
         // Canal já existente: call screening / overlay / suspect numbers
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
             .setMethodCallHandler { call, result ->
@@ -104,6 +122,15 @@ class MainActivity : FlutterActivity() {
                     "isOverlayPermissionEnabled" -> result.success(
                         Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(this),
                     )
+                    "classificarChamada" -> {
+                        val numero = call.argument<String>("numero").orEmpty()
+                        kotlin.concurrent.thread {
+                            val estado = try {
+                                PhoneReputation.classificacao(applicationContext, numero)
+                            } catch (_: Exception) { "indisponivel" }
+                            runOnUiThread { result.success(estado) }
+                        }
+                    }
                     "isSavedContact" -> {
                         val numero = call.argument<String>("numero").orEmpty()
                         kotlin.concurrent.thread(name = "acolle-consulta-agenda") {
@@ -117,10 +144,16 @@ class MainActivity : FlutterActivity() {
                     }
                     "syncSuspectNumbers" -> {
                         val numbers = call.argument<List<String>>("numbers").orEmpty()
-                        getSharedPreferences(CALLER_ID_PREFS, Context.MODE_PRIVATE)
-                            .edit()
-                            .putStringSet(SUSPECT_NUMBERS_KEY, numbers.toSet())
-                            .apply()
+                        val prefs = getSharedPreferences(CALLER_ID_PREFS, Context.MODE_PRIVATE)
+                        val editor = prefs.edit()
+                        if (call.argument<Boolean>("confirmada") == true) {
+                            editor.putStringSet(SUSPECT_NUMBERS_KEY, numbers.toSet())
+                                .putLong(LISTA_CONFIRMADA_EM, System.currentTimeMillis())
+                        } else {
+                            val anterior = prefs.getStringSet(SUSPECT_NUMBERS_KEY, emptySet()).orEmpty()
+                            editor.putStringSet(SUSPECT_NUMBERS_KEY, anterior + numbers)
+                        }
+                        editor.apply()
                         result.success(true)
                     }
                     "isSuspectNumberCached" -> {
@@ -146,6 +179,22 @@ class MainActivity : FlutterActivity() {
                         startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
                         result.success(null)
                     }
+                    "avisosMensagemPermitidos" -> result.success(avisosMensagemPermitidos())
+                    "abrirAjustesDeAvisos" -> {
+                        val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            criarCanalMensagens()
+                            if (NotificationManagerCompat.from(this).areNotificationsEnabled()) {
+                                Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+                                    .putExtra(Settings.EXTRA_CHANNEL_ID, CANAL_ALERTA_ID)
+                            } else {
+                                Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                            }.putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                        } else {
+                            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null))
+                        }
+                        startActivity(intent)
+                        result.success(null)
+                    }
                     else -> result.notImplemented()
                 }
             }
@@ -168,10 +217,7 @@ class MainActivity : FlutterActivity() {
 
                 override fun onCancel(arguments: Any?) {
                     eventSink = null
-                    if (notificationReceiverRegistered) {
-                        unregisterReceiver(notificationReceiver)
-                        notificationReceiverRegistered = false
-                    }
+                    releaseNotificationReceiver()
                 }
             })
 
@@ -249,6 +295,43 @@ class MainActivity : FlutterActivity() {
                     floatingRouteSink = null
                 }
             })
+    }
+
+    private fun releaseNotificationReceiver() {
+        if (notificationReceiverRegistered) {
+            unregisterReceiver(notificationReceiver)
+            notificationReceiverRegistered = false
+        }
+    }
+
+    override fun onDestroy() {
+        releaseNotificationReceiver()
+        pendingContact?.success(null)
+        pendingContact = null
+        super.onDestroy()
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != CONTACT_REQUEST_CODE) return
+        val result = pendingContact ?: return
+        pendingContact = null
+        val uri = data?.data
+        if (resultCode != RESULT_OK || uri == null) {
+            result.success(null)
+            return
+        }
+        try {
+            val contato = contentResolver.query(uri, arrayOf(Phone.DISPLAY_NAME, Phone.NUMBER), null, null, null)?.use {
+                if (it.moveToFirst() && !it.getString(1).isNullOrBlank()) {
+                    mapOf("nome" to it.getString(0).orEmpty(), "telefone" to it.getString(1))
+                } else null
+            }
+            if (contato == null) result.error("SEM_NUMERO", "Escolha um contato com telefone.", null)
+            else result.success(contato)
+        } catch (error: RuntimeException) {
+            result.error("LEITURA", "Não foi possível ler o contato selecionado.", null)
+        }
     }
 
     private fun isScreeningRoleEnabled(): Boolean {

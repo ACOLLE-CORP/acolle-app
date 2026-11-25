@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 /// Serviço responsável por ligar/desligar o botão flutuante persistente
@@ -5,6 +6,8 @@ import 'package:flutter/services.dart';
 /// app foi aberto a partir de um toque em uma opção do menu flutuante.
 class FloatingButtonService {
   FloatingButtonService._();
+
+  static bool get disponivel => !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
   static const _canal = MethodChannel('acolle/floating_button');
   static const _canalRotas = EventChannel('acolle/floating_button_routes');
@@ -30,11 +33,13 @@ class FloatingButtonService {
   /// 'analisar', 'verificar_link', 'alertas', 'ajuda' — ou null se foi
   /// uma abertura normal do app (ícone, notificação, etc).
   static Future<String?> rotaInicial() async {
+    if (!disponivel) return null;
     return await _canal.invokeMethod<String>('rotaInicial');
   }
 
   /// Rotas tocadas quando o aplicativo já está aberto.
   static Stream<String> get rotas {
+    if (!disponivel) return const Stream.empty();
     return _canalRotas
         .receiveBroadcastStream()
         .where((rota) => rota is String)

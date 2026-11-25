@@ -1,3 +1,5 @@
+import '../services/configuracao_inicial_service.dart';
+import 'termos_page.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -45,11 +47,12 @@ class _LoginPageState extends State<LoginPage> {
     setState(() => carregando = true);
 
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
+      final credencial = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: emailController.text.trim(),
         password: senhaController.text.trim(),
       );
 
+      final pendente = await ConfiguracaoInicialService.pendente(credencial.user!.uid);
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -58,7 +61,7 @@ class _LoginPageState extends State<LoginPage> {
 
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const HomePage()),
+        MaterialPageRoute(builder: pendente ? TermosPage.primeiraPermissao : (_) => const HomePage()),
       );
     } on FirebaseAuthException catch (e) {
       String mensagem = 'Erro ao entrar. Verifique seus dados.';

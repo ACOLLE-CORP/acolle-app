@@ -509,6 +509,7 @@ class AcolleDesign {
 
       child: OutlinedButton(
         onPressed: onPressed,
+        style: OutlinedButton.styleFrom(foregroundColor: corBotao),
 
         child: Text(
           texto,

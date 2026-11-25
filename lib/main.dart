@@ -254,7 +254,9 @@ class _AcolleAppState extends State<AcolleApp> {
 
             return MediaQuery(
               data: mediaQuery.copyWith(
-                textScaler: TextScaler.linear(acessibilidade.escalaTexto),
+                textScaler: acessibilidade.escalaTexto == 1.0
+                    ? mediaQuery.textScaler
+                    : _EscalaDoAplicativo(mediaQuery.textScaler, acessibilidade.escalaTexto),
               ),
               child: child!,
             );
@@ -265,4 +267,16 @@ class _AcolleAppState extends State<AcolleApp> {
       },
     );
   }
+}
+
+class _EscalaDoAplicativo extends TextScaler {
+  const _EscalaDoAplicativo(this.sistema, this.fator);
+  final TextScaler sistema;
+  final double fator;
+
+  @override
+  double scale(double fontSize) => sistema.scale(fontSize) * fator;
+
+  @override
+  double get textScaleFactor => scale(14) / 14;
 }

@@ -228,6 +228,7 @@ class _HistoricoChamadasPageState
                             as Map<String, dynamic>;
 
                     return _ItemChamada(
+                      classificacao: dados['classificacao'] as String?,
                       numero:
                           dados['numero']
                                   as String? ??
@@ -498,11 +499,13 @@ class _ItemChamada
     extends StatelessWidget {
   const _ItemChamada({
     required this.numero,
+    required this.classificacao,
     required this.suspeito,
     required this.data,
   });
 
   final String numero;
+  final String? classificacao;
   final bool suspeito;
   final DateTime? data;
 
@@ -532,8 +535,8 @@ class _ItemChamada
     final corRisco =
         AcolleDesign.vermelho;
 
-    final corNormal =
-        AcolleDesign.verde;
+    final corNormal = classificacao == 'contato' || classificacao == 'sem_denuncias'
+        ? AcolleDesign.verde : corTextoSecundario;
 
     final corIcone =
         suspeito
@@ -656,7 +659,14 @@ class _ItemChamada
                 Text(
                   suspeito
                       ? 'Chamada suspeita de golpe'
-                      : 'Chamada comum',
+                      : switch (classificacao) {
+                          'sem_denuncias' => 'Nenhuma denúncia encontrada',
+                          'sem_registro_local' => 'Sem registro na lista do Acolle. Consulta externa indisponível.',
+                          'numero_incompleto' => 'O número recebido está incompleto ou é inválido',
+                          'contato' => 'Contato salvo na agenda',
+                          'indisponivel' => 'Consulta de reputação indisponível',
+                          _ => 'Sem avaliação de reputação registrada',
+                        },
 
                   style:
                       AcolleDesign.texto(

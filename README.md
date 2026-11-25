@@ -9,7 +9,7 @@
 
 <br/>
 
-[![Flutter](https://img.shields.io/badge/Flutter-3.12-02569B?logo=flutter&logoColor=white)](https://flutter.dev)
+[![Flutter](https://img.shields.io/badge/Flutter-3.50.1-02569B?logo=flutter&logoColor=white)](https://flutter.dev)
 [![Dart](https://img.shields.io/badge/Dart-3.x-0175C2?logo=dart&logoColor=white)](https://dart.dev)
 [![Firebase](https://img.shields.io/badge/Firebase-Backend-FFCA28?logo=firebase&logoColor=white)](https://firebase.google.com)
 [![Status](https://img.shields.io/badge/status-em%20desenvolvimento-yellow)](#-status-do-projeto)
@@ -21,7 +21,7 @@
 
 ## 📖 Sobre o projeto
 
-**Acolle** é um aplicativo mobile desenvolvido em **Flutter**, criado como **Trabalho de Conclusão de Curso (TCC)** do curso Técnico em Desenvolvimento de Sistemas.
+**Acolle** é um aplicativo para Android desenvolvido em **Flutter**, criado como **Trabalho de Conclusão de Curso (TCC)** do curso Técnico em Desenvolvimento de Sistemas.
 
 O aplicativo tem como propósito oferecer **auxílio digital para pessoas idosas**, com foco especial na **prevenção de golpes digitais** — um dos problemas que mais crescem no Brasil e no mundo com o avanço da tecnologia e da comunicação por aplicativos de mensagens, ligações e redes sociais.
 
@@ -59,14 +59,13 @@ O Acolle é desenvolvido especialmente para **pessoas com 70 anos ou mais**, con
 
 ## ✨ Principais funcionalidades
 
-- 🔐 **Cadastro de usuários** — criação de conta simples e guiada;
-- 🔑 **Login** — acesso seguro à conta do usuário;
-- 👤 **Perfil** — visualização e gerenciamento dos dados do usuário;
-- 🏠 **Tela inicial** — painel central de navegação do aplicativo;
-- 💡 **Dicas de prevenção contra golpes** — conteúdo educativo em linguagem acessível;
-- ♿ **Interface acessível** — botões grandes, fontes ampliadas, alto contraste e navegação simplificada.
-
-> 🚧 O Acolle está em desenvolvimento contínuo. Novas funcionalidades — como verificação de links suspeitos, análise de mensagens, contatos de emergência e lembretes de medicamentos — estão sendo implementadas e serão documentadas conforme forem concluídas.
+- Cadastro, login, recuperação de senha e gerenciamento do perfil.
+- Análise de mensagens e links com histórico de verificações.
+- No Android, avisos sobre notificações de WhatsApp e SMS, identificação de chamadas e consulta de reputação de números.
+- Proteção rápida com botão flutuante e leitura de texto na tela, mediante autorização do usuário.
+- Agenda de medicamentos com alarmes locais e opção sob demanda, sem alarme.
+- Contatos de emergência por preenchimento manual ou escolha de um número na agenda do Android.
+- Tutorial de 15 passos, dicas, ajuste do tamanho da letra e alto contraste.
 
 ---
 
@@ -76,6 +75,8 @@ O projeto foi desenvolvido utilizando:
 
 - **[Flutter](https://flutter.dev)** — framework multiplataforma para desenvolvimento mobile;
 - **[Dart](https://dart.dev)** — linguagem de programação utilizada no desenvolvimento do app;
+- Kotlin e APIs do Android para contatos, notificações, chamadas, captura de tela e sobreposição. ML Kit para reconhecimento de texto.
+- Cloudflare Workers para análise e consulta de reputação. OpenSpam fornece dados de denúncias.
 - **[Firebase](https://firebase.google.com)** — plataforma de backend, utilizada para autenticação e banco de dados de usuários.
 
 ---
@@ -85,7 +86,6 @@ O projeto foi desenvolvido utilizando:
 ```
 acolle/
 ├── android/            # Configurações e código nativo Android
-├── ios/                # Configurações e código nativo iOS
 ├── assets/
 │   └── images/         # Imagens e mascote do aplicativo
 ├── lib/
@@ -109,7 +109,7 @@ Antes de começar, você vai precisar ter instalado em sua máquina:
 - [Flutter SDK](https://docs.flutter.dev/get-started/install)
 - [Dart SDK](https://dart.dev/get-dart) (incluso no Flutter SDK)
 - Um editor de código, como [VS Code](https://code.visualstudio.com/) ou [Android Studio](https://developer.android.com/studio)
-- Um emulador Android/iOS configurado ou um dispositivo físico conectado
+- Um aparelho Android para testar os recursos nativos, ou um emulador Android configurado
 
 ### Passo a passo
 
@@ -118,7 +118,7 @@ Antes de começar, você vai precisar ter instalado em sua máquina:
 git clone https://github.com/ACOLLE-CORP/acolle-app.git
 
 # 2. Acesse a pasta do projeto
-cd acolle
+cd acolle-app
 
 # 3. Instale as dependências
 flutter pub get

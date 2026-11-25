@@ -7,20 +7,19 @@ import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Bundle
-import android.os.SystemClock
 import android.view.Gravity
 import android.view.WindowManager
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.Space
 import android.widget.TextView
-import android.widget.Toast
 import kotlin.concurrent.thread
 
 class IncomingCallAlertActivity : Activity() {
     companion object {
         const val EXTRA_NUMBER = "number"
         const val EXTRA_SUSPECT = "suspect"
+        const val EXTRA_STATUS = "status"
         const val EXTRA_ANALYZE = "analyze"
         private const val PURPLE = 0xFF302268.toInt()
         private const val ACCENT = 0xFF6C4CE6.toInt()
@@ -51,29 +50,27 @@ class IncomingCallAlertActivity : Activity() {
     private fun handleIntent(source: Intent) {
         val number = source.getStringExtra(EXTRA_NUMBER).orEmpty().ifBlank { "Número oculto" }
         if (source.getBooleanExtra(EXTRA_ANALYZE, false)) {
-            render(number, null)
+            render(number, CallAlertStatus.CHECKING)
             analyzeNumber(number, source)
         } else {
-            render(number, source.getBooleanExtra(EXTRA_SUSPECT, false))
+            val status = CallAlertStatus.values().find { it.name == source.getStringExtra(EXTRA_STATUS) }
+                ?: when {
+                    source.getBooleanExtra(EXTRA_SUSPECT, false) -> CallAlertStatus.SUSPECT
+                    source.hasExtra(EXTRA_SUSPECT) -> CallAlertStatus.CLEAR
+                    else -> CallAlertStatus.UNAVAILABLE
+                }
+            render(number, status)
         }
     }
 
     private fun analyzeNumber(number: String, source: Intent) {
         thread(name = "acolle-debug-spam-check") {
-            val analysisStartedAt = SystemClock.elapsedRealtime()
-            try {
-                val suspect = PhoneReputation.check(number)
-                val remainingDisplayTime =
-                    2_000L - (SystemClock.elapsedRealtime() - analysisStartedAt)
-                if (remainingDisplayTime > 0) Thread.sleep(remainingDisplayTime)
-                runOnUiThread { if (!isFinishing && !isDestroyed && intent === source) render(number, suspect) }
-            } catch (_: Exception) {
-                runOnUiThread { if (!isFinishing && !isDestroyed && intent === source) renderError(number) }
-            }
+            val status = PhoneReputation.avaliarNumero(applicationContext, number)
+            runOnUiThread { if (!isFinishing && !isDestroyed && intent === source) render(number, status) }
         }
     }
 
-    private fun render(number: String, suspect: Boolean?) {
+    private fun render(number: String, status: CallAlertStatus) {
         val density = resources.displayMetrics.density
         fun dp(value: Int) = (value * density).toInt()
 
@@ -103,15 +100,16 @@ class IncomingCallAlertActivity : Activity() {
             letterSpacing = 0.14f
         })
         card.addView(space(18))
-        val statusIcon = when (suspect) {
-            true -> "!"
-            false -> "✓"
-            null -> "…"
+        val statusIcon = when (status) {
+            CallAlertStatus.SUSPECT -> "!"
+            CallAlertStatus.CLEAR -> "✓"
+            CallAlertStatus.CHECKING -> "…"
+            else -> "?"
         }
-        val statusColor = when (suspect) {
-            true -> PURPLE
-            false -> ACCENT
-            null -> 0xFF1976D2.toInt()
+        val statusColor = when (status) {
+            CallAlertStatus.SUSPECT -> PURPLE
+            CallAlertStatus.CLEAR -> ACCENT
+            else -> 0xFF1976D2.toInt()
         }
         card.addView(label(statusIcon, 42f, Color.WHITE, true).apply {
             gravity = Gravity.CENTER
@@ -124,28 +122,19 @@ class IncomingCallAlertActivity : Activity() {
         card.addView(label(number, 17f, 0xFF77738A.toInt(), false))
         card.addView(space(18))
 
-        val warningColor = when (suspect) {
-            true -> PURPLE
-            false -> GREEN
-            null -> 0xFF1976D2.toInt()
+        val warningColor = when (status) {
+            CallAlertStatus.SUSPECT -> PURPLE
+            CallAlertStatus.CLEAR -> GREEN
+            else -> 0xFF1976D2.toInt()
         }
-        val warningText = when (suspect) {
-            true -> "⚠  Número suspeito detectado"
-            false -> "✓  Nenhuma denúncia encontrada"
-            null -> "⌛  Analisando o número..."
-        }
-        card.addView(label(warningText, 17f, PURPLE, true).apply {
+        card.addView(label(status.titulo, 17f, PURPLE, true).apply {
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(16), dp(16), dp(16), dp(16))
             background = rounded(withAlpha(warningColor, 0x25), 14f)
         }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(58)))
         card.addView(space(10))
         card.addView(label(
-            when (suspect) {
-                true -> "Não informe senhas, códigos ou dados bancários."
-                false -> "A ausência de denúncias não garante que a ligação seja segura."
-                null -> "Consultando a base de denúncias. Aguarde um instante."
-            },
+            status.descricao,
             14f,
             0xFF696477.toInt(),
             false,
@@ -166,15 +155,6 @@ class IncomingCallAlertActivity : Activity() {
         })
         card.addView(actions)
         setContentView(root)
-    }
-
-    private fun renderError(number: String) {
-        render(number, null)
-        Toast.makeText(
-            this,
-            "Não foi possível verificar. Tente novamente em alguns segundos.",
-            Toast.LENGTH_LONG,
-        ).show()
     }
 
     private fun label(text: String, size: Float, color: Int, bold: Boolean) =

@@ -14,7 +14,7 @@ import android.widget.TextView
 class MessageAlertActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        getSystemService(NotificationManager::class.java).cancel(9100)
+        getSystemService(NotificationManager::class.java).cancel(MESSAGE_ALERT_ID)
         val density = resources.displayMetrics.density
         fun dp(n: Int) = (n * density).toInt()
         val column = LinearLayout(this).apply {

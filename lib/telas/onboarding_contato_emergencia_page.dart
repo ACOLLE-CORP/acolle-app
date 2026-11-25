@@ -1,7 +1,7 @@
+import '../services/agenda_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
 import '../shared/acolle_design.dart';
 import 'tudo_pronto_page.dart';
@@ -20,12 +20,6 @@ class _OnboardingContatoEmergenciaPageState
   final _nomeController = TextEditingController();
   final _telefoneController = TextEditingController();
 
-  final _telefoneMask = MaskTextInputFormatter(
-    mask: '(##) #####-####',
-    filter: {
-      '#': RegExp(r'[0-9]'),
-    },
-  );
 
   bool _carregando = false;
 
@@ -52,7 +46,7 @@ class _OnboardingContatoEmergenciaPageState
         return;
       }
 
-      if (_telefoneController.text.trim().length < 15) {
+      if (_telefoneController.text.replaceAll(RegExp(r'\D'), '').length < 10) {
         AcolleDesign.snackbar(
           context,
           'Digite um telefone válido.',
@@ -114,13 +108,8 @@ class _OnboardingContatoEmergenciaPageState
   // CONTATOS
   // ============================================================
 
-  Future<void> _adicionarDeContatos() async {
-    AcolleDesign.snackbar(
-      context,
-      'Toque em "Permitir contatos" para usar '
-      'seus contatos.',
-    );
-  }
+  Future<void> _adicionarDeContatos() => AgendaService.preencherContato(
+      context, _nomeController, _telefoneController);
 
   // ============================================================
   // BUILD
@@ -237,9 +226,6 @@ class _OnboardingContatoEmergenciaPageState
                 keyboardType:
                     TextInputType.phone,
 
-                inputFormatters: [
-                  _telefoneMask,
-                ],
 
                 style: AcolleDesign.texto(
                   tamanho: 18,
@@ -262,8 +248,7 @@ class _OnboardingContatoEmergenciaPageState
                       size: 27,
                     ),
 
-                    onPressed:
-                        _adicionarDeContatos,
+                    onPressed: AgendaService.disponivel ? _adicionarDeContatos : null,
                   ),
                 ),
               ),

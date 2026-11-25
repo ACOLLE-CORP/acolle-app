@@ -10,6 +10,7 @@ import 'package:permission_handler/permission_handler.dart';
 /// para encaminhar o conteúdo à verificação de golpes.
 class NotificationListenerService {
   NotificationListenerService._();
+  static bool get disponivel => !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
   static const _canalMetodos = MethodChannel(
     'com.example.acolle1/notification_settings',
@@ -20,20 +21,48 @@ class NotificationListenerService {
 
   /// Verifica se o usuário já concedeu a permissão de acesso a notificações.
   static Future<bool> permissaoConcedida() async {
-    final resultado = await _canalMetodos.invokeMethod<bool>(
-      'isPermissaoConcedida',
-    );
-    return resultado ?? false;
+    return _consultar('isPermissaoConcedida');
+  }
+
+  static Future<bool> avisosPermitidos() => _consultar('avisosMensagemPermitidos');
+
+  static Future<bool> verificacaoAtiva() async =>
+      await permissaoConcedida() && await avisosPermitidos();
+
+  static Future<bool> _consultar(String metodo) async {
+    if (!disponivel) return false;
+    try {
+      return await _canalMetodos.invokeMethod<bool>(metodo) ?? false;
+    } on MissingPluginException {
+      return false;
+    } on PlatformException {
+      return false;
+    }
   }
 
   /// Leva o usuário até a tela de configurações do sistema para ativar
   /// o acesso a notificações. Não existe forma de conceder isso via
   /// pop-up padrão do Android.
   static Future<void> abrirConfiguracoes() async {
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      await Permission.notification.request();
-    }
+    if (!disponivel) return;
     await _canalMetodos.invokeMethod('abrirConfiguracoes');
+  }
+
+  static Future<void> ajustarAvisos() async {
+    if (!disponivel) return;
+    await Permission.notification.request();
+    if (!await avisosPermitidos()) {
+      await _canalMetodos.invokeMethod('abrirAjustesDeAvisos');
+    }
+  }
+
+  static Future<void> configurarVerificacao() async {
+    if (!disponivel) return;
+    if (!await permissaoConcedida()) {
+      await abrirConfiguracoes();
+    } else {
+      await ajustarAvisos();
+    }
   }
 
   /// Stream com as notificações capturadas em tempo real.

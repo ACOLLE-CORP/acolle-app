@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -21,13 +22,14 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   AcessibilidadeService get acessibilidade =>
       AcessibilidadeService.instance;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     acessibilidade.addListener(
       _onAcessibilidadeChanged,
@@ -96,15 +98,21 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _iniciarCallerId() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
     await CallerIdService.sincronizarNumerosSuspeitos();
     if (!mounted) return;
-    final status = await Permission.phone.request();
+    final status = await Permission.phone.status;
 
     if (mounted && status.isGranted) {
       await CallerIdService.iniciarMonitoramento(
         _mostrarAlertaNumero,
       );
     }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _iniciarCallerId();
   }
 
   void _mostrarAlertaNumero(String numero) {
@@ -131,7 +139,7 @@ class _HomePageState extends State<HomePage> {
             style: AcolleDesign.tituloDialogo,
           ),
           content: Text(
-            'O número $numero está na lista de números '
+            'O número $numero foi identificado como um dos números '
             'suspeitos de golpe. Tenha cuidado ao atender.',
             style: AcolleDesign.textoDialogo,
           ),
@@ -462,6 +470,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     acessibilidade.removeListener(
       _onAcessibilidadeChanged,
     );

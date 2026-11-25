@@ -1,3 +1,4 @@
+import 'historico_chamadas_page.dart';
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -148,14 +149,10 @@ class _HistoricoPageState extends State<HistoricoPage> {
 
                   const SizedBox(width: 8),
 
-                  _buildFiltroChip(
-                    'Chamadas',
-                    'chamada',
-                    altoContraste,
-                    texto,
-                    destaque,
-                    card,
-                    borda,
+                  ActionChip(
+                    label: const Text('Chamadas'),
+                    onPressed: () => Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const HistoricoChamadasPage())),
                   ),
                 ],
               ),

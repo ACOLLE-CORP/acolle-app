@@ -207,7 +207,7 @@ class _AnalisarMensagemPageState
       _verificarPermissaoNotificacao() async {
     final concedida =
         await NotificationListenerService
-            .permissaoConcedida();
+              .verificacaoAtiva();
 
     if (!mounted) return;
 
@@ -224,7 +224,7 @@ class _AnalisarMensagemPageState
   Future<void>
       _ativarNotificationListener() async {
     await NotificationListenerService
-        .abrirConfiguracoes();
+        .configurarVerificacao();
 
     await _verificarPermissaoNotificacao();
   }
@@ -593,7 +593,7 @@ class _AnalisarMensagemPageState
                 CrossAxisAlignment.stretch,
 
             children: [
-              if (!_permissaoNotificacaoConcedida)
+              if (NotificationListenerService.disponivel && !_permissaoNotificacaoConcedida)
                 _buildCardAtivarAutomatico(
                   altoContraste,
                   corTexto,

@@ -1,3 +1,5 @@
+import '../services/configuracao_inicial_service.dart';
+import 'termos_page.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'login_page.dart';
@@ -24,17 +26,19 @@ class _SplashPageState extends State<SplashPage> {
   void initState() {
     super.initState();
 
-    _progressTimer = Timer.periodic(const Duration(milliseconds: 35), (timer) {
+    _progressTimer = Timer.periodic(const Duration(milliseconds: 35), (timer) async {
       if (porcentagem >= 100) {
         timer.cancel();
 
         if (!mounted) return;
         final user = FirebaseAuth.instance.currentUser;
+        final pendente = user != null && await ConfiguracaoInicialService.pendente(user.uid);
+        if (!mounted) return;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (context) =>
-                user != null ? const HomePage() : const LoginPage(),
+                user == null ? const LoginPage() : pendente ? TermosPage.primeiraPermissao(context) : const HomePage(),
           ),
         );
         if (!navegacaoInicialPronta.isCompleted) {

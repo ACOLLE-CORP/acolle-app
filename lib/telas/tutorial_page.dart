@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../services/notification_listener_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../services/acessibilidade_service.dart';
@@ -88,7 +89,14 @@ const List<_Passo> _passos = [
     texto:
         'Recebeu uma mensagem estranha? Escreva, cole ou fale o texto em '
         '"Verificar mensagem" e o Acolle analisa para você.',
-    destaque: 'Para links, use "Verificar link" antes de abrir.',
+    destaque: 'Com a Proteção rápida, você pode ler o texto da tela e localizar um link para verificar.',
+  ),
+  _Passo(
+    icone: Icons.notifications_active_rounded,
+    cor: AcolleDesign.roxo,
+    titulo: 'Avisos automáticos',
+    texto: 'No Android, o Acolle pode verificar mensagens que aparecem nas notificações do WhatsApp e SMS. Se encontrar sinais de golpe, mostra um aviso.',
+    destaque: 'Ative o acesso às notificações e permita que o Acolle mostre avisos. Conversas sem prévia na notificação podem ficar fora da análise.',
   ),
   _Passo(
     icone: Icons.warning_amber_rounded,
@@ -147,7 +155,7 @@ const List<_Passo> _passos = [
     titulo: 'Ajuda',
     texto:
         'Precisa de alguém de confiança? Toque em AJUDA para ligar '
-        'para o seu contato principal.',
+        'para uma pessoa de confiança.',
     destaque: 'Você também pode adicionar ou remover contatos ali.',
   ),
   _Passo(
@@ -541,10 +549,22 @@ List<_ItemPermissao> _itensDoGrupo(_GrupoPermissoes grupo) {
         _ItemPermissao(
           icone: Icons.notifications_active_rounded,
           titulo: 'Notificações',
-          dica: 'Avisos de chamadas suspeitas e lembretes de remédios.',
-          verificar: () => _permissaoAtiva(Permission.notification),
-          pedir: () => _pedirPermissao(Permission.notification),
+          dica: 'Permita os avisos do Acolle e o canal Alertas de golpe.',
+          verificar: NotificationListenerService.disponivel
+              ? NotificationListenerService.avisosPermitidos
+              : () => _permissaoAtiva(Permission.notification),
+          pedir: NotificationListenerService.disponivel
+              ? NotificationListenerService.ajustarAvisos
+              : () => _pedirPermissao(Permission.notification),
         ),
+        if (NotificationListenerService.disponivel)
+          _ItemPermissao(
+            icone: Icons.mark_chat_read_outlined,
+            titulo: 'Acesso às notificações',
+            dica: 'Permite verificar as mensagens recebidas por WhatsApp e SMS.',
+            verificar: NotificationListenerService.permissaoConcedida,
+            pedir: NotificationListenerService.abrirConfiguracoes,
+          ),
         _ItemPermissao(
           icone: Icons.mic_rounded,
           titulo: 'Microfone',
@@ -609,8 +629,14 @@ class _ListaPermissoesState extends State<_ListaPermissoes>
   }
 
   Future<void> _ativar(_ItemPermissao item) async {
-    await item.pedir();
-    await _atualizar();
+    try {
+      await item.pedir();
+      if (mounted) await _atualizar();
+    } on PlatformException {
+      if (mounted) AcolleDesign.snackbar(context, 'Não foi possível abrir esta configuração.');
+    } on MissingPluginException {
+      if (mounted) AcolleDesign.snackbar(context, 'Este recurso precisa de um aparelho Android compatível.');
+    }
   }
 
   @override

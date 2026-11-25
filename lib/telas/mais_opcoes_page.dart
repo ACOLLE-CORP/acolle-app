@@ -15,329 +15,108 @@ class MaisOpcoesPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final acessibilidade =
-        AcessibilidadeService.instance;
+    final contraste = AcessibilidadeService.instance.altoContraste;
+    final texto = AcolleDesign.corTexto(contraste);
+    final icone = AcolleDesign.corIcone(contraste);
 
-    final altoContraste =
-        acessibilidade.altoContraste;
+    void abrir(Widget pagina) =>
+        Navigator.push(context, MaterialPageRoute(builder: (_) => pagina));
 
-    return Scaffold(
-      backgroundColor:
-          AcolleDesign.corFundo(
-        altoContraste,
-      ),
-      appBar:
-          AcolleDesign.appBarPadrao(
-        'Mais opções',
-        centralizado: true,
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding:
-              const EdgeInsets.fromLTRB(
-            20,
-            20,
-            20,
-            32,
-          ),
-          child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Mais opções',
-                style:
-                    AcolleDesign.texto(
-                  tamanho: 27,
-                  peso:
-                      FontWeight.bold,
-                  cor:
-                      AcolleDesign.corTexto(
-                    altoContraste,
-                  ),
-                ),
-              ),
-
-              const SizedBox(
-                height: 8,
-              ),
-
-              Text(
-                'Outros recursos do Acolle ficam aqui para manter a tela inicial simples.',
-                style:
-                    AcolleDesign.texto(
-                  tamanho: 17,
-                  cor:
-                      AcolleDesign.corTextoSecundario(
-                    altoContraste,
-                  ),
-                  altura: 1.5,
-                ),
-              ),
-
-              const SizedBox(
-                height: 24,
-              ),
-
-              _Opcao(
-                icone:
-                    AcolleIcons.chamada,
-                titulo:
-                    'Proteção de chamadas',
-                descricao:
-                    'Configure a identificação de chamadas suspeitas.',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          ConfigurarProtecaoChamadasPage(
-                        proxima: (_) =>
-                            const HistoricoChamadasPage(),
-                      ),
-                    ),
-                  );
-                },
-              ),
-
-              const SizedBox(
-                height: 12,
-              ),
-
-              _Opcao(
-                icone:
-                    AcolleIcons.chamadasRecebidas,
-                titulo:
-                    'Histórico de chamadas',
-                descricao:
-                    'Consulte chamadas identificadas pelo Acolle.',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          const HistoricoChamadasPage(),
-                    ),
-                  );
-                },
-              ),
-
-              const SizedBox(
-                height: 12,
-              ),
-
-              _Opcao(
-                icone:
-                    AcolleIcons.historico,
-                titulo:
-                    'Histórico de verificações',
-                descricao:
-                    'Consulte mensagens, links e chamadas analisadas.',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          const HistoricoPage(),
-                    ),
-                  );
-                },
-              ),
-
-              const SizedBox(
-                height: 12,
-              ),
-
-              _Opcao(
-                icone:
-                    AcolleIcons.perfil,
-                titulo:
-                    'Meu perfil',
-                descricao:
-                    'Veja e altere seus dados pessoais.',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          const PerfilPage(),
-                    ),
-                  );
-                },
-              ),
-
-              const SizedBox(
-                height: 12,
-              ),
-
-              _Opcao(
-                icone:
-                    AcolleIcons.acessibilidade,
-                titulo:
-                    'Acessibilidade',
-                descricao:
-                    'Tamanho das letras e alto contraste.',
-                onTap: () =>
-                    abrirAcessibilidade(context),
-              ),
-
-              const SizedBox(
-                height: 12,
-              ),
-
-              _Opcao(
-                icone:
-                    AcolleIcons.sair,
-                titulo:
-                    'Sair da conta',
-                descricao:
-                    'Encerrar a sessão neste aparelho.',
-                onTap: () =>
-                    confirmarSaida(context),
-              ),
-              const SizedBox(height: 12),
-              _Opcao(
-                icone: Icons.privacy_tip_outlined,
-                titulo: 'Termos e privacidade',
-                descricao: 'Saiba como seus dados são usados.',
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const TermosPage(onboarding: false),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              _Opcao(
-                icone: Icons.delete_forever_outlined,
-                titulo: 'Excluir conta',
-                descricao: 'Apague sua conta e seus dados do Acolle.',
-                onTap: () => confirmarExclusaoConta(context),
-              ),
-            ],
+    Widget secao(String titulo) => Semantics(
+      header: true,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 20, 16, 6),
+        child: Text(
+          titulo,
+          style: AcolleDesign.texto(
+            tamanho: 20,
+            peso: FontWeight.bold,
+            cor: texto,
           ),
         ),
       ),
     );
-  }
-}
 
-class _Opcao extends StatelessWidget {
-  const _Opcao({
-    required this.icone,
-    required this.titulo,
-    required this.descricao,
-    required this.onTap,
-  });
+    Widget item(
+      IconData simbolo,
+      String titulo,
+      VoidCallback abrir, {
+      String? descricao,
+    }) => ListTile(
+      leading: Icon(simbolo, color: icone),
+      title: Text(titulo, style: AcolleDesign.texto(tamanho: 18, cor: texto)),
+      subtitle: descricao == null
+          ? null
+          : Text(descricao, style: AcolleDesign.texto(tamanho: 15, cor: texto)),
+      trailing: Icon(Icons.chevron_right, color: icone),
+      onTap: abrir,
+    );
 
-  final IconData icone;
-  final String titulo;
-  final String descricao;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final altoContraste =
-        AcessibilidadeService
-            .instance
-            .altoContraste;
-
-    return Material(
-      color:
-          AcolleDesign.corCard(
-        altoContraste,
-      ),
-      borderRadius:
-          BorderRadius.circular(18),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius:
-            BorderRadius.circular(18),
-        child: Padding(
-          padding:
-              const EdgeInsets.all(18),
-          child: Row(
-            children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration:
-                    BoxDecoration(
-                  color:
-                      AcolleDesign.corFundo(
-                    altoContraste,
-                  ),
-                  borderRadius:
-                      BorderRadius.circular(
-                    16,
-                  ),
-                  border: Border.all(
-                    color:
-                        AcolleDesign.corBorda(
-                      altoContraste,
-                    ),
-                  ),
-                ),
-                child: Icon(
-                  icone,
-                  size: 30,
-                  color:
-                      AcolleDesign.corIcone(
-                    altoContraste,
-                  ),
+    return Scaffold(
+      backgroundColor: AcolleDesign.corFundo(contraste),
+      appBar: AcolleDesign.appBarPadrao('Mais opções', centralizado: true),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+          children: [
+            secao('Proteção'),
+            item(
+              AcolleIcons.chamada,
+              'Proteção de chamadas',
+              () => abrir(
+                ConfigurarProtecaoChamadasPage(
+                  proxima: (_) => const HistoricoChamadasPage(),
                 ),
               ),
-
-              const SizedBox(
-                width: 16,
-              ),
-
-              Expanded(
-                child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      titulo,
-                      style:
-                          AcolleDesign.texto(
-                        tamanho: 19,
-                        peso:
-                            FontWeight.bold,
-                        cor:
-                            AcolleDesign.corTexto(
-                          altoContraste,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(
-                      height: 4,
-                    ),
-                    Text(
-                      descricao,
-                      style:
-                          AcolleDesign.texto(
-                        tamanho: 15,
-                        cor:
-                            AcolleDesign.corTextoSecundario(
-                          altoContraste,
-                        ),
-                      ),
-                    ),
-                  ],
+            ),
+            item(
+              AcolleIcons.chamadasRecebidas,
+              'Histórico de chamadas',
+              () => abrir(const HistoricoChamadasPage()),
+            ),
+            item(
+              AcolleIcons.historico,
+              'Histórico de verificações',
+              () => abrir(const HistoricoPage()),
+              descricao: 'Consulte mensagens e links analisados.',
+            ),
+            secao('Minha conta'),
+            item(
+              AcolleIcons.perfil,
+              'Meu perfil',
+              () => abrir(const PerfilPage()),
+            ),
+            item(
+              AcolleIcons.acessibilidade,
+              'Acessibilidade',
+              () => abrirAcessibilidade(context),
+              descricao: 'Tamanho das letras e alto contraste.',
+            ),
+            item(
+              Icons.privacy_tip_outlined,
+              'Termos e privacidade',
+              () => abrir(const TermosPage(onboarding: false)),
+            ),
+            item(
+              AcolleIcons.sair,
+              'Sair da conta',
+              () => confirmarSaida(context),
+            ),
+            const Divider(height: 32),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                style: TextButton.styleFrom(
+                  foregroundColor: contraste
+                      ? Colors.redAccent.shade100
+                      : Colors.red.shade800,
                 ),
+                onPressed: () => confirmarExclusaoConta(context),
+                icon: const Icon(Icons.delete_outline),
+                label: const Text('Excluir conta'),
               ),
-
-              Icon(
-                AcolleIcons.avancar,
-                size: 30,
-                color:
-                    AcolleDesign.corIcone(
-                  altoContraste,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

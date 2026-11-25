@@ -17,6 +17,7 @@ internal const val CALL_ALERT_CHANNEL = "acolle_call_alerts_v2"
 internal const val CALL_ALERT_TAG = "AcolleCallerId"
 internal const val CALLER_ID_PREFS = "acolle_caller_id"
 internal const val SUSPECT_NUMBERS_KEY = "suspect_numbers"
+internal const val LISTA_CONFIRMADA_EM = "lista_confirmada_em"
 
 class AcolleCallScreeningService : CallScreeningService() {
     override fun onScreenCall(callDetails: Call.Details) {
@@ -38,25 +39,16 @@ class AcolleCallScreeningService : CallScreeningService() {
             return
         }
         if (numeroSuspeitoNoCache(number)) {
-            showResult(id, number, true)
+            showResult(id, number, CallAlertStatus.SUSPECT)
             return
         }
 
         CallerAlertOverlay.show(this, number, CallAlertStatus.CHECKING)
         avisarChamada(id, "Verificando número…", number)
-        val suspect = try {
-            PhoneReputation.check(number)
-        } catch (error: Exception) {
-            Log.w(CALL_ALERT_TAG, "Falha ao consultar OpenSpam", error)
-            CallerAlertOverlay.show(this, number, CallAlertStatus.UNAVAILABLE)
-            avisarChamada(id, "Consulta de número indisponível", number)
-            return
-        }
-        showResult(id, number, suspect)
+        showResult(id, number, PhoneReputation.avaliarNumero(this, number))
     }
 
-    private fun showResult(id: Int, number: String, suspect: Boolean) {
-        val status = if (suspect) CallAlertStatus.SUSPECT else CallAlertStatus.CLEAR
+    private fun showResult(id: Int, number: String, status: CallAlertStatus) {
         CallerAlertOverlay.show(this, number, status)
 
         val details = PendingIntent.getActivity(
@@ -64,19 +56,13 @@ class AcolleCallScreeningService : CallScreeningService() {
             id,
             Intent(this, IncomingCallAlertActivity::class.java).apply {
                 putExtra(IncomingCallAlertActivity.EXTRA_NUMBER, number)
-                putExtra(IncomingCallAlertActivity.EXTRA_SUSPECT, suspect)
+                putExtra(IncomingCallAlertActivity.EXTRA_STATUS, status.name)
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        val title = if (suspect) "Possível chamada de golpe" else "Chamada verificada pelo Acolle"
-        val message = if (suspect) {
-            "$number consta na lista de denúncias. Não informe senhas ou códigos."
-        } else {
-            "Nenhuma denúncia encontrada para $number. Isso não garante que a ligação seja segura."
-        }
-        avisarChamada(id, title, message, details)
+        avisarChamada(id, status.titulo, "$number · ${status.descricao}", details)
     }
 }
 

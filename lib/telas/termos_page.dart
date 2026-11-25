@@ -41,11 +41,7 @@ Você pode consultar e corrigir dados do perfil no app e remover registros do hi
 A Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018) prevê direitos como acesso, correção e eliminação dos dados nas hipóteses legais.
 ''';
 
-  void _prosseguir(BuildContext context) {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => PermissaoPage(
+  static Widget primeiraPermissao(BuildContext context) => PermissaoPage(
           icone: Icons.phone_in_talk_rounded,
           titulo: 'Permitir acesso a chamadas',
           explicacao:
@@ -83,10 +79,7 @@ A Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018) prevê direito
               ),
             ),
           ),
-        ),
-      ),
-    );
-  }
+        );
 
   @override
   Widget build(BuildContext context) {
@@ -136,9 +129,9 @@ A Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018) prevê direito
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     AcolleDesign.botaoPrimario(
-                      texto: 'Entendi',
+                      texto: 'Li e concordo',
                       icone: Icons.check_circle_outline_rounded,
-                      onPressed: () => _prosseguir(context),
+                      onPressed: () => Navigator.pop(context, true),
                     ),
                   ],
                 ),

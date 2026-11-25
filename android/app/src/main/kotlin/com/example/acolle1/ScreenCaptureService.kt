@@ -603,6 +603,7 @@ class ScreenCaptureService : Service() {
     }
 
     override fun onDestroy() {
+        handler.removeCallbacksAndMessages(null)
 
         liberarRecursosCaptura()
 

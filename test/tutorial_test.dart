@@ -54,7 +54,7 @@ void main() {
       await tester.tap(find.text('Abrir'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Passo 1 de 14'), findsOneWidget);
+      expect(find.text('Passo 1 de 15'), findsOneWidget);
       expect(find.text('Olá! Eu sou o Collin'), findsOneWidget);
       expect(find.text('Voltar'), findsNothing);
       expect(find.text('Avançar'), findsOneWidget);
@@ -68,12 +68,12 @@ void main() {
 
       await tester.tap(find.text('Avançar'));
       await tester.pumpAndSettle();
-      expect(find.text('Passo 2 de 14'), findsOneWidget);
+      expect(find.text('Passo 2 de 15'), findsOneWidget);
       expect(find.text('Para que serve o Acolle'), findsOneWidget);
 
       await tester.tap(find.text('Voltar'));
       await tester.pumpAndSettle();
-      expect(find.text('Passo 1 de 14'), findsOneWidget);
+      expect(find.text('Passo 1 de 15'), findsOneWidget);
     });
 
     testWidgets('Pular fecha o tutorial e avisa o fim', (tester) async {
@@ -95,12 +95,12 @@ void main() {
       await tester.tap(find.text('Abrir'));
       await tester.pumpAndSettle();
 
-      for (var i = 0; i < 13; i++) {
+      for (var i = 0; i < 14; i++) {
         await tester.tap(find.text('Avançar'));
         await tester.pumpAndSettle();
       }
 
-      expect(find.text('Passo 14 de 14'), findsOneWidget);
+      expect(find.text('Passo 15 de 15'), findsOneWidget);
       expect(find.text('Tudo certo!'), findsOneWidget);
       expect(find.text('Pular'), findsNothing);
 

@@ -50,7 +50,6 @@ class _PedirAjudaPageState
                 'criadoEm',
                 descending: true,
               )
-              .limit(1)
               .get();
 
       if (!mounted) return;
@@ -64,8 +63,29 @@ class _PedirAjudaPageState
         return;
       }
 
-      final dados =
-          snapshot.docs.first.data();
+      final contatos = snapshot.docs.map((doc) => doc.data()).toList();
+      final dados = contatos.length == 1 ? contatos.first :
+          await showDialog<Map<String, dynamic>>(
+            context: context,
+            builder: (dialogContext) => SimpleDialog(
+              title: const Text('Para quem você quer ligar?'),
+              children: [
+                for (final contato in contatos)
+                  SimpleDialogOption(
+                    onPressed: () => Navigator.pop(dialogContext, contato),
+                    child: ListTile(
+                      title: Text(contato['nome']?.toString() ?? 'Contato'),
+                      subtitle: Text(contato['telefone']?.toString() ?? ''),
+                    ),
+                  ),
+              ],
+            ),
+          );
+      if (!mounted) return;
+      if (dados == null) {
+        setState(() => _carregando = false);
+        return;
+      }
 
       final nome =
           dados['nome'] as String? ??
@@ -248,7 +268,7 @@ class _PedirAjudaPageState
                 titulo:
                     'Ligar para meu contato',
                 descricao:
-                    'Abre o telefone com o contato principal.',
+                    'Escolha um contato de confiança para abrir o discador.',
                 cor:
                     AcolleDesign.verde,
                 carregando:

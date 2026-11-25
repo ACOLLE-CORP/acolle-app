@@ -4,6 +4,7 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Build
@@ -12,12 +13,34 @@ import android.service.notification.StatusBarNotification
 import android.speech.tts.TextToSpeech
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URI
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
+
+internal const val MESSAGE_ALERT_ID = 9200
+internal const val CANAL_ALERTA_ID = "acolle_alertas"
+
+internal fun Context.criarCanalMensagens() {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+    getSystemService(NotificationManager::class.java).createNotificationChannel(
+        NotificationChannel(CANAL_ALERTA_ID, "Alertas de golpe", NotificationManager.IMPORTANCE_HIGH).apply {
+            description = "Avisos quando o Acolle detecta uma mensagem ou link suspeito"
+            enableVibration(true)
+        },
+    )
+}
+
+internal fun Context.avisosMensagemPermitidos(): Boolean {
+    if (!NotificationManagerCompat.from(this).areNotificationsEnabled()) return false
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return true
+    criarCanalMensagens()
+    return getSystemService(NotificationManager::class.java).getNotificationChannel(CANAL_ALERTA_ID)
+        .importance != NotificationManager.IMPORTANCE_NONE
+}
 
 class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitListener {
 
@@ -27,7 +50,6 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
 
     companion object {
         private const val BASE_URL = "https://acolle-ia.acolle-corp.workers.dev/analisar"
-        private const val CANAL_ALERTA_ID = "acolle_alertas"
         private const val CONNECT_TIMEOUT_MS = 5_000
         private const val READ_TIMEOUT_MS = 30_000
         private const val DEDUP_WINDOW_MS = 24 * 60 * 60 * 1000L
@@ -62,7 +84,7 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
 
     override fun onCreate() {
         super.onCreate()
-        criarCanalDeNotificacao()
+        criarCanalMensagens()
         tts = TextToSpeech(this, this)
     }
 
@@ -74,13 +96,37 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         super.onNotificationPosted(sbn)
+        receberNotificacao(sbn, recuperada = false)
+    }
 
+    override fun onListenerDisconnected() {
+        super.onListenerDisconnected()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            requestRebind(ComponentName(this, NotificationListener::class.java))
+        }
+    }
+
+    override fun onListenerConnected() {
+        super.onListenerConnected()
+        val agora = System.currentTimeMillis()
+        for (sbn in activeNotifications.orEmpty()) {
+            if (agora - sbn.postTime in 0L..120_000L) receberNotificacao(sbn, recuperada = true)
+        }
+    }
+
+    private fun receberNotificacao(sbn: StatusBarNotification, recuperada: Boolean) {
         if (sbn.packageName !in pacotesMonitorados) return
         if (sbn.notification.flags and Notification.FLAG_GROUP_SUMMARY != 0) return
 
         val extras = sbn.notification.extras
         val titulo = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString() ?: ""
-        val texto = extrairTextoNotificacao(extras)
+        val mensagens = extras.getParcelableArray(Notification.EXTRA_MESSAGES)
+        val ultimaMensagem = mensagens?.lastOrNull() as? android.os.Bundle
+        val texto = sequenceOf(
+            ultimaMensagem?.getCharSequence("text"),
+            extras.getCharSequence(Notification.EXTRA_BIG_TEXT),
+            extras.getCharSequence(Notification.EXTRA_TEXT),
+        ).filterNotNull().firstOrNull { it.isNotBlank() }?.toString()?.trim()?.take(4_000).orEmpty()
 
         val chamada = sbn.notification
         val whatsapp = sbn.packageName == "com.whatsapp" || sbn.packageName == "com.whatsapp.w4b"
@@ -92,6 +138,7 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
             (chamada.category != Notification.CATEGORY_MESSAGE &&
                 (atender || palavrasChamada.any { it in texto.lowercase() }))
         if (whatsapp && ehChamada) {
+            if (recuperada) return
             val recebida = if (tipo != 0 && Build.VERSION.SDK_INT >= 31)
                 tipo == Notification.CallStyle.CALL_TYPE_INCOMING else atender
             if (!recebida) {
@@ -106,47 +153,34 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
         }
 
         if (sbn.notification.flags and Notification.FLAG_ONGOING_EVENT != 0) return
-        val criado = sbn.notification.`when`
-        if (!extras.containsKey(Notification.EXTRA_MESSAGES) &&
-            criado > 0 && System.currentTimeMillis() - criado > 120_000) return
         if (texto.isBlank()) return
-        if (eventoDuplicado(sbn.packageName, titulo, texto)) return
+        val horarioMensagem = ultimaMensagem?.getLong("time")?.takeIf { it > 0 }
+            ?: sbn.notification.`when`.takeIf { it > 0 } ?: sbn.postTime
+        if (eventoDuplicado(sbn.key, horarioMensagem, titulo, texto)) return
+
+        // A triagem local de alto risco não depende da rede nem espera por
+        // consultas remotas anteriores enquanto o aparelho está em repouso.
+        val local = analisarMensagemLocal(texto)
+        if (local.optInt("risco") >= 70) {
+            processarResultadoMensagem(sbn.packageName, titulo, texto, local.put("origem", "local_previo"))
+            return
+        }
 
         executor.submit {
-            try {
-                val resultado = analisarConteudo(texto)
-                processarResultadoMensagem(sbn.packageName, titulo, texto, resultado)
+            val resultado = try {
+                chamarApi(sanitizarParaAnalise(texto))
             } catch (e: Exception) {
-                val fallback = analisarMensagemLocal(texto).put("origem", "local")
-                processarResultadoMensagem(sbn.packageName, titulo, texto, fallback)
+                local.put("origem", "local")
             }
+            processarResultadoMensagem(sbn.packageName, titulo, texto, resultado)
         }
-    }
-
-    private fun extrairTextoNotificacao(extras: android.os.Bundle): String {
-        val partes = linkedSetOf<String>()
-
-        extras.getCharSequence(Notification.EXTRA_TEXT)?.toString()?.trim()
-            ?.takeIf { it.isNotEmpty() }?.let(partes::add)
-        extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString()?.trim()
-            ?.takeIf { it.isNotEmpty() }?.let(partes::add)
-
-        // Compatibilidade com notificações MessagingStyle.
-        val mensagens = extras.getParcelableArray(Notification.EXTRA_MESSAGES)
-        if (mensagens != null) {
-            mensagens.mapNotNull { item ->
-                val bundle = item as? android.os.Bundle ?: return@mapNotNull null
-                bundle.getCharSequence("text")?.toString()?.trim()
-            }.filter { it.isNotEmpty() }.forEach(partes::add)
-        }
-        return partes.joinToString("\n").take(4_000)
     }
 
     @Synchronized
-    private fun eventoDuplicado(pacote: String, titulo: String, texto: String): Boolean {
+    private fun eventoDuplicado(chaveNotificacao: String, horario: Long, titulo: String, texto: String): Boolean {
         val agora = System.currentTimeMillis()
         val chave = java.security.MessageDigest.getInstance("SHA-256")
-            .digest("$pacote\u0000$titulo\u0000${texto.trim()}".toByteArray(Charsets.UTF_8))
+            .digest("$chaveNotificacao\u0000$horario\u0000$titulo\u0000$texto".toByteArray(Charsets.UTF_8))
             .joinToString("") { "%02x".format(it) }
         val prefs = getSharedPreferences("acolle_eventos_processados", Context.MODE_PRIVATE)
         val anterior = prefs.getLong(chave, 0)
@@ -175,22 +209,12 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
         executor.submit {
             if (chave !in chamadasAtivas || contatoSalvo(numero)) return@submit
             avisarChamada(id, "Verificando número do WhatsApp…", numero)
-            val suspeito = try {
-                numeroSuspeitoNoCache(numero) || PhoneReputation.check(numero)
-            } catch (error: Exception) {
-                Log.w(CALL_ALERT_TAG, "Falha ao verificar número do WhatsApp", error)
-                if (chave in chamadasAtivas) {
-                    avisarChamada(id, "Consulta de número indisponível", numero)
-                }
-                return@submit
-            }
+            val status = PhoneReputation.avaliarNumero(this, numero)
             if (chave !in chamadasAtivas) return@submit
-            if (suspeito) {
-                avisarChamada(id, "Possível chamada de golpe", "$numero consta na lista de denúncias.")
+            avisarChamada(id, status.titulo, "$numero · ${status.descricao}")
+            if (status == CallAlertStatus.SUSPECT) {
                 CallerAlertOverlay.show(this, numero, CallAlertStatus.SUSPECT)
                 falarAlerta("Atenção! Chamada de vídeo ou voz suspeita de golpe no WhatsApp.")
-            } else {
-                avisarChamada(id, "Chamada verificada pelo Acolle", "Nenhuma denúncia encontrada para $numero.")
             }
         }
     }
@@ -202,20 +226,6 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
     // ============================================================
     // Fluxo já existente: mensagens e links de texto
     // ============================================================
-
-    private fun analisarConteudo(texto: String): JSONObject {
-        val local = analisarMensagemLocal(texto)
-        if (local.optInt("risco", 0) >= 70) return local
-
-        val link = regexLink.find(texto)?.value
-        val corpoTexto = if (link != null) {
-            """
-            Analise esta URL para identificar se é segura ou perigosa (golpe/phishing): $link
-            Responda com: classificacao, risco numerico de 0 a 100, motivos e recomendacao.
-            """.trimIndent()
-        } else sanitizarParaAnalise(texto)
-        return chamarApi(corpoTexto)
-    }
 
     private fun sanitizarParaAnalise(texto: String): String {
         return texto
@@ -363,25 +373,15 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
         sendBroadcast(intent)
     }
 
-    private fun criarCanalDeNotificacao() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-        val manager = getSystemService(NotificationManager::class.java)
-        manager.createNotificationChannel(
-            NotificationChannel(
-                CANAL_ALERTA_ID, "Alertas de golpe", NotificationManager.IMPORTANCE_HIGH,
-            ).apply { description = "Avisos quando o Acolle detecta uma mensagem ou link suspeito" },
-        )
-    }
-
     @Synchronized
     private fun mostrarNotificacaoAlerta(classificacao: String, pacote: String, recomendacao: String) {
+        if (!avisosMensagemPermitidos()) return
         val agora = System.currentTimeMillis()
         val prefs = getSharedPreferences("acolle_alerta_intervalo", Context.MODE_PRIVATE)
         val nivel = if (classificacao == "Alto") 2 else 1
         // Evita rajadas de avisos; permite escalada de Médio para Alto.
         if (agora - prefs.getLong("ultimo", 0) < 60_000 &&
             nivel <= prefs.getInt("nivel", 0)) return
-        prefs.edit().putLong("ultimo", agora).putInt("nivel", nivel).apply()
         val origem = if (pacote.startsWith("com.whatsapp")) "WhatsApp" else "Mensagens SMS"
         val intentAbrirApp = Intent(this, MessageAlertActivity::class.java).apply {
             putExtra("recomendacao", recomendacao)
@@ -392,6 +392,12 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
             this, 0, intentAbrirApp,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
+        val versaoPublica = NotificationCompat.Builder(this, CANAL_ALERTA_ID)
+            .setSmallIcon(R.drawable.ic_acolle_notification)
+            .setContentTitle("Acolle • Alerta de golpe")
+            .setContentText("Desbloqueie para conferir a orientação.")
+            .setContentIntent(pendingIntent)
+            .build()
         val notificacao = NotificationCompat.Builder(this, CANAL_ALERTA_ID)
             .setSmallIcon(R.drawable.ic_acolle_notification)
             .setContentTitle(if (classificacao == "Alto") "Pare e confira: sinais de golpe" else "Confira esta mensagem com cuidado")
@@ -399,13 +405,18 @@ class NotificationListener : NotificationListenerService(), TextToSpeech.OnInitL
             .setContentText(recomendacao)
             .setStyle(NotificationCompat.BigTextStyle().bigText(recomendacao))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+            .setPublicVersion(versaoPublica)
             .setContentIntent(pendingIntent)
             .addAction(0, "Ver orientação", pendingIntent)
             .setAutoCancel(true)
-            .setTimeoutAfter(120_000)
             .build()
-        getSystemService(NotificationManager::class.java)
-            .notify(9100, notificacao)
+        try {
+            getSystemService(NotificationManager::class.java).notify(MESSAGE_ALERT_ID, notificacao)
+            prefs.edit().putLong("ultimo", agora).putInt("nivel", nivel).apply()
+        } catch (_: SecurityException) {
+            Log.i(CALL_ALERT_TAG, "Permissão de avisos de mensagem indisponível")
+        }
     }
 
     override fun onDestroy() {

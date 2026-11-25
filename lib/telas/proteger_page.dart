@@ -1,3 +1,4 @@
+import '../services/floating_button_service.dart';
 import 'package:flutter/material.dart';
 
 import '../services/acessibilidade_service.dart';
@@ -46,7 +47,7 @@ class ProtegerPage extends StatelessWidget {
               const SizedBox(height: 8),
 
               Text(
-                'Os botões a seguir são para o senhor(a) descobrir se a mensagem, link ou ligação que recebeu pode ser golpe.',
+                'Os botões a seguir são para o senhor(a) descobrir se a mensagem ou o link que recebeu pode ser golpe.',
                 style: AcolleDesign.texto(
                   tamanho: 17,
                   cor: AcolleDesign.corTextoSecundario(
@@ -96,7 +97,7 @@ class ProtegerPage extends StatelessWidget {
 
               // Proteção rápida (botão flutuante que continua fora do app).
               // Antes ficava na Home.
-              const BotaoFlutuanteCard(),
+              if (FloatingButtonService.disponivel) const BotaoFlutuanteCard(),
             ],
           ),
         ),

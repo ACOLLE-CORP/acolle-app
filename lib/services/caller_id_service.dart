@@ -8,6 +8,7 @@ import 'package:phone_state/phone_state.dart';
 /// Usa a lista de suspeitos sincronizada no Android e grava o histórico.
 class CallerIdService {
   static StreamSubscription? _subscription;
+  static int _geracao = 0;
   static StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
   _suspeitosSubscription;
   static const _canalNativo = MethodChannel('acolle/caller_id');
@@ -16,7 +17,9 @@ class CallerIdService {
   static Future<void> iniciarMonitoramento(
     Function(String numero) onNumeroSuspeito,
   ) async {
+    final geracao = ++_geracao;
     await _subscription?.cancel();
+    if (geracao != _geracao) return;
     _subscription = PhoneState.stream.listen((event) async {
       if (event.status == PhoneStateStatus.CALL_INCOMING &&
           event.number != null) {
@@ -24,7 +27,8 @@ class CallerIdService {
         if (normalizarNumero(numero).isEmpty) return;
         final uid = FirebaseAuth.instance.currentUser?.uid;
         if (uid == null || suspenderHistorico) return;
-        final suspeito = await _verificarNumero(numero);
+        final classificacao = await _verificarNumero(numero);
+        final suspeito = classificacao == 'suspeita';
         if (suspenderHistorico ||
             FirebaseAuth.instance.currentUser?.uid != uid) {
           return;
@@ -35,6 +39,7 @@ class CallerIdService {
             'usuarioId': uid,
             'numero': numero,
             'suspeito': suspeito,
+            'classificacao': classificacao,
             'data': FieldValue.serverTimestamp(),
           });
         } catch (_) {}
@@ -69,6 +74,7 @@ class CallerIdService {
               try {
                 await _canalNativo.invokeMethod<bool>('syncSuspectNumbers', {
                   'numbers': numeros,
+                  'confirmada': !snapshot.metadata.isFromCache && !snapshot.metadata.hasPendingWrites,
                 });
               } on PlatformException catch (e) {
                 debugPrint('Falha ao sincronizar números suspeitos: $e');
@@ -85,24 +91,13 @@ class CallerIdService {
     }
   }
 
-  static Future<bool> _verificarNumero(String numero) async {
+  static Future<String> _verificarNumero(String numero) async {
     try {
-      if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
-        return false;
-      }
-      final argumentos = {'numero': numero};
-      final salvo = await _canalNativo.invokeMethod<bool>(
-        'isSavedContact',
-        argumentos,
-      );
-      if (salvo == true) return false;
-      return await _canalNativo.invokeMethod<bool>(
-            'isSuspectNumberCached',
-            argumentos,
-          ) ??
-          false;
-    } catch (_) {
-      return false;
+      return await _canalNativo.invokeMethod<String>('classificarChamada', {'numero': numero}) ?? 'indisponivel';
+    } on PlatformException {
+      return 'indisponivel';
+    } on MissingPluginException {
+      return 'indisponivel';
     }
   }
 
@@ -121,6 +116,7 @@ class CallerIdService {
   }
 
   static void pararMonitoramento() {
+    _geracao++;
     _subscription?.cancel();
     // A sincronização permanece ativa enquanto o usuário estiver autenticado,
     // mantendo o cache nativo atualizado mesmo ao sair da tela Home.

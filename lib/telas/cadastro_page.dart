@@ -1,3 +1,6 @@
+import '../services/configuracao_inicial_service.dart';
+import 'package:flutter/foundation.dart';
+import 'home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -35,6 +38,7 @@ class _CadastroPageState extends State<CadastroPage> {
   );
 
   bool carregando = false;
+  User? _contaCriada;
   bool mostrarSenha = false;
   bool mostrarConfirmarSenha = false;
 
@@ -144,21 +148,26 @@ class _CadastroPageState extends State<CadastroPage> {
     setState(() => carregando = true);
 
     try {
-      final credencial =
-          await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email,
-        password: senha,
-      );
+      if (_contaCriada == null) {
+        final aceitou = await Navigator.push<bool>(context,
+            MaterialPageRoute(builder: (_) => const TermosPage()));
+        if (!mounted || aceitou != true) return;
+        final credencial = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+            email: email, password: senha);
+        _contaCriada = credencial.user!;
+      }
+      final user = _contaCriada!;
+      if (!kIsWeb) await ConfiguracaoInicialService.iniciar(user.uid);
       
-      await credencial.user!.updateDisplayName(nome);
-      await credencial.user!.reload();
+      await user.updateDisplayName(nome);
+      await user.reload();
 
       await FirebaseFirestore.instance
           .collection('usuarios')
-          .doc(credencial.user!.uid)
+          .doc(user.uid)
           .set({
         'nome': nome,
-        'email': email,
+        'email': user.email,
         'telefone': telefone,
         'dataNascimento': nascimento,
         'criadoEm': FieldValue.serverTimestamp(),
@@ -169,7 +178,7 @@ class _CadastroPageState extends State<CadastroPage> {
       mostrarMensagem('Conta criada com sucesso!');
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const TermosPage()),
+        MaterialPageRoute(builder: kIsWeb ? (_) => const HomePage() : TermosPage.primeiraPermissao),
       );
     } on FirebaseAuthException catch (e) {
       String mensagem = 'Não foi possível criar a conta.';
@@ -182,7 +191,9 @@ class _CadastroPageState extends State<CadastroPage> {
         mensagem = 'Escolha uma senha um pouco mais forte.';
       }
 
-      mostrarMensagem(mensagem);
+      if (mounted) mostrarMensagem(mensagem);
+    } on FirebaseException {
+      if (mounted) mostrarMensagem('Não foi possível salvar os dados do perfil. Confira a conexão e tente novamente.');
     } finally {
       if (mounted) setState(() => carregando = false);
     }

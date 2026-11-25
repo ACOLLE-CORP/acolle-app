@@ -36,6 +36,8 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
   List<String> _linksDaTela = const [];
   Map<String, dynamic>? _resultado;
   String? _erro;
+  String? _urlAnalisada;
+  int _versao = 0;
 
   bool _permissaoNotificacaoConcedida = false;
 
@@ -54,8 +56,6 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
   bool get _altoContraste =>
       AcolleDesign.altoContraste;
 
-  double get _escalaTexto =>
-      AcolleDesign.escalaTexto;
 
   Color get _texto =>
       AcolleDesign.corTexto(_altoContraste);
@@ -162,7 +162,7 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
 
   Future<void> _verificarPermissaoNotificacao() async {
     final concedida =
-        await NotificationListenerService.permissaoConcedida();
+        await NotificationListenerService.verificacaoAtiva();
 
     if (!mounted) return;
 
@@ -176,7 +176,7 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
   }
 
   Future<void> _ativarNotificationListener() async {
-    await NotificationListenerService.abrirConfiguracoes();
+    await NotificationListenerService.configurarVerificacao();
 
     await _verificarPermissaoNotificacao();
   }
@@ -206,65 +206,13 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
           return;
         }
 
-        final link = match.group(0)!;
-
-        final resultado =
-            <String, dynamic>{
-          'classificacao':
-              classificacao,
-          'risco':
-              notificacao['risco'] ?? 0,
-          'recomendacao':
-              notificacao['recomendacao'] ?? '',
-          'motivos':
-              const <String>[],
-        };
-
         if (!mounted) return;
-
-        setState(() {
-          _linkController.text = link;
-          _resultado = resultado;
-          _erro = null;
-        });
-
-        _salvarResultadoDaNotificacao(
-          link,
-          resultado,
-        );
+        _linkController.text = match.group(0)!;
+        // O alerta recebido classifica a mensagem inteira. Verifique a URL
+        // antes de mostrar ou salvar uma classificação específica do link.
+        unawaited(_analisarLink());
       },
     );
-  }
-
-  Future<void> _salvarResultadoDaNotificacao(
-    String link,
-    Map<String, dynamic> resultado,
-  ) async {
-    final user =
-        FirebaseAuth.instance.currentUser;
-
-    if (user == null) return;
-
-    try {
-      await FirebaseFirestore.instance
-          .collection('verificacoes')
-          .add({
-        'usuarioId': user.uid,
-        'tipo': 'link',
-        'conteudo': link,
-        'risco':
-            resultado['classificacao'] ??
-                'desconhecido',
-        'percentual':
-            resultado['risco'] ?? 0,
-        'data':
-            FieldValue.serverTimestamp(),
-      });
-    } catch (e) {
-      debugPrint(
-        'Erro ao salvar verificação vinda da notificação: $e',
-      );
-    }
   }
 
   // ============================================================
@@ -272,6 +220,7 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
   // ============================================================
 
   Future<void> _analisarLink() async {
+    final versao = ++_versao;
     var link =
         _linkController.text.trim();
 
@@ -286,6 +235,7 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
 
     if (link.isEmpty) {
       setState(() {
+        _resultado = null;
         _erro =
             'Digite um link para analisar.';
       });
@@ -294,6 +244,7 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
 
     if (!_isLinkValido(link)) {
       setState(() {
+        _resultado = null;
         _erro =
             'Link inválido. Digite um link que comece com http:// ou https://';
       });
@@ -310,9 +261,10 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
       final resposta =
           await AcolleApi.analisarLink(link);
 
-      if (!mounted) return;
+      if (!mounted || versao != _versao) return;
 
       setState(() {
+        _urlAnalisada = link;
         _resultado = resposta;
       });
 
@@ -336,14 +288,14 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
         });
       }
     } catch (e) {
-      if (!mounted) return;
+      if (!mounted || versao != _versao) return;
 
       setState(() {
         _erro =
             'Erro ao analisar o link. Tente novamente.';
       });
     } finally {
-      if (mounted) {
+      if (mounted && versao == _versao) {
         setState(() {
           _carregando = false;
         });
@@ -355,7 +307,7 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
     try {
       final uri = Uri.parse(link);
 
-      return uri.hasScheme &&
+      return uri.host.isNotEmpty && uri.hasScheme &&
           (uri.scheme == 'http' ||
               uri.scheme == 'https');
     } catch (_) {
@@ -432,14 +384,14 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
                 CrossAxisAlignment.stretch,
 
             children: [
-              if (!_permissaoNotificacaoConcedida)
+              if (NotificationListenerService.disponivel && !_permissaoNotificacaoConcedida)
                 _buildCardAtivarAutomatico(),
 
               Text(
                 'Verifique se um link é seguro antes de clicar',
                 style: TextStyle(
                   fontSize:
-                      18 * _escalaTexto,
+                      18,
                   fontWeight:
                       FontWeight.w600,
                   color: _texto,
@@ -452,7 +404,7 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
                 'Cole o link completo para análise (pode ser sem http://).',
                 style: TextStyle(
                   fontSize:
-                      15 * _escalaTexto,
+                      15,
                   color:
                       _textoSecundario,
                 ),
@@ -464,7 +416,7 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
                 Text(
                   'Links encontrados na tela (toque para verificar):',
                   style: TextStyle(
-                    fontSize: 15 * _escalaTexto,
+                    fontSize: 15,
                     color: _textoSecundario,
                   ),
                 ),
@@ -515,10 +467,19 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
   Widget _buildCampoLink() {
     return TextField(
       controller: _linkController,
+      onChanged: (_) {
+        setState(() {
+          _versao++;
+          _carregando = false;
+          _resultado = null;
+          _urlAnalisada = null;
+          _erro = null;
+        });
+      },
 
       style: TextStyle(
         fontSize:
-            18 * _escalaTexto,
+            18,
         color: _texto,
       ),
 
@@ -602,7 +563,7 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
                     fontWeight:
                         FontWeight.bold,
                     fontSize:
-                        18 * _escalaTexto,
+                        18,
                     color: _texto,
                   ),
                 ),
@@ -616,7 +577,7 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
             'Ative para o Acolle analisar sozinho os links que chegam no WhatsApp e SMS, mesmo com o app fechado.',
             style: TextStyle(
               fontSize:
-                  16 * _escalaTexto,
+                  16,
               color:
                   _textoSecundario,
               height: 1.5,
@@ -653,7 +614,7 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
                     TextAlign.center,
                 style: TextStyle(
                   fontSize:
-                      16 * _escalaTexto,
+                      16,
                   fontWeight:
                       FontWeight.bold,
                 ),
@@ -707,7 +668,7 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
               _erro!,
               style: TextStyle(
                 fontSize:
-                    16 * _escalaTexto,
+                    16,
                 color: Colors.red,
                 fontWeight:
                     FontWeight.w600,
@@ -797,7 +758,7 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
 
                 style: TextStyle(
                   fontSize:
-                      24 * _escalaTexto,
+                      24,
                   fontWeight:
                       FontWeight.bold,
                   color: cor,
@@ -810,7 +771,7 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
                 'Confirme a origem antes de abrir o link.',
                 style: TextStyle(
                   fontSize:
-                      17 * _escalaTexto,
+                      17,
                   fontWeight:
                       FontWeight.w600,
                   color: cor,
@@ -852,7 +813,7 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
                 'URL analisada:',
                 style: TextStyle(
                   fontSize:
-                      16 * _escalaTexto,
+                      16,
                   fontWeight:
                       FontWeight.bold,
                   color: _texto,
@@ -862,11 +823,11 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
               const SizedBox(height: 8),
 
               SelectableText(
-                _linkController.text.trim(),
+                _urlAnalisada ?? '',
 
                 style: TextStyle(
                   fontSize:
-                      15 * _escalaTexto,
+                      15,
                   color:
                       _textoSecundario,
                   wordSpacing: 1,
@@ -920,7 +881,7 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
                         'Motivos identificados:',
                         style: TextStyle(
                           fontSize:
-                              16 * _escalaTexto,
+                              16,
                           fontWeight:
                               FontWeight.bold,
                           color: _texto,
@@ -943,7 +904,7 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
                       '• $m',
                       style: TextStyle(
                         fontSize:
-                            16 * _escalaTexto,
+                            16,
                         height: 1.5,
                         color:
                             _textoSecundario,
@@ -1004,7 +965,7 @@ class _VerificarLinkPageState extends State<VerificarLinkPage> with WidgetsBindi
 
                     style: TextStyle(
                       fontSize:
-                          16 * _escalaTexto,
+                          16,
                       height: 1.5,
 
                       color: _altoContraste

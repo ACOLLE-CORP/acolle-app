@@ -668,7 +668,7 @@ class _ItemLembreteState
                 const SizedBox(height: 4),
 
                 Text(
-                  '${widget.horario} • '
+                  widget.frequencia == 'Sob demanda' ? 'Sob demanda • Sem alarme' : '${widget.horario} • '
                   '${widget.frequencia}',
 
                   maxLines: 2,
@@ -692,7 +692,7 @@ class _ItemLembreteState
           // SWITCH
           // ============================================================
 
-          Semantics(
+          if (widget.frequencia != 'Sob demanda') Semantics(
             label: _ativo
                 ? 'Lembrete ativado'
                 : 'Lembrete desativado',

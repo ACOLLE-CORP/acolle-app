@@ -22,6 +22,8 @@ class _AdicionarLembretePageState extends State<AdicionarLembretePage> {
 
   TimeOfDay? _horario;
 
+  bool get _sobDemanda => _frequencia == 'Sob demanda';
+
   String _frequencia = 'Diário';
 
   bool _carregando = false;
@@ -119,7 +121,7 @@ class _AdicionarLembretePageState extends State<AdicionarLembretePage> {
       return;
     }
 
-    if (_horario == null) {
+    if (!_sobDemanda && _horario == null) {
       AcolleDesign.snackbar(
         context,
         'Escolha o horário do remédio.',
@@ -148,7 +150,7 @@ class _AdicionarLembretePageState extends State<AdicionarLembretePage> {
       }
 
       final horarioFormatado =
-          _formatarHorario(_horario!);
+          _sobDemanda ? null : _formatarHorario(_horario!);
 
       // ----------------------------------------------------------
       // SALVAR NO FIRESTORE
@@ -159,7 +161,7 @@ class _AdicionarLembretePageState extends State<AdicionarLembretePage> {
           .add({
         'usuarioId': user.uid,
         'nome': nome,
-        'horario': horarioFormatado,
+        'horario': ?horarioFormatado,
         'frequencia': _frequencia,
         'ativo': true,
         'criadoEm': FieldValue.serverTimestamp(),
@@ -187,7 +189,7 @@ class _AdicionarLembretePageState extends State<AdicionarLembretePage> {
       AcolleDesign.snackbar(
         context,
         agendado
-            ? 'Lembrete adicionado!'
+            ? (_sobDemanda ? 'Remédio salvo sem alarme.' : 'Lembrete adicionado!')
             : 'Lembrete salvo. Abra o app novamente para tentar agendar o alarme.',
         cor: agendado ? AcolleDesign.verde : AcolleDesign.vermelho,
       );
@@ -203,11 +205,7 @@ class _AdicionarLembretePageState extends State<AdicionarLembretePage> {
         'Erro ao salvar lembrete.',
       );
     } finally {
-      if (!mounted) return;
-
-      setState(() {
-        _carregando = false;
-      });
+      if (mounted) setState(() => _carregando = false);
     }
   }
 
@@ -448,7 +446,9 @@ class _AdicionarLembretePageState extends State<AdicionarLembretePage> {
                 // HORÁRIO
                 // ==================================================
 
-                Semantics(
+                if (_sobDemanda)
+                  const Text('Sob demanda: o remédio fica na lista, sem alarme.')
+                else Semantics(
                   button: true,
 
                   label: _horario == null
